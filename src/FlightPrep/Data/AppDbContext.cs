@@ -12,6 +12,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<FlightPreparation> FlightPreparations => Set<FlightPreparation>();
     public DbSet<FlightImage> FlightImages => Set<FlightImage>();
     public DbSet<WindLevel> WindLevels => Set<WindLevel>();
+    public DbSet<GoNoGoSettings> GoNoGoSettings => Set<GoNoGoSettings>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

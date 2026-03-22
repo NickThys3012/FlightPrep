@@ -24,6 +24,7 @@ builder.Services.AddDbContextFactory<AppDbContext>(opts =>
 builder.Services.AddHttpClient<WeatherService>();
 builder.Services.AddSingleton<SunriseService>();
 builder.Services.AddScoped<PdfService>();
+builder.Services.AddScoped<GoNoGoService>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
