@@ -88,7 +88,7 @@ You need the [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azu
 
 ```bash
 export RESOURCE_GROUP=flightprep-rg
-export LOCATION=westeurope
+export LOCATION=swedencentral
 export DB_PASSWORD=<choose-a-strong-password>
 
 bash infra/deploy.sh

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 RESOURCE_GROUP="${RESOURCE_GROUP:-flightprep-rg}"
-LOCATION="${LOCATION:-westeurope}"
+LOCATION="${LOCATION:-swedencentral}"
 DB_PASSWORD="${DB_PASSWORD:?DB_PASSWORD env var required}"
 
 az group create --name "$RESOURCE_GROUP" --location "$LOCATION"
