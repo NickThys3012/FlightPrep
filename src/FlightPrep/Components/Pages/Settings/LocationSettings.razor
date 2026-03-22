@@ -1,0 +1,112 @@
+@page "/settings/locations"
+@rendermode InteractiveServer
+@inject IDbContextFactory<AppDbContext> DbFactory
+
+<PageTitle>Locaties – FlightPrep</PageTitle>
+
+<div class="container mt-3">
+    <h2>📍 Locaties</h2>
+
+    <table class="table table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Naam</th>
+                <th>ICAO</th>
+                <th>Luchtruimnotities</th>
+                <th>Acties</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var l in locations)
+            {
+                @if (editId == l.Id)
+                {
+                    <tr>
+                        <td><input class="form-control form-control-sm" @bind="editLoc.Name" /></td>
+                        <td><input class="form-control form-control-sm" @bind="editLoc.IcaoCode" placeholder="EBAW" /></td>
+                        <td><textarea class="form-control form-control-sm" rows="2" @bind="editLoc.AirspaceNotes"></textarea></td>
+                        <td>
+                            <button class="btn btn-sm btn-success" @onclick="SaveEdit">✅ Opslaan</button>
+                            <button class="btn btn-sm btn-secondary" @onclick="CancelEdit">Annuleren</button>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    <tr>
+                        <td>@l.Name</td>
+                        <td>@(l.IcaoCode ?? "–")</td>
+                        <td class="text-truncate" style="max-width:200px">@(l.AirspaceNotes ?? "–")</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="() => StartEdit(l)">✏️</button>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteLocation(l.Id)">🗑️</button>
+                        </td>
+                    </tr>
+                }
+            }
+            @if (addingNew)
+            {
+                <tr>
+                    <td><input class="form-control form-control-sm" @bind="newLoc.Name" placeholder="Naam" /></td>
+                    <td><input class="form-control form-control-sm" @bind="newLoc.IcaoCode" placeholder="EBAW" /></td>
+                    <td><textarea class="form-control form-control-sm" rows="2" @bind="newLoc.AirspaceNotes"></textarea></td>
+                    <td>
+                        <button class="btn btn-sm btn-success" @onclick="SaveNew">✅ Toevoegen</button>
+                        <button class="btn btn-sm btn-secondary" @onclick="() => addingNew = false">Annuleren</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (!addingNew)
+    {
+        <button class="btn btn-primary" @onclick="() => { addingNew = true; newLoc = new(); }">➕ Locatie toevoegen</button>
+    }
+</div>
+
+@code {
+    private List<Location> locations = new();
+    private int? editId;
+    private Location editLoc = new();
+    private bool addingNew;
+    private Location newLoc = new();
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        locations = await db.Locations.OrderBy(l => l.Name).ToListAsync();
+    }
+
+    private void StartEdit(Location l) =>
+        (editId, editLoc) = (l.Id, new Location { Id = l.Id, Name = l.Name, IcaoCode = l.IcaoCode, AirspaceNotes = l.AirspaceNotes });
+
+    private void CancelEdit() => editId = null;
+
+    private async Task SaveEdit()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        db.Locations.Update(editLoc);
+        await db.SaveChangesAsync();
+        editId = null;
+        await Load();
+    }
+
+    private async Task SaveNew()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        db.Locations.Add(newLoc);
+        await db.SaveChangesAsync();
+        addingNew = false;
+        await Load();
+    }
+
+    private async Task DeleteLocation(int id)
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var l = await db.Locations.FindAsync(id);
+        if (l != null) { db.Locations.Remove(l); await db.SaveChangesAsync(); }
+        await Load();
+    }
+}

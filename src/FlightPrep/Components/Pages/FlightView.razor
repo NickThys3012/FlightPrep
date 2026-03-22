@@ -1,0 +1,186 @@
+@page "/flights/{Id:int}"
+@rendermode InteractiveServer
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject PdfService PdfSvc
+@inject IJSRuntime JS
+
+<PageTitle>Vaart Bekijken – FlightPrep</PageTitle>
+
+@if (fp == null)
+{
+    <p><em>Laden...</em></p>
+}
+else
+{
+    <div class="container-fluid mt-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>📋 Vaart – @fp.Datum.ToString("dd/MM/yyyy") @fp.Tijdstip.ToString("HH:mm")</h2>
+            <div class="d-flex gap-2">
+                <a href="/flights/@fp.Id/edit" class="btn btn-outline-secondary">✏️ Bewerken</a>
+                <button class="btn btn-success" @onclick="DownloadPdf">📄 Download PDF</button>
+                <a href="/flights" class="btn btn-outline-secondary">← Terug</a>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <!-- Section 1 -->
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">1. Algemene Gegevens</div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-3">Datum</dt><dd class="col-sm-9">@fp.Datum.ToString("dd/MM/yyyy")</dd>
+                            <dt class="col-sm-3">Tijdstip</dt><dd class="col-sm-9">@fp.Tijdstip.ToString("HH:mm") LT</dd>
+                            <dt class="col-sm-3">Ballon</dt><dd class="col-sm-9">@(fp.Balloon != null ? $"{fp.Balloon.Registration} – {fp.Balloon.Type} ({fp.Balloon.Volume})" : "–")</dd>
+                            <dt class="col-sm-3">Piloot / PIC</dt><dd class="col-sm-9">@(fp.Pilot?.Name ?? "–")</dd>
+                            <dt class="col-sm-3">Locatie</dt><dd class="col-sm-9">@(fp.Location?.Name ?? "–")</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2 -->
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">2. Meteorologische Informatie</div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-3">METAR</dt><dd class="col-sm-9 font-monospace">@(fp.Metar ?? "–")</dd>
+                            <dt class="col-sm-3">TAF</dt><dd class="col-sm-9 font-monospace" style="white-space:pre-wrap">@(fp.Taf ?? "–")</dd>
+                            <dt class="col-sm-3">Wind per hoogte</dt><dd class="col-sm-9" style="white-space:pre-wrap">@(fp.WindPerHoogte ?? "–")</dd>
+                            <dt class="col-sm-3">Neerslag / bewolking</dt><dd class="col-sm-9">@(fp.Neerslag ?? "–")</dd>
+                            <dt class="col-sm-3">Temperatuur</dt><dd class="col-sm-9">@(fp.TemperatuurC.HasValue ? $"{fp.TemperatuurC}°C" : "–")</dd>
+                            <dt class="col-sm-3">Dauwpunt</dt><dd class="col-sm-9">@(fp.DauwpuntC.HasValue ? $"{fp.DauwpuntC}°C" : "–")</dd>
+                            <dt class="col-sm-3">QNH</dt><dd class="col-sm-9">@(fp.QnhHpa.HasValue ? $"{fp.QnhHpa} hPa" : "–")</dd>
+                            <dt class="col-sm-3">Zichtbaarheid</dt><dd class="col-sm-9">@(fp.ZichtbaarheidKm.HasValue ? $"{fp.ZichtbaarheidKm} km" : "–")</dd>
+                            <dt class="col-sm-3">CAPE</dt><dd class="col-sm-9">@(fp.CapeJkg.HasValue ? $"{fp.CapeJkg} J/kg" : "–")</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3 -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">3. Luchtruim en NOTAMs</div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5">NOTAMs gecontroleerd</dt><dd class="col-sm-7">@fp.NotamsGecontroleerd</dd>
+                            <dt class="col-sm-5">Luchtruimstructuur</dt><dd class="col-sm-7" style="white-space:pre-wrap">@(fp.Luchtruimstructuur ?? "–")</dd>
+                            <dt class="col-sm-5">Beperkingen</dt><dd class="col-sm-7" style="white-space:pre-wrap">@(fp.Beperkingen ?? "–")</dd>
+                            <dt class="col-sm-5">Obstakels</dt><dd class="col-sm-7" style="white-space:pre-wrap">@(fp.Obstakels ?? "–")</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4 -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">4. Veiligheid en Communicatie</div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-7">EHBO-kit en vuurblusser</dt><dd class="col-sm-5">@fp.EhboEnBlusser</dd>
+                            <dt class="col-sm-7">Passagierslijst ingevuld</dt><dd class="col-sm-5">@fp.PassagierslijstIngevuld</dd>
+                            <dt class="col-sm-7">Vluchtplan ingediend</dt><dd class="col-sm-5">@fp.VluchtplanIngediend</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 5 -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">5. Technische Controle</div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0">
+                            <li>@(fp.BranderGetest ? "☑" : "☐") Brander getest</li>
+                            <li>@(fp.GasflaconsGecontroleerd ? "☑" : "☐") Gasflessen gevuld &amp; gecontroleerd</li>
+                            <li>@(fp.BallonVisueel ? "☑" : "☐") Ballon en mand visueel geïnspecteerd</li>
+                            <li>@(fp.VerankeringenGecontroleerd ? "☑" : "☐") Verankeringen en touwen gecontroleerd</li>
+                            <li>@(fp.InstrumentenWerkend ? "☑" : "☐") Instrumenten werkend</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 7 -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">7. Load Berekening</div>
+                    <div class="card-body">
+                        <p><strong>Gewicht envelop:</strong> @(fp.EnvelopeWeightKg?.ToString("F1") ?? "–") kg</p>
+                        <p><strong>Max Altitude:</strong> @(fp.MaxAltitudeFt.HasValue ? fp.MaxAltitudeFt + " ft" : "–")</p>
+                        <p><strong>Totaal lift:</strong> @(fp.TotaalLiftKg?.ToString("F1") ?? "–") kg</p>
+                        <table class="table table-sm">
+                            <thead><tr><th>Naam</th><th>Gewicht</th></tr></thead>
+                            <tbody>
+                                <tr class="table-light"><td><em>Piloot: @(fp.Pilot?.Name ?? "–")</em></td><td>@(fp.Pilot?.WeightKg?.ToString("F1") ?? "–") kg</td></tr>
+                                @foreach (var p in fp.Passengers.OrderBy(x => x.Order))
+                                {
+                                    <tr><td>@p.Name</td><td>@p.WeightKg.ToString("F1") kg</td></tr>
+                                }
+                                <tr class="fw-bold table-secondary"><td>Totaal</td><td>@fp.TotaalGewicht.ToString("F1") kg</td></tr>
+                            </tbody>
+                        </table>
+                        @if (fp.TotaalLiftKg.HasValue)
+                        {
+                            <span class="badge @(fp.LiftVoldoende ? "bg-success" : "bg-danger")">
+                                @(fp.LiftVoldoende ? "✅ Lift voldoende" : "❌ Lift onvoldoende")
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 6 -->
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">6. Pax Briefing</div>
+                    <div class="card-body"><pre class="mb-0">@fp.PaxBriefing</pre></div>
+                </div>
+            </div>
+
+            <!-- Section 8 -->
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">8. Traject</div>
+                    <div class="card-body"><pre class="mb-0">@fp.Traject</pre></div>
+                </div>
+            </div>
+
+            <!-- Section 9 -->
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">9. Ballonbulletin</div>
+                    <div class="card-body"><pre class="font-monospace small mb-0">@fp.Ballonbulletin</pre></div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private FlightPreparation? fp;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        fp = await db.FlightPreparations
+            .Include(f => f.Balloon)
+            .Include(f => f.Pilot)
+            .Include(f => f.Location)
+            .Include(f => f.Passengers.OrderBy(p => p.Order))
+            .FirstOrDefaultAsync(f => f.Id == Id);
+    }
+
+    private async Task DownloadPdf()
+    {
+        if (fp == null) return;
+        var pdfBytes = PdfSvc.Generate(fp);
+        var fileName = $"vaartvoorbereiding_{fp.Datum:yyyy-MM-dd}_{fp.Id}.pdf";
+        await JS.InvokeVoidAsync("downloadFileFromBytes", fileName, "application/pdf",
+            Convert.ToBase64String(pdfBytes));
+    }
+}

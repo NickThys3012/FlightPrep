@@ -1,0 +1,113 @@
+@page "/flights"
+@rendermode InteractiveServer
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager Nav
+
+<PageTitle>Vaarten – FlightPrep</PageTitle>
+
+<div class="container-fluid mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>📋 Vaarten</h2>
+        <a href="/flights/new" class="btn btn-primary">➕ Nieuwe Vaart</a>
+    </div>
+
+    @if (flights == null)
+    {
+        <p><em>Laden...</em></p>
+    }
+    else if (!flights.Any())
+    {
+        <div class="alert alert-info">Nog geen vaarten. <a href="/flights/new">Maak een nieuwe vaart aan.</a></div>
+    }
+    else
+    {
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Datum</th>
+                    <th>Tijdstip</th>
+                    <th>Ballon</th>
+                    <th>Piloot</th>
+                    <th>Locatie</th>
+                    <th>Acties</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var f in flights)
+                {
+                    <tr>
+                        <td>@f.Datum.ToString("dd/MM/yyyy")</td>
+                        <td>@f.Tijdstip.ToString("HH:mm")</td>
+                        <td>@(f.Balloon?.Registration ?? "–")</td>
+                        <td>@(f.Pilot?.Name ?? "–")</td>
+                        <td>@(f.Location?.Name ?? "–")</td>
+                        <td>
+                            <a href="/flights/@f.Id" class="btn btn-sm btn-outline-primary">👁️ Bekijken</a>
+                            <a href="/flights/@f.Id/edit" class="btn btn-sm btn-outline-secondary">✏️ Bewerken</a>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => ConfirmDelete(f.Id)">🗑️ Verwijder</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if (deleteId.HasValue)
+    {
+        <div class="modal d-block" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Vaart verwijderen?</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p>Weet u zeker dat u deze vaart wilt verwijderen?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-danger" @onclick="DeleteFlight">Verwijderen</button>
+                        <button class="btn btn-secondary" @onclick="() => deleteId = null">Annuleren</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-backdrop fade show"></div>
+    }
+</div>
+
+@code {
+    private List<FlightPreparation>? flights;
+    private int? deleteId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFlights();
+    }
+
+    private async Task LoadFlights()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        flights = await db.FlightPreparations
+            .Include(f => f.Balloon)
+            .Include(f => f.Pilot)
+            .Include(f => f.Location)
+            .OrderByDescending(f => f.Datum)
+            .ThenByDescending(f => f.Tijdstip)
+            .ToListAsync();
+    }
+
+    private void ConfirmDelete(int id) => deleteId = id;
+
+    private async Task DeleteFlight()
+    {
+        if (!deleteId.HasValue) return;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var fp = await db.FlightPreparations.FindAsync(deleteId.Value);
+        if (fp != null)
+        {
+            db.FlightPreparations.Remove(fp);
+            await db.SaveChangesAsync();
+        }
+        deleteId = null;
+        await LoadFlights();
+    }
+}
