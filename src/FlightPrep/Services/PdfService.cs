@@ -109,8 +109,16 @@ public class PdfService
                     {
                         section.Item().Background(PrimaryColor).Padding(4)
                             .Text("6. Pax Briefing").Bold().FontColor(Colors.White).FontSize(10);
-                        section.Item().Background(Colors.White).Padding(4)
-                            .Text(StripHtml(fp.PaxBriefing));
+                        section.Item().Background(Colors.White).Padding(4).Column(body =>
+                        {
+                            foreach (var line in StripHtml(fp.PaxBriefing).Split('\n'))
+                            {
+                                if (string.IsNullOrWhiteSpace(line))
+                                    body.Item().Height(4); // blank line spacing
+                                else
+                                    body.Item().Text(line).FontSize(9);
+                            }
+                        });
                     });
 
                     // Section 7 - Load Calculation
