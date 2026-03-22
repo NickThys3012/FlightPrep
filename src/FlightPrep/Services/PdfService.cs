@@ -233,12 +233,37 @@ public class PdfService
     private static string StripHtml(string? html)
     {
         if (string.IsNullOrWhiteSpace(html)) return "–";
-        // Convert block-level endings to newlines before stripping tags
-        var text = Regex.Replace(html, @"</?(p|h[1-6]|li|br)[^>]*>", m =>
-            m.Value.StartsWith("</") || m.Value.Contains("br") ? "\n" : "", RegexOptions.IgnoreCase);
+
+        // Quill bullet lists: <li data-list="bullet"> → "• item"
+        var text = Regex.Replace(html,
+            @"<li[^>]*data-list=""bullet""[^>]*>(.*?)</li>",
+            m => "• " + m.Groups[1].Value + "\n",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        // Quill ordered lists: <li data-list="ordered"> → "- item"
+        text = Regex.Replace(text,
+            @"<li[^>]*data-list=""ordered""[^>]*>(.*?)</li>",
+            m => "- " + m.Groups[1].Value + "\n",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        // Standard li
+        text = Regex.Replace(text,
+            @"<li[^>]*>(.*?)</li>",
+            m => "• " + m.Groups[1].Value + "\n",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        // Block elements → newline
+        text = Regex.Replace(text, @"</?(p|h[1-6]|ul|ol|br|div)[^>]*>",
+            m => m.Value.StartsWith("</") || m.Value.Contains("br") ? "\n" : "",
+            RegexOptions.IgnoreCase);
+
+        // Strip remaining tags
         text = Regex.Replace(text, "<[^>]+>", "");
+
+        // Decode common entities
         text = text.Replace("&nbsp;", " ").Replace("&amp;", "&")
                    .Replace("&lt;", "<").Replace("&gt;", ">").Replace("&quot;", "\"");
+
         return Regex.Replace(text, @"\n{3,}", "\n\n").Trim();
     }
 }

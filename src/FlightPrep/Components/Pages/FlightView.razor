@@ -151,7 +151,11 @@ else
             <div class="col-12">
                 <div class="card">
                     <div class="card-header bg-primary text-white">6. Pax Briefing</div>
-                    <div class="card-body pax-briefing-view">@((MarkupString)(fp.PaxBriefing ?? "<em>–</em>"))</div>
+                    <div class="card-body p-0">
+                        <div class="ql-snow">
+                            <div class="ql-editor">@((MarkupString)(fp.PaxBriefing ?? "<em>–</em>"))</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
