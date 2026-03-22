@@ -32,12 +32,13 @@
         window._quills = {};
 
         window.quillInit = function (id, htmlContent) {
-            // Destroy existing instance if any
-            if (window._quills[id]) {
-                try { window._quills[id] = null; } catch {}
-            }
             const el = document.getElementById(id);
             if (!el) return;
+            // Reset DOM so we never double-initialise
+            if (window._quills[id]) {
+                window._quills[id] = null;
+            }
+            el.innerHTML = '';
             const q = new Quill('#' + id, {
                 theme: 'snow',
                 modules: {
@@ -53,9 +54,10 @@
             window._quills[id] = q;
         };
 
+        // Returns null when Quill was never opened (so C# keeps existing value)
         window.quillGetHtml = function (id) {
             const q = window._quills[id];
-            return q ? q.root.innerHTML : '';
+            return q ? q.root.innerHTML : null;
         };
     </script>
 </body>

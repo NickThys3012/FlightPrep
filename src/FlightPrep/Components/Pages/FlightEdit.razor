@@ -536,29 +536,23 @@
         "<li>Aangeraden: stevige platte schoenen</li>" +
         "<li>Vraag naar medische conditie waarvan de piloot op de hoogte moet zijn</li></ul>";
 
-    private bool quillReady;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender && fp != null && !quillReady)
-        {
-            quillReady = true;
-            await JS.InvokeVoidAsync("quillInit", "pax-briefing-editor", fp.PaxBriefing ?? "");
-        }
-    }
-
-    // Re-initialize when user opens section 6 (accordion may have been closed on first render)
+    // Quill is initialised lazily when the user opens section 6 — never on a hidden element
     private async Task InitQuillOnOpen()
     {
         if (fp == null) return;
-        await Task.Delay(50); // let Bootstrap finish the expand animation
+        await Task.Delay(400); // Bootstrap collapse animation is ~350 ms
         await JS.InvokeVoidAsync("quillInit", "pax-briefing-editor", fp.PaxBriefing ?? "");
     }
 
     private async Task ReadQuillContent()
     {
-        try { fp!.PaxBriefing = await JS.InvokeAsync<string>("quillGetHtml", "pax-briefing-editor"); }
-        catch { /* JS not available */ }
+        try
+        {
+            // quillGetHtml returns null when Quill was never opened → keep existing value
+            var html = await JS.InvokeAsync<string?>("quillGetHtml", "pax-briefing-editor");
+            if (html != null) fp!.PaxBriefing = html;
+        }
+        catch { /* JS not available (pre-render) */ }
     }
 
     protected override async Task OnInitializedAsync()
