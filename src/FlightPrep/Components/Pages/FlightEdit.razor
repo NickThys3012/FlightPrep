@@ -6,6 +6,7 @@
 @inject WeatherService WeatherSvc
 @inject PdfService PdfSvc
 @inject IJSRuntime JS
+@using Microsoft.AspNetCore.Components.Forms
 
 <PageTitle>@(Id.HasValue ? "Vaart Bewerken" : "Nieuwe Vaart") – FlightPrep</PageTitle>
 
@@ -145,6 +146,30 @@
                                 <label class="form-label">CAPE (J/kg)</label>
                                 <input type="number" step="1" class="form-control" @bind="fp.CapeJkg" />
                             </div>
+
+                            <!-- Image upload – Meteo -->
+                            <div class="col-12 mt-2">
+                                <label class="form-label fw-semibold">📷 Foto's (sonde, sounding, skew-T, ...)</label>
+                                <InputFile OnChange="UploadMeteoImages" multiple accept="image/*"
+                                    class="form-control" />
+                                @if (meteoImages.Count > 0)
+                                {
+                                    <div class="d-flex flex-wrap gap-2 mt-2">
+                                        @foreach (var img in meteoImages)
+                                        {
+                                            <div class="position-relative" style="width:140px">
+                                                <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)"
+                                                    class="img-thumbnail" style="width:140px;height:105px;object-fit:cover" />
+                                                <span class="position-absolute top-0 end-0 p-1 text-truncate w-100 small text-muted"
+                                                    style="font-size:.65rem;background:rgba(255,255,255,.8)">@img.FileName</span>
+                                                <button type="button" class="btn btn-danger btn-sm position-absolute top-0 start-0"
+                                                    style="padding:1px 5px;font-size:.7rem"
+                                                    @onclick="() => RemoveImage(img)">✕</button>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -258,13 +283,14 @@
             <!-- SECTION 6: Pax Briefing -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec6">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#sec6" @onclick="InitQuillOnOpen">
                         6. Pax Briefing
                     </button>
                 </h2>
                 <div id="sec6" class="accordion-collapse collapse">
                     <div class="accordion-body">
-                        <textarea class="form-control font-monospace" rows="20" @bind="fp.PaxBriefing"></textarea>
+                        <div id="pax-briefing-editor" style="min-height:300px"></div>
                     </div>
                 </div>
             </div>
@@ -381,8 +407,35 @@
                 </h2>
                 <div id="sec8" class="accordion-collapse collapse">
                     <div class="accordion-body">
-                        <textarea class="form-control" rows="6" placeholder="Trajectnotities / waypoints..."
-                            @bind="fp.Traject"></textarea>
+                        <div class="mb-3">
+                            <label class="form-label">Trajectnotities / waypoints</label>
+                            <textarea class="form-control" rows="4" placeholder="Trajectnotities / waypoints..."
+                                @bind="fp.Traject"></textarea>
+                        </div>
+
+                        <!-- Image upload – Traject -->
+                        <div>
+                            <label class="form-label fw-semibold">📷 Foto's (trajectkaart, wind chart, ...)</label>
+                            <InputFile OnChange="UploadTrajectImages" multiple accept="image/*"
+                                class="form-control" />
+                            @if (trajectImages.Count > 0)
+                            {
+                                <div class="d-flex flex-wrap gap-2 mt-2">
+                                    @foreach (var img in trajectImages)
+                                    {
+                                        <div class="position-relative" style="width:140px">
+                                            <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)"
+                                                class="img-thumbnail" style="width:140px;height:105px;object-fit:cover" />
+                                            <span class="position-absolute top-0 end-0 p-1 text-truncate w-100 small text-muted"
+                                                style="font-size:.65rem;background:rgba(255,255,255,.8)">@img.FileName</span>
+                                            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 start-0"
+                                                style="padding:1px 5px;font-size:.7rem"
+                                                @onclick="() => RemoveImage(img)">✕</button>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
@@ -443,6 +496,10 @@
     private List<Location> locations = new();
     private Pilot? currentPilot;
 
+    // Images kept in memory; persisted on save
+    private List<FlightImage> meteoImages = new();
+    private List<FlightImage> trajectImages = new();
+
     private bool fetchingWeather;
     private string? weatherError;
     private bool weatherSuccess;
@@ -451,7 +508,58 @@
     private bool saveError;
 
     private static readonly string DefaultPaxBriefing =
-        "Te vermelden:\n- Wat er staat te gebeuren tijdens inflation\n- NIET ROKEN\n- Oppassen van de ventilator\n- Alle PAX's en familie moeten achter de snuit van de wagen wachten\n- Wanneer de ballon recht staat: De piloot zal de PAX's roepen om in te stappen\n- Veiligheid checks vermelden (parachute)\n\nTijdens de vaart:\n- Enkel vasthouden aan de stokken/mand/lussen\n- Niets overboord gooien\n- Uitkijken voor hoogspanning en dieren\n\nLandingspositie oefenen (na +-30min):\n- Met de rug in de vaarrichting\n- Stevig vasthouden aan de lussen in de mand\n- Licht door de knieën buigen\n- Nooit je handen uit de mand zetten als we aan het slepen zijn\n\nVoor de landing:\n- Alles opbergen (GSM/Camera/etc)\n- Landingspositie aannemen\n- Pas uitstappen wanneer de piloot het zegt\n\nNa de landing:\n- Ballon opruimen\n- Iets drinken :-)\n\nAlgemeen:\n- Aangeraden om stevige platte schoenen te dragen\n- Vragen naar medische conditie";
+        "<h2>Pax Briefing</h2>" +
+        "<h3>Voor de vlucht – Inflation</h3><ul>" +
+        "<li>Wat er staat te gebeuren tijdens inflation</li>" +
+        "<li><strong>NIET ROKEN</strong></li>" +
+        "<li>Oppassen voor de ventilator</li>" +
+        "<li>Alle PAX's en familie wachten achter de snuit van de wagen</li>" +
+        "<li>Wanneer de ballon recht staat roept de piloot om in te stappen (toon instapgat)</li>" +
+        "<li>Veiligheid checks vermelden (parachute)</li></ul>" +
+        "<h3>Tijdens de vaart</h3><ul>" +
+        "<li>Enkel vasthouden aan de stokken / mand / lussen / frame gascilinders</li>" +
+        "<li>Niets overboord gooien (afval, etc.)</li>" +
+        "<li>Uitkijken voor hoogspanning en dieren (paarden/koeien) – melden aan piloot</li></ul>" +
+        "<h3>Landingspositie oefenen (na ±30 min)</h3><ul>" +
+        "<li>Met de <strong>rug in de vaarrichting</strong></li>" +
+        "<li>Stevig vasthouden aan de lussen in de mand</li>" +
+        "<li>Licht door de knieën buigen (schok opvangen, kruisbanden deblokkeren)</li>" +
+        "<li><strong>Nooit handen uit de mand</strong> als we aan het slepen zijn</li></ul>" +
+        "<h3>Voor de landing</h3><ul>" +
+        "<li>Alles opbergen (GSM / camera / etc.)</li>" +
+        "<li>Landingspositie aannemen</li>" +
+        "<li>Pas uitstappen wanneer de piloot het zegt</li></ul>" +
+        "<h3>Na de landing</h3><ul>" +
+        "<li>Ballon opruimen</li>" +
+        "<li>Iets drinken 🙂</li></ul>" +
+        "<h3>Algemeen</h3><ul>" +
+        "<li>Aangeraden: stevige platte schoenen</li>" +
+        "<li>Vraag naar medische conditie waarvan de piloot op de hoogte moet zijn</li></ul>";
+
+    private bool quillReady;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && fp != null && !quillReady)
+        {
+            quillReady = true;
+            await JS.InvokeVoidAsync("quillInit", "pax-briefing-editor", fp.PaxBriefing ?? "");
+        }
+    }
+
+    // Re-initialize when user opens section 6 (accordion may have been closed on first render)
+    private async Task InitQuillOnOpen()
+    {
+        if (fp == null) return;
+        await Task.Delay(50); // let Bootstrap finish the expand animation
+        await JS.InvokeVoidAsync("quillInit", "pax-briefing-editor", fp.PaxBriefing ?? "");
+    }
+
+    private async Task ReadQuillContent()
+    {
+        try { fp!.PaxBriefing = await JS.InvokeAsync<string>("quillGetHtml", "pax-briefing-editor"); }
+        catch { /* JS not available */ }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -467,21 +575,18 @@
                 .Include(f => f.Pilot)
                 .Include(f => f.Location)
                 .Include(f => f.Passengers.OrderBy(p => p.Order))
+                .Include(f => f.Images.OrderBy(i => i.Order))
                 .FirstOrDefaultAsync(f => f.Id == Id.Value);
 
-            if (fp == null)
-            {
-                Nav.NavigateTo("/flights");
-                return;
-            }
+            if (fp == null) { Nav.NavigateTo("/flights"); return; }
+
             currentPilot = fp.Pilot;
+            meteoImages   = fp.Images.Where(i => i.Section == "Meteo").ToList();
+            trajectImages = fp.Images.Where(i => i.Section == "Traject").ToList();
         }
         else
         {
-            fp = new FlightPreparation
-            {
-                PaxBriefing = DefaultPaxBriefing
-            };
+            fp = new FlightPreparation { PaxBriefing = DefaultPaxBriefing };
         }
     }
 
@@ -490,9 +595,7 @@
         if (fp == null) return;
         var balloon = balloons.FirstOrDefault(b => b.Id == fp.BalloonId);
         if (balloon != null && fp.EnvelopeWeightKg == null)
-        {
             fp.EnvelopeWeightKg = balloon.EmptyWeightKg;
-        }
     }
 
     private void OnPilotChanged()
@@ -506,24 +609,15 @@
         if (fp == null) return;
         var loc = locations.FirstOrDefault(l => l.Id == fp.LocationId);
         if (loc?.AirspaceNotes != null && string.IsNullOrWhiteSpace(fp.Luchtruimstructuur))
-        {
             fp.Luchtruimstructuur = loc.AirspaceNotes;
-        }
     }
 
     private async Task FetchWeather()
     {
         if (fp == null) return;
-        weatherError = null;
-        weatherSuccess = false;
-
+        weatherError = null; weatherSuccess = false;
         var loc = locations.FirstOrDefault(l => l.Id == fp.LocationId);
-        if (loc?.IcaoCode == null)
-        {
-            weatherError = "Geen ICAO-code voor deze locatie.";
-            return;
-        }
-
+        if (loc?.IcaoCode == null) { weatherError = "Geen ICAO-code voor deze locatie."; return; }
         fetchingWeather = true;
         try
         {
@@ -532,135 +626,133 @@
             fp.Taf = taf ?? "Geen TAF beschikbaar";
             weatherSuccess = true;
         }
-        catch (Exception ex)
+        catch (Exception ex) { weatherError = $"Fout: {ex.Message}"; }
+        finally { fetchingWeather = false; }
+    }
+
+    // ── Image upload ─────────────────────────────────────────────────────────
+    private const long MaxImageBytes = 15 * 1024 * 1024; // 15 MB per image
+
+    private async Task UploadMeteoImages(InputFileChangeEventArgs e)   => await UploadImages(e, "Meteo");
+    private async Task UploadTrajectImages(InputFileChangeEventArgs e) => await UploadImages(e, "Traject");
+
+    private async Task UploadImages(InputFileChangeEventArgs e, string section)
+    {
+        var targetList = section == "Meteo" ? meteoImages : trajectImages;
+        foreach (var file in e.GetMultipleFiles(20))
         {
-            weatherError = $"Fout: {ex.Message}";
-        }
-        finally
-        {
-            fetchingWeather = false;
+            if (file.Size > MaxImageBytes) continue;
+            using var ms = new System.IO.MemoryStream();
+            await file.OpenReadStream(MaxImageBytes).CopyToAsync(ms);
+            targetList.Add(new FlightImage
+            {
+                Section     = section,
+                FileName    = file.Name,
+                ContentType = file.ContentType,
+                Data        = ms.ToArray(),
+                Order       = targetList.Count
+            });
         }
     }
 
-    private void AddPassenger()
+    private void RemoveImage(FlightImage img)
     {
-        fp!.Passengers.Add(new Passenger
-        {
-            Order = fp.Passengers.Count,
-            Name = string.Empty,
-            WeightKg = 0
-        });
+        meteoImages.Remove(img);
+        trajectImages.Remove(img);
     }
+
+    // ── Passengers ───────────────────────────────────────────────────────────
+    private void AddPassenger() =>
+        fp!.Passengers.Add(new Passenger { Order = fp.Passengers.Count });
 
     private void RemovePassenger(int index)
     {
-        if (index >= 0 && index < fp!.Passengers.Count)
-            fp.Passengers.RemoveAt(index);
+        if (index >= 0 && index < fp!.Passengers.Count) fp.Passengers.RemoveAt(index);
     }
 
-    private double CalcTotalWeight()
-    {
-        if (fp == null) return 0;
-        return (fp.EnvelopeWeightKg ?? 0)
-            + (currentPilot?.WeightKg ?? pilots.FirstOrDefault(p => p.Id == fp.PilotId)?.WeightKg ?? 0)
-            + fp.Passengers.Sum(p => p.WeightKg);
-    }
+    private double CalcTotalWeight() =>
+        (fp?.EnvelopeWeightKg ?? 0)
+        + (currentPilot?.WeightKg ?? pilots.FirstOrDefault(p => p.Id == fp?.PilotId)?.WeightKg ?? 0)
+        + (fp?.Passengers.Sum(p => p.WeightKg) ?? 0);
 
+    // ── Save ─────────────────────────────────────────────────────────────────
     private async Task<FlightPreparation?> SaveInternal()
     {
         if (fp == null) return null;
-        saving = true;
-        saveMessage = null;
-
+        await ReadQuillContent(); // pull latest HTML from editor
+        saving = true; saveMessage = null;
         try
         {
             await using var db = await DbFactory.CreateDbContextAsync();
-
             currentPilot = pilots.FirstOrDefault(p => p.Id == fp.PilotId);
 
             if (fp.Id == 0)
             {
-                fp.CreatedAt = DateTime.UtcNow;
-                fp.UpdatedAt = DateTime.UtcNow;
-
-                // Capture and clear navigation properties before saving
-                var balloon = fp.Balloon; fp.Balloon = null;
-                var pilot = fp.Pilot; fp.Pilot = null;
-                var location = fp.Location; fp.Location = null;
+                fp.CreatedAt = fp.UpdatedAt = DateTime.UtcNow;
+                var balloon   = fp.Balloon;   fp.Balloon   = null;
+                var pilot     = fp.Pilot;     fp.Pilot     = null;
+                var location  = fp.Location;  fp.Location  = null;
                 var passengers = fp.Passengers.ToList(); fp.Passengers.Clear();
 
                 db.FlightPreparations.Add(fp);
                 await db.SaveChangesAsync();
 
-                // Now add passengers with the assigned Id
+                // Passengers
                 for (int i = 0; i < passengers.Count; i++)
-                {
-                    passengers[i].FlightPreparationId = fp.Id;
-                    passengers[i].Order = i;
-                    passengers[i].Id = 0;
-                }
+                { passengers[i].FlightPreparationId = fp.Id; passengers[i].Order = i; passengers[i].Id = 0; }
                 db.Passengers.AddRange(passengers);
-                await db.SaveChangesAsync();
 
-                fp.Balloon = balloon;
-                fp.Pilot = pilot;
-                fp.Location = location;
+                // Images
+                var allImages = meteoImages.Concat(trajectImages).ToList();
+                for (int i = 0; i < allImages.Count; i++)
+                { allImages[i].FlightPreparationId = fp.Id; allImages[i].Id = 0; allImages[i].Order = i; }
+                db.FlightImages.AddRange(allImages);
+
+                await db.SaveChangesAsync();
+                fp.Balloon = balloon; fp.Pilot = pilot; fp.Location = location;
                 fp.Passengers.AddRange(passengers);
             }
             else
             {
                 fp.UpdatedAt = DateTime.UtcNow;
 
-                // Delete old passengers
-                var oldPassengers = await db.Passengers
-                    .Where(p => p.FlightPreparationId == fp.Id)
-                    .ToListAsync();
-                db.Passengers.RemoveRange(oldPassengers);
-
-                var newPassengers = fp.Passengers.ToList();
-                fp.Passengers.Clear();
-
-                var balloon = fp.Balloon; fp.Balloon = null;
-                var pilot = fp.Pilot; fp.Pilot = null;
+                // Replace passengers
+                db.Passengers.RemoveRange(await db.Passengers.Where(p => p.FlightPreparationId == fp.Id).ToListAsync());
+                var newPax = fp.Passengers.ToList(); fp.Passengers.Clear();
+                var balloon  = fp.Balloon;  fp.Balloon  = null;
+                var pilot    = fp.Pilot;    fp.Pilot    = null;
                 var location = fp.Location; fp.Location = null;
+                var images   = fp.Images;   fp.Images   = new();
 
                 db.FlightPreparations.Update(fp);
                 await db.SaveChangesAsync();
 
-                fp.Balloon = balloon;
-                fp.Pilot = pilot;
-                fp.Location = location;
+                // Replace images
+                db.FlightImages.RemoveRange(await db.FlightImages.Where(i => i.FlightPreparationId == fp.Id).ToListAsync());
+                var allImages = meteoImages.Concat(trajectImages).ToList();
+                for (int i = 0; i < allImages.Count; i++)
+                { allImages[i].FlightPreparationId = fp.Id; allImages[i].Id = 0; allImages[i].Order = i; }
+                db.FlightImages.AddRange(allImages);
 
-                for (int i = 0; i < newPassengers.Count; i++)
-                {
-                    newPassengers[i].FlightPreparationId = fp.Id;
-                    newPassengers[i].Order = i;
-                    newPassengers[i].Id = 0;
-                }
-                fp.Passengers.AddRange(newPassengers);
-                db.Passengers.AddRange(newPassengers);
+                for (int i = 0; i < newPax.Count; i++)
+                { newPax[i].FlightPreparationId = fp.Id; newPax[i].Order = i; newPax[i].Id = 0; }
+                db.Passengers.AddRange(newPax);
                 await db.SaveChangesAsync();
+
+                fp.Balloon = balloon; fp.Pilot = pilot; fp.Location = location;
+                fp.Passengers.AddRange(newPax);
             }
 
-            // Ensure navigation properties are set for PDF generation
-            fp.Balloon = balloons.FirstOrDefault(b => b.Id == fp.BalloonId);
-            fp.Pilot = pilots.FirstOrDefault(p => p.Id == fp.PilotId);
+            fp.Balloon  = balloons.FirstOrDefault(b => b.Id == fp.BalloonId);
+            fp.Pilot    = pilots.FirstOrDefault(p => p.Id == fp.PilotId);
             fp.Location = locations.FirstOrDefault(l => l.Id == fp.LocationId);
+            fp.Images   = meteoImages.Concat(trajectImages).ToList();
 
-            saveMessage = "✅ Vaart opgeslagen!";
-            saveError = false;
+            saveMessage = "✅ Vaart opgeslagen!"; saveError = false;
             return fp;
         }
-        catch (Exception ex)
-        {
-            saveMessage = $"❌ Fout bij opslaan: {ex.Message}";
-            saveError = true;
-            return null;
-        }
-        finally
-        {
-            saving = false;
-        }
+        catch (Exception ex) { saveMessage = $"❌ Fout bij opslaan: {ex.Message}"; saveError = true; return null; }
+        finally { saving = false; }
     }
 
     private async Task SaveFlight()
@@ -677,18 +769,14 @@
     {
         var saved = await SaveInternal();
         if (saved == null) return;
-
         try
         {
             var pdfBytes = PdfSvc.Generate(saved);
-            var fileName = $"vaartvoorbereiding_{saved.Datum:yyyy-MM-dd}_{saved.Id}.pdf";
-            await JS.InvokeVoidAsync("downloadFileFromBytes", fileName, "application/pdf",
-                Convert.ToBase64String(pdfBytes));
+            await JS.InvokeVoidAsync("downloadFileFromBytes",
+                $"vaartvoorbereiding_{saved.Datum:yyyy-MM-dd}_{saved.Id}.pdf",
+                "application/pdf", Convert.ToBase64String(pdfBytes));
         }
-        catch (Exception ex)
-        {
-            saveMessage = $"❌ PDF fout: {ex.Message}";
-            saveError = true;
-        }
+        catch (Exception ex) { saveMessage = $"❌ PDF fout: {ex.Message}"; saveError = true; }
     }
 }
+

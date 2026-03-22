@@ -59,6 +59,9 @@ public class FlightPreparation
     // Section 8 - Traject
     public string? Traject { get; set; }
 
+    // Images (stored in separate table)
+    public List<FlightImage> Images { get; set; } = new();
+
     // Section 9 - Ballonbulletin
     public string? Ballonbulletin { get; set; }
 

@@ -7,6 +7,7 @@
     <base href="/" />
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.snow.css" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["FlightPrep.styles.css"]" />
     <ImportMap />
@@ -17,14 +18,44 @@
 <body>
     <Routes />
     <ReconnectModal />
+    <script src="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.js"></script>
+    <script src="@Assets["lib/bootstrap/dist/js/bootstrap.bundle.min.js"]"></script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script>
         window.downloadFileFromBytes = function (fileName, contentType, base64) {
-            const linkSource = `data:${contentType};base64,${base64}`;
-            const downloadLink = document.createElement("a");
-            downloadLink.href = linkSource;
-            downloadLink.download = fileName;
-            downloadLink.click();
+            const a = document.createElement("a");
+            a.href = `data:${contentType};base64,${base64}`;
+            a.download = fileName;
+            a.click();
+        };
+
+        window._quills = {};
+
+        window.quillInit = function (id, htmlContent) {
+            // Destroy existing instance if any
+            if (window._quills[id]) {
+                try { window._quills[id] = null; } catch {}
+            }
+            const el = document.getElementById(id);
+            if (!el) return;
+            const q = new Quill('#' + id, {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        [{ header: [1, 2, 3, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ list: 'ordered' }, { list: 'bullet' }],
+                        ['clean']
+                    ]
+                }
+            });
+            if (htmlContent) q.clipboard.dangerouslyPasteHTML(htmlContent);
+            window._quills[id] = q;
+        };
+
+        window.quillGetHtml = function (id) {
+            const q = window._quills[id];
+            return q ? q.root.innerHTML : '';
         };
     </script>
 </body>

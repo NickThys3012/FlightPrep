@@ -10,6 +10,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<Passenger> Passengers => Set<Passenger>();
     public DbSet<FlightPreparation> FlightPreparations => Set<FlightPreparation>();
+    public DbSet<FlightImage> FlightImages => Set<FlightImage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -20,6 +21,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .WithOne(p => p.FlightPreparation)
             .HasForeignKey(p => p.FlightPreparationId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<FlightPreparation>()
+            .HasMany(f => f.Images)
+            .WithOne(i => i.FlightPreparation)
+            .HasForeignKey(i => i.FlightPreparationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<FlightImage>()
+            .HasIndex(i => new { i.FlightPreparationId, i.Section, i.Order });
 
         modelBuilder.Entity<Passenger>()
             .HasIndex(p => new { p.FlightPreparationId, p.Order });

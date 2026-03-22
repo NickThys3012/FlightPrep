@@ -55,6 +55,20 @@ else
                             <dt class="col-sm-3">Zichtbaarheid</dt><dd class="col-sm-9">@(fp.ZichtbaarheidKm.HasValue ? $"{fp.ZichtbaarheidKm} km" : "–")</dd>
                             <dt class="col-sm-3">CAPE</dt><dd class="col-sm-9">@(fp.CapeJkg.HasValue ? $"{fp.CapeJkg} J/kg" : "–")</dd>
                         </dl>
+                        @{ var meteo = fp.Images.Where(i => i.Section == "Meteo").ToList(); }
+                        @if (meteo.Count > 0)
+                        {
+                            <div class="d-flex flex-wrap gap-2 mt-3">
+                                @foreach (var img in meteo)
+                                {
+                                    <a href="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)" target="_blank">
+                                        <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)"
+                                            class="img-thumbnail" style="height:120px;max-width:200px;object-fit:cover"
+                                            title="@img.FileName" />
+                                    </a>
+                                }
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -137,7 +151,7 @@ else
             <div class="col-12">
                 <div class="card">
                     <div class="card-header bg-primary text-white">6. Pax Briefing</div>
-                    <div class="card-body"><pre class="mb-0">@fp.PaxBriefing</pre></div>
+                    <div class="card-body pax-briefing-view">@((MarkupString)(fp.PaxBriefing ?? "<em>–</em>"))</div>
                 </div>
             </div>
 
@@ -145,7 +159,30 @@ else
             <div class="col-12">
                 <div class="card">
                     <div class="card-header bg-primary text-white">8. Traject</div>
-                    <div class="card-body"><pre class="mb-0">@fp.Traject</pre></div>
+                    <div class="card-body">
+                        @if (!string.IsNullOrWhiteSpace(fp.Traject))
+                        {
+                            <pre class="mb-3">@fp.Traject</pre>
+                        }
+                        @{ var traj = fp.Images.Where(i => i.Section == "Traject").ToList(); }
+                        @if (traj.Count > 0)
+                        {
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var img in traj)
+                                {
+                                    <a href="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)" target="_blank">
+                                        <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)"
+                                            class="img-thumbnail" style="height:120px;max-width:200px;object-fit:cover"
+                                            title="@img.FileName" />
+                                    </a>
+                                }
+                            </div>
+                        }
+                        @if (string.IsNullOrWhiteSpace(fp.Traject) && traj.Count == 0)
+                        {
+                            <span class="text-muted">–</span>
+                        }
+                    </div>
                 </div>
             </div>
 
@@ -172,6 +209,7 @@ else
             .Include(f => f.Pilot)
             .Include(f => f.Location)
             .Include(f => f.Passengers.OrderBy(p => p.Order))
+            .Include(f => f.Images.OrderBy(i => i.Order))
             .FirstOrDefaultAsync(f => f.Id == Id);
     }
 

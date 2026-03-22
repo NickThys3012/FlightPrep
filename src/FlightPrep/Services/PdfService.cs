@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using FlightPrep.Models;
 using QuestPDF;
 using QuestPDF.Fluent;
@@ -62,6 +63,11 @@ public class PdfService
                         ("CAPE", fp.CapeJkg.HasValue ? $"{fp.CapeJkg} J/kg" : "–"),
                     });
 
+                    // Meteo images
+                    var meteoImgs = fp.Images.Where(i => i.Section == "Meteo").ToList();
+                    if (meteoImgs.Count > 0)
+                        AddImageGrid(col, meteoImgs);
+
                     AddSection(col, "3. Luchtruim en NOTAMs", new[]
                     {
                         ("NOTAMs gecontroleerd", fp.NotamsGecontroleerd),
@@ -104,7 +110,7 @@ public class PdfService
                         section.Item().Background(PrimaryColor).Padding(4)
                             .Text("6. Pax Briefing").Bold().FontColor(Colors.White).FontSize(10);
                         section.Item().Background(Colors.White).Padding(4)
-                            .Text(fp.PaxBriefing ?? "–").FontFamily("Courier New");
+                            .Text(StripHtml(fp.PaxBriefing));
                     });
 
                     // Section 7 - Load Calculation
@@ -152,6 +158,11 @@ public class PdfService
                         ("Trajectnotities", fp.Traject ?? "–"),
                     });
 
+                    // Traject images
+                    var trajImgs = fp.Images.Where(i => i.Section == "Traject").ToList();
+                    if (trajImgs.Count > 0)
+                        AddImageGrid(col, trajImgs);
+
                     col.Item().PaddingTop(6).Column(section =>
                     {
                         section.Item().Background(PrimaryColor).Padding(4)
@@ -173,6 +184,33 @@ public class PdfService
         }).GeneratePdf();
     }
 
+    private static void AddImageGrid(ColumnDescriptor col, List<FlightImage> images)
+    {
+        col.Item().PaddingTop(4).Row(row =>
+        {
+            foreach (var img in images.Take(3))
+            {
+                row.RelativeItem().Padding(2).Image(img.Data).FitArea();
+            }
+            // Fill remaining slots so layout stays consistent
+            for (int i = images.Count; i < 3; i++)
+                row.RelativeItem();
+        });
+
+        // Additional rows if more than 3 images
+        for (int start = 3; start < images.Count; start += 3)
+        {
+            var batch = images.Skip(start).Take(3).ToList();
+            col.Item().PaddingTop(2).Row(row =>
+            {
+                foreach (var img in batch)
+                    row.RelativeItem().Padding(2).Image(img.Data).FitArea();
+                for (int i = batch.Count; i < 3; i++)
+                    row.RelativeItem();
+            });
+        }
+    }
+
     private static void AddSection(ColumnDescriptor col, string title, (string Label, string Value)[] rows)
     {
         col.Item().PaddingTop(6).Column(section =>
@@ -190,5 +228,17 @@ public class PdfService
                 alt = !alt;
             }
         });
+    }
+
+    private static string StripHtml(string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return "–";
+        // Convert block-level endings to newlines before stripping tags
+        var text = Regex.Replace(html, @"</?(p|h[1-6]|li|br)[^>]*>", m =>
+            m.Value.StartsWith("</") || m.Value.Contains("br") ? "\n" : "", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, "<[^>]+>", "");
+        text = text.Replace("&nbsp;", " ").Replace("&amp;", "&")
+                   .Replace("&lt;", "<").Replace("&gt;", ">").Replace("&quot;", "\"");
+        return Regex.Replace(text, @"\n{3,}", "\n\n").Trim();
     }
 }
