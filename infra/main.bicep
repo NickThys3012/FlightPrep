@@ -65,5 +65,15 @@ resource pgDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-06
   name: 'flightprep'
 }
 
+// Allow all Azure-internal traffic (App Service → PostgreSQL)
+resource pgFirewallAzure 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-06-01-preview' = {
+  parent: pgServer
+  name: 'AllowAzureServices'
+  properties: {
+    startIpAddress: '0.0.0.0'
+    endIpAddress: '0.0.0.0'
+  }
+}
+
 output appServiceUrl string = 'https://${appService.properties.defaultHostName}'
 output pgServerFqdn string = pgServer.properties.fullyQualifiedDomainName
