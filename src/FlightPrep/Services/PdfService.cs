@@ -110,15 +110,7 @@ public class PdfService
                         section.Item().Background(PrimaryColor).Padding(4)
                             .Text("6. Pax Briefing").Bold().FontColor(Colors.White).FontSize(10);
                         section.Item().Background(Colors.White).Padding(4).Column(body =>
-                        {
-                            foreach (var line in StripHtml(fp.PaxBriefing).Split('\n'))
-                            {
-                                if (string.IsNullOrWhiteSpace(line))
-                                    body.Item().Height(4); // blank line spacing
-                                else
-                                    body.Item().Text(line).FontSize(9);
-                            }
-                        });
+                            RenderHtmlToColumn(body, fp.PaxBriefing));
                     });
 
                     // Section 7 - Load Calculation
@@ -238,40 +230,71 @@ public class PdfService
         });
     }
 
+    /// <summary>
+    /// Renders Quill-generated HTML into a QuestPDF ColumnDescriptor,
+    /// preserving headings, bullet/ordered lists and indent levels.
+    /// </summary>
+    private static void RenderHtmlToColumn(ColumnDescriptor body, string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) { body.Item().Text("–"); return; }
+
+        // Remove Quill's internal UI marker spans (empty, just for visual bullets)
+        var clean = Regex.Replace(html,
+            @"<span\s[^>]*class=""ql-ui""[^>]*>.*?</span>",
+            "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        // Extract block elements one by one
+        var blockRx = new Regex(
+            @"<(h[1-6]|p|li)([^>]*)>(.*?)</\1>",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        bool any = false;
+        foreach (Match m in blockRx.Matches(clean))
+        {
+            var tag   = m.Groups[1].Value.ToLowerInvariant();
+            var attrs = m.Groups[2].Value;
+            // Strip all remaining inline tags, decode entities
+            var text  = Regex.Replace(m.Groups[3].Value, "<[^>]+>", "")
+                             .Replace("&nbsp;", " ").Replace("&amp;", "&")
+                             .Replace("&lt;", "<").Replace("&gt;", ">")
+                             .Replace("&quot;", "\"").Trim();
+
+            if (string.IsNullOrWhiteSpace(text)) continue;
+            any = true;
+
+            var indentMatch = Regex.Match(attrs, @"ql-indent-(\d+)");
+            var indent = indentMatch.Success ? int.Parse(indentMatch.Groups[1].Value) * 12 : 0;
+
+            switch (tag)
+            {
+                case "h1":
+                    body.Item().PaddingTop(6).Text(text).Bold().FontSize(13); break;
+                case "h2":
+                    body.Item().PaddingTop(5).Text(text).Bold().FontSize(11); break;
+                case "h3":
+                    body.Item().PaddingTop(4).Text(text).Bold().FontSize(10); break;
+                case "li":
+                    var bullet = attrs.Contains("ordered") ? "–" : "•";
+                    body.Item().PaddingLeft(8 + indent).Text($"{bullet} {text}").FontSize(9); break;
+                default: // p
+                    body.Item().PaddingTop(1).PaddingLeft(indent).Text(text).FontSize(9); break;
+            }
+        }
+
+        if (!any) body.Item().Text("–");
+    }
+
     private static string StripHtml(string? html)
     {
         if (string.IsNullOrWhiteSpace(html)) return "–";
-
-        // Quill bullet lists: <li data-list="bullet"> → "• item"
-        var text = Regex.Replace(html,
-            @"<li[^>]*data-list=""bullet""[^>]*>(.*?)</li>",
-            m => "• " + m.Groups[1].Value + "\n",
+        var text = Regex.Replace(html, @"<span\s[^>]*class=""ql-ui""[^>]*>.*?</span>", "",
             RegexOptions.IgnoreCase | RegexOptions.Singleline);
-
-        // Quill ordered lists: <li data-list="ordered"> → "- item"
-        text = Regex.Replace(text,
-            @"<li[^>]*data-list=""ordered""[^>]*>(.*?)</li>",
-            m => "- " + m.Groups[1].Value + "\n",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
-
-        // Standard li
-        text = Regex.Replace(text,
-            @"<li[^>]*>(.*?)</li>",
-            m => "• " + m.Groups[1].Value + "\n",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
-
-        // Block elements → newline
-        text = Regex.Replace(text, @"</?(p|h[1-6]|ul|ol|br|div)[^>]*>",
+        text = Regex.Replace(text, @"</?(p|h[1-6]|li|br|ul|ol|div)[^>]*>",
             m => m.Value.StartsWith("</") || m.Value.Contains("br") ? "\n" : "",
             RegexOptions.IgnoreCase);
-
-        // Strip remaining tags
         text = Regex.Replace(text, "<[^>]+>", "");
-
-        // Decode common entities
         text = text.Replace("&nbsp;", " ").Replace("&amp;", "&")
                    .Replace("&lt;", "<").Replace("&gt;", ">").Replace("&quot;", "\"");
-
         return Regex.Replace(text, @"\n{3,}", "\n\n").Trim();
     }
 }
