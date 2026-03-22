@@ -11,6 +11,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Passenger> Passengers => Set<Passenger>();
     public DbSet<FlightPreparation> FlightPreparations => Set<FlightPreparation>();
     public DbSet<FlightImage> FlightImages => Set<FlightImage>();
+    public DbSet<WindLevel> WindLevels => Set<WindLevel>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,16 +29,26 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasForeignKey(i => i.FlightPreparationId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        modelBuilder.Entity<FlightPreparation>()
+            .HasMany(f => f.WindLevels)
+            .WithOne(w => w.FlightPreparation)
+            .HasForeignKey(w => w.FlightPreparationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         modelBuilder.Entity<FlightImage>()
             .HasIndex(i => new { i.FlightPreparationId, i.Section, i.Order });
 
         modelBuilder.Entity<Passenger>()
             .HasIndex(p => new { p.FlightPreparationId, p.Order });
 
+        modelBuilder.Entity<WindLevel>()
+            .HasIndex(w => new { w.FlightPreparationId, w.Order });
+
         // Ignore computed properties
         modelBuilder.Entity<FlightPreparation>()
             .Ignore(f => f.TotaalGewicht)
-            .Ignore(f => f.LiftVoldoende);
+            .Ignore(f => f.LiftVoldoende)
+            .Ignore(f => f.GoNoGo);
 
         modelBuilder.Entity<Balloon>().HasData(
             new Balloon

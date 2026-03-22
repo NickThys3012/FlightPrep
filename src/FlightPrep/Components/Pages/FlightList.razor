@@ -29,6 +29,7 @@
                     <th>Ballon</th>
                     <th>Piloot</th>
                     <th>Locatie</th>
+                    <th>Status</th>
                     <th>Acties</th>
                 </tr>
             </thead>
@@ -41,6 +42,15 @@
                         <td>@(f.Balloon?.Registration ?? "–")</td>
                         <td>@(f.Pilot?.Name ?? "–")</td>
                         <td>@(f.Location?.Name ?? "–")</td>
+                        <td>
+                            <span class="badge @(f.GoNoGo == "green" ? "bg-success" : f.GoNoGo == "yellow" ? "bg-warning text-dark" : f.GoNoGo == "red" ? "bg-danger" : "bg-secondary")">
+                                @(f.GoNoGo == "green" ? "✅ GO" : f.GoNoGo == "yellow" ? "⚠️" : f.GoNoGo == "red" ? "🔴" : "–")
+                            </span>
+                            @if (f.IsFlown)
+                            {
+                                <span class="badge bg-success ms-1">✈️</span>
+                            }
+                        </td>
                         <td>
                             <a href="/flights/@f.Id" class="btn btn-sm btn-outline-primary">👁️ Bekijken</a>
                             <a href="/flights/@f.Id/edit" class="btn btn-sm btn-outline-secondary">✏️ Bewerken</a>

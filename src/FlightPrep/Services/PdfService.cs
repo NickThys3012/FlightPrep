@@ -7,7 +7,7 @@ using QuestPDF.Infrastructure;
 
 namespace FlightPrep.Services;
 
-public class PdfService
+public class PdfService(SunriseService sunriseSvc)
 {
     private static readonly string PrimaryColor = "#1a3a5c";
     private static readonly string LightBg = "#f0f4f8";
@@ -15,6 +15,14 @@ public class PdfService
     public byte[] Generate(FlightPreparation fp)
     {
         Settings.License = LicenseType.Community;
+
+        // Compute sunrise/sunset if location has coords
+        (TimeOnly Sunrise, TimeOnly Sunset)? sunriseSunset = null;
+        var loc = fp.Location;
+        if (loc?.Latitude.HasValue == true && loc.Longitude.HasValue)
+            sunriseSunset = sunriseSvc.Calculate(fp.Datum, loc.Latitude!.Value, loc.Longitude!.Value);
+
+        var gng = fp.GoNoGo;
 
         return Document.Create(container =>
         {
@@ -41,27 +49,71 @@ public class PdfService
 
                 page.Content().Column(col =>
                 {
-                    AddSection(col, "1. Algemene Gegevens", new[]
+                    // Go/No-Go indicator
+                    var gngBg = gng == "green" ? Colors.Green.Darken1 : gng == "yellow" ? Colors.Yellow.Darken1 : gng == "red" ? Colors.Red.Darken1 : Colors.Grey.Medium;
+                    var gngText = gng == "green" ? "✅ GO" : gng == "yellow" ? "⚠️ CAUTION" : gng == "red" ? "🔴 NO-GO" : "⬜ Go/No-Go onbekend";
+                    col.Item().PaddingBottom(4).Background(gngBg).Padding(5)
+                        .Text(gngText).Bold().FontSize(11).FontColor(Colors.White);
+
+                    // Build Section 1 rows including optional sunrise/sunset
+                    var sec1Rows = new List<(string, string)>
                     {
                         ("Datum", fp.Datum.ToString("dd/MM/yyyy")),
                         ("Tijdstip (LT)", fp.Tijdstip.ToString("HH:mm")),
                         ("Ballon", fp.Balloon != null ? $"{fp.Balloon.Registration} – {fp.Balloon.Type} ({fp.Balloon.Volume})" : "–"),
                         ("Piloot / PIC", fp.Pilot?.Name ?? "–"),
                         ("Locatie", fp.Location?.Name ?? "–"),
-                    });
+                    };
+                    if (sunriseSunset.HasValue)
+                    {
+                        sec1Rows.Add(("Zonsopgang (UTC)", sunriseSunset.Value.Sunrise.ToString("HH:mm")));
+                        sec1Rows.Add(("Zonsondergang (UTC)", sunriseSunset.Value.Sunset.ToString("HH:mm")));
+                    }
+                    AddSection(col, "1. Algemene Gegevens", sec1Rows.ToArray());
 
-                    AddSection(col, "2. Meteorologische Informatie", new[]
+                    // Section 2 meteo rows
+                    var sec2Rows = new List<(string, string)>
                     {
                         ("METAR", fp.Metar ?? "–"),
                         ("TAF", fp.Taf ?? "–"),
                         ("Wind per hoogte", fp.WindPerHoogte ?? "–"),
                         ("Neerslag / bewolking", fp.Neerslag ?? "–"),
+                        ("Windrichting oppervlak", fp.SurfaceWindDirectionDeg.HasValue ? $"{fp.SurfaceWindDirectionDeg}°" : "–"),
+                        ("Windsnelheid oppervlak", fp.SurfaceWindSpeedKt.HasValue ? $"{fp.SurfaceWindSpeedKt} kt" : "–"),
                         ("Temperatuur", fp.TemperatuurC.HasValue ? $"{fp.TemperatuurC}°C" : "–"),
                         ("Dauwpunt", fp.DauwpuntC.HasValue ? $"{fp.DauwpuntC}°C" : "–"),
                         ("QNH", fp.QnhHpa.HasValue ? $"{fp.QnhHpa} hPa" : "–"),
                         ("Zichtbaarheid", fp.ZichtbaarheidKm.HasValue ? $"{fp.ZichtbaarheidKm} km" : "–"),
                         ("CAPE", fp.CapeJkg.HasValue ? $"{fp.CapeJkg} J/kg" : "–"),
-                    });
+                    };
+                    AddSection(col, "2. Meteorologische Informatie", sec2Rows.ToArray());
+
+                    // Wind levels table
+                    if (fp.WindLevels.Count > 0)
+                    {
+                        col.Item().PaddingTop(4).Column(wSection =>
+                        {
+                            wSection.Item().Background(LightBg).Padding(3).Row(row =>
+                            {
+                                row.RelativeItem(2).Text("Hoogte (ft)").Bold();
+                                row.RelativeItem(2).Text("Richting (°)").Bold();
+                                row.RelativeItem(2).Text("Snelheid (kt)").Bold();
+                                row.RelativeItem(2).Text("Temp (°C)").Bold();
+                            });
+                            bool alt = false;
+                            foreach (var wl in fp.WindLevels.OrderBy(w => w.Order))
+                            {
+                                wSection.Item().Background(alt ? LightBg : Colors.White).Padding(3).Row(row =>
+                                {
+                                    row.RelativeItem(2).Text(wl.AltitudeFt.ToString());
+                                    row.RelativeItem(2).Text(wl.DirectionDeg?.ToString() ?? "–");
+                                    row.RelativeItem(2).Text(wl.SpeedKt?.ToString() ?? "–");
+                                    row.RelativeItem(2).Text(wl.TempC?.ToString("F1") ?? "–");
+                                });
+                                alt = !alt;
+                            }
+                        });
+                    }
 
                     // Meteo images
                     var meteoImgs = fp.Images.Where(i => i.Section == "Meteo").ToList();
@@ -170,6 +222,31 @@ public class PdfService
                         section.Item().Background(Colors.White).Padding(4)
                             .Text(fp.Ballonbulletin ?? "–").FontFamily("Courier New").FontSize(7.5f);
                     });
+
+                    // Actual flight section
+                    if (fp.IsFlown)
+                    {
+                        col.Item().PaddingTop(6).Column(section =>
+                        {
+                            section.Item().Background(Colors.Green.Darken1).Padding(4)
+                                .Text("✈️ Vluchtverslag").Bold().FontColor(Colors.White).FontSize(10);
+                            section.Item().Background(LightBg).Padding(3).Row(row =>
+                            {
+                                row.RelativeItem(1).Text("Werkelijke landing").Bold();
+                                row.RelativeItem(2).Text(fp.ActualLandingNotes ?? "–");
+                            });
+                            section.Item().Background(Colors.White).Padding(3).Row(row =>
+                            {
+                                row.RelativeItem(1).Text("Vluchtduur").Bold();
+                                row.RelativeItem(2).Text(fp.ActualFlightDurationMinutes.HasValue ? $"{fp.ActualFlightDurationMinutes} min" : "–");
+                            });
+                            section.Item().Background(LightBg).Padding(3).Row(row =>
+                            {
+                                row.RelativeItem(1).Text("Opmerkingen").Bold();
+                                row.RelativeItem(2).Text(fp.ActualRemarks ?? "–");
+                            });
+                        });
+                    }
                 });
 
                 page.Footer().AlignCenter().Text(x =>

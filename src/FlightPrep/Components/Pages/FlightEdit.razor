@@ -5,6 +5,7 @@
 @inject NavigationManager Nav
 @inject WeatherService WeatherSvc
 @inject PdfService PdfSvc
+@inject SunriseService SunriseSvc
 @inject IJSRuntime JS
 @using Microsoft.AspNetCore.Components.Forms
 
@@ -22,6 +23,14 @@
     }
     else
     {
+        <!-- Go/No-Go badge -->
+        <div class="mb-3">
+            @{ var gng = fp?.GoNoGo ?? "unknown"; }
+            <span class="badge fs-6 @(gng == "green" ? "bg-success" : gng == "yellow" ? "bg-warning text-dark" : gng == "red" ? "bg-danger" : "bg-secondary")">
+                @(gng == "green" ? "✅ GO" : gng == "yellow" ? "⚠️ CAUTION" : gng == "red" ? "🔴 NO-GO" : "⬜ Go/No-Go onbekend")
+            </span>
+        </div>
+
         <div class="accordion" id="flightAccordion">
 
             <!-- SECTION 1: Algemene Gegevens -->
@@ -37,7 +46,7 @@
                             <div class="col-md-3">
                                 <label class="form-label">Datum</label>
                                 <input type="date" class="form-control" value="@fp.Datum.ToString("yyyy-MM-dd")"
-                                    @onchange="e => fp.Datum = DateOnly.Parse(e.Value!.ToString()!)" />
+                                    @onchange="e => { fp.Datum = DateOnly.Parse(e.Value!.ToString()!); UpdateSunriseSunset(); }" />
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Tijdstip (LT)</label>
@@ -75,6 +84,15 @@
                                 </select>
                             </div>
                         </div>
+                        @if (sunriseSunset.HasValue)
+                        {
+                            <div class="col-12 mt-3">
+                                <div class="alert alert-info py-2 mb-0 d-flex gap-4">
+                                    <span>🌅 Zonsopgang: <strong>@sunriseSunset.Value.Sunrise.ToString("HH:mm") UTC</strong></span>
+                                    <span>🌇 Zonsondergang: <strong>@sunriseSunset.Value.Sunset.ToString("HH:mm") UTC</strong></span>
+                                </div>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -146,6 +164,48 @@
                                 <label class="form-label">CAPE (J/kg)</label>
                                 <input type="number" step="1" class="form-control" @bind="fp.CapeJkg" />
                             </div>
+
+                            <!-- Surface wind -->
+                            <div class="col-md-3">
+                                <label class="form-label">Windrichting oppervlak (°)</label>
+                                <input type="number" class="form-control" @bind="fp.SurfaceWindDirectionDeg" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Windsnelheid oppervlak (kt)</label>
+                                <input type="number" step="0.5" class="form-control" @bind="fp.SurfaceWindSpeedKt" />
+                            </div>
+
+                            <!-- Wind profile toggle -->
+                            <div class="col-12 mt-2">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="windProfileToggle"
+                                        checked="@showWindProfile"
+                                        @onchange="OnWindProfileToggleChanged" />
+                                    <label class="form-check-label" for="windProfileToggle">Windprofiel per hoogte invullen</label>
+                                </div>
+                            </div>
+
+                            @if (showWindProfile)
+                            {
+                                <div class="col-12">
+                                    <table class="table table-sm table-bordered">
+                                        <thead class="table-light">
+                                            <tr><th>Hoogte (ft)</th><th>Richting (°)</th><th>Snelheid (kt)</th><th>Temp (°C)</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var wl in fp.WindLevels.OrderBy(w => w.Order))
+                                            {
+                                                <tr>
+                                                    <td><strong>@wl.AltitudeFt</strong></td>
+                                                    <td><input type="number" class="form-control form-control-sm" @bind="wl.DirectionDeg" /></td>
+                                                    <td><input type="number" class="form-control form-control-sm" @bind="wl.SpeedKt" /></td>
+                                                    <td><input type="number" step="0.1" class="form-control form-control-sm" @bind="wl.TempC" /></td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
 
                             <!-- Image upload – Meteo -->
                             <div class="col-12 mt-2">
@@ -507,6 +567,21 @@
     private string? saveMessage;
     private bool saveError;
 
+    private bool _showWindProfile;
+    private bool showWindProfile
+    {
+        get => _showWindProfile;
+        set
+        {
+            if (_showWindProfile == value) return;
+            _showWindProfile = value;
+            if (!value && fp != null)
+                fp.WindLevels.Clear();
+        }
+    }
+
+    private (TimeOnly Sunrise, TimeOnly Sunset)? sunriseSunset;
+
     private static readonly string DefaultPaxBriefing =
         "<h2>Pax Briefing</h2>" +
         "<h3>Voor de vlucht – Inflation</h3><ul>" +
@@ -570,6 +645,7 @@
                 .Include(f => f.Location)
                 .Include(f => f.Passengers.OrderBy(p => p.Order))
                 .Include(f => f.Images.OrderBy(i => i.Order))
+                .Include(f => f.WindLevels.OrderBy(w => w.Order))
                 .FirstOrDefaultAsync(f => f.Id == Id.Value);
 
             if (fp == null) { Nav.NavigateTo("/flights"); return; }
@@ -577,11 +653,14 @@
             currentPilot = fp.Pilot;
             meteoImages   = fp.Images.Where(i => i.Section == "Meteo").ToList();
             trajectImages = fp.Images.Where(i => i.Section == "Traject").ToList();
+            _showWindProfile = fp.WindLevels.Count > 0;
         }
         else
         {
             fp = new FlightPreparation { PaxBriefing = DefaultPaxBriefing };
         }
+
+        UpdateSunriseSunset();
     }
 
     private void OnBalloonChanged()
@@ -604,6 +683,33 @@
         var loc = locations.FirstOrDefault(l => l.Id == fp.LocationId);
         if (loc?.AirspaceNotes != null && string.IsNullOrWhiteSpace(fp.Luchtruimstructuur))
             fp.Luchtruimstructuur = loc.AirspaceNotes;
+        UpdateSunriseSunset();
+    }
+
+    private void UpdateSunriseSunset()
+    {
+        if (fp == null) { sunriseSunset = null; return; }
+        var loc = locations.FirstOrDefault(l => l.Id == fp.LocationId);
+        if (loc?.Latitude.HasValue == true && loc.Longitude.HasValue)
+            sunriseSunset = SunriseSvc.Calculate(fp.Datum, loc.Latitude!.Value, loc.Longitude!.Value);
+        else
+            sunriseSunset = null;
+    }
+
+    private void OnWindProfileToggleChanged(ChangeEventArgs e)
+    {
+        var enabled = e.Value is bool b && b;
+        if (enabled && fp != null && fp.WindLevels.Count == 0)
+            PopulateDefaultWindLevels();
+        showWindProfile = enabled;
+    }
+
+    private void PopulateDefaultWindLevels()
+    {
+        if (fp == null) return;
+        int[] altitudes = { 0, 500, 1000, 1500, 2000, 3000, 5000 };
+        for (int i = 0; i < altitudes.Length; i++)
+            fp.WindLevels.Add(new WindLevel { AltitudeFt = altitudes[i], Order = i });
     }
 
     private async Task FetchWeather()
@@ -687,6 +793,7 @@
                 var pilot     = fp.Pilot;     fp.Pilot     = null;
                 var location  = fp.Location;  fp.Location  = null;
                 var passengers = fp.Passengers.ToList(); fp.Passengers.Clear();
+                var windLevels = fp.WindLevels.ToList(); fp.WindLevels.Clear();
 
                 db.FlightPreparations.Add(fp);
                 await db.SaveChangesAsync();
@@ -702,9 +809,15 @@
                 { allImages[i].FlightPreparationId = fp.Id; allImages[i].Id = 0; allImages[i].Order = i; }
                 db.FlightImages.AddRange(allImages);
 
+                // WindLevels
+                for (int i = 0; i < windLevels.Count; i++)
+                { windLevels[i].FlightPreparationId = fp.Id; windLevels[i].Id = 0; windLevels[i].Order = i; }
+                db.WindLevels.AddRange(windLevels);
+
                 await db.SaveChangesAsync();
                 fp.Balloon = balloon; fp.Pilot = pilot; fp.Location = location;
                 fp.Passengers.AddRange(passengers);
+                fp.WindLevels.AddRange(windLevels);
             }
             else
             {
@@ -717,6 +830,7 @@
                 var pilot    = fp.Pilot;    fp.Pilot    = null;
                 var location = fp.Location; fp.Location = null;
                 var images   = fp.Images;   fp.Images   = new();
+                var windLevels = fp.WindLevels.ToList(); fp.WindLevels.Clear();
 
                 db.FlightPreparations.Update(fp);
                 await db.SaveChangesAsync();
@@ -731,17 +845,24 @@
                 for (int i = 0; i < newPax.Count; i++)
                 { newPax[i].FlightPreparationId = fp.Id; newPax[i].Order = i; newPax[i].Id = 0; }
                 db.Passengers.AddRange(newPax);
+
+                // Replace wind levels
+                db.WindLevels.RemoveRange(await db.WindLevels.Where(w => w.FlightPreparationId == fp.Id).ToListAsync());
+                for (int i = 0; i < windLevels.Count; i++)
+                { windLevels[i].FlightPreparationId = fp.Id; windLevels[i].Id = 0; windLevels[i].Order = i; }
+                db.WindLevels.AddRange(windLevels);
+
                 await db.SaveChangesAsync();
 
                 fp.Balloon = balloon; fp.Pilot = pilot; fp.Location = location;
                 fp.Passengers.AddRange(newPax);
+                fp.WindLevels.AddRange(windLevels);
             }
 
             fp.Balloon  = balloons.FirstOrDefault(b => b.Id == fp.BalloonId);
             fp.Pilot    = pilots.FirstOrDefault(p => p.Id == fp.PilotId);
             fp.Location = locations.FirstOrDefault(l => l.Id == fp.LocationId);
             fp.Images   = meteoImages.Concat(trajectImages).ToList();
-
             saveMessage = "✅ Vaart opgeslagen!"; saveError = false;
             return fp;
         }

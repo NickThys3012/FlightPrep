@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject PdfService PdfSvc
+@inject SunriseService SunriseSvc
 @inject IJSRuntime JS
 
 <PageTitle>Vaart Bekijken – FlightPrep</PageTitle>
@@ -14,12 +15,27 @@ else
 {
     <div class="container-fluid mt-3">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2>📋 Vaart – @fp.Datum.ToString("dd/MM/yyyy") @fp.Tijdstip.ToString("HH:mm")</h2>
+            <h2>
+                📋 Vaart – @fp.Datum.ToString("dd/MM/yyyy") @fp.Tijdstip.ToString("HH:mm")
+                @if (fp.IsFlown)
+                {
+                    <span class="badge bg-success ms-2">✈️ Gevlogen</span>
+                }
+            </h2>
             <div class="d-flex gap-2">
                 <a href="/flights/@fp.Id/edit" class="btn btn-outline-secondary">✏️ Bewerken</a>
                 <button class="btn btn-success" @onclick="DownloadPdf">📄 Download PDF</button>
+                <button class="btn btn-outline-primary" @onclick="() => showFlownModal = true">🛬 Markeer als gevlogen</button>
                 <a href="/flights" class="btn btn-outline-secondary">← Terug</a>
             </div>
+        </div>
+
+        <!-- Go/No-Go badge -->
+        <div class="mb-3">
+            @{ var gng = fp.GoNoGo; }
+            <span class="badge fs-6 @(gng == "green" ? "bg-success" : gng == "yellow" ? "bg-warning text-dark" : gng == "red" ? "bg-danger" : "bg-secondary")">
+                @(gng == "green" ? "✅ GO" : gng == "yellow" ? "⚠️ CAUTION" : gng == "red" ? "🔴 NO-GO" : "⬜ Go/No-Go onbekend")
+            </span>
         </div>
 
         <div class="row g-3">
@@ -35,6 +51,13 @@ else
                             <dt class="col-sm-3">Piloot / PIC</dt><dd class="col-sm-9">@(fp.Pilot?.Name ?? "–")</dd>
                             <dt class="col-sm-3">Locatie</dt><dd class="col-sm-9">@(fp.Location?.Name ?? "–")</dd>
                         </dl>
+                        @if (sunriseSunset.HasValue)
+                        {
+                            <div class="alert alert-info py-2 mt-2 mb-0 d-flex gap-4">
+                                <span>🌅 Zonsopgang: <strong>@sunriseSunset.Value.Sunrise.ToString("HH:mm") UTC</strong></span>
+                                <span>🌇 Zonsondergang: <strong>@sunriseSunset.Value.Sunset.ToString("HH:mm") UTC</strong></span>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -49,12 +72,33 @@ else
                             <dt class="col-sm-3">TAF</dt><dd class="col-sm-9 font-monospace" style="white-space:pre-wrap">@(fp.Taf ?? "–")</dd>
                             <dt class="col-sm-3">Wind per hoogte</dt><dd class="col-sm-9" style="white-space:pre-wrap">@(fp.WindPerHoogte ?? "–")</dd>
                             <dt class="col-sm-3">Neerslag / bewolking</dt><dd class="col-sm-9">@(fp.Neerslag ?? "–")</dd>
+                            <dt class="col-sm-3">Windrichting oppervlak</dt><dd class="col-sm-9">@(fp.SurfaceWindDirectionDeg.HasValue ? $"{fp.SurfaceWindDirectionDeg}°" : "–")</dd>
+                            <dt class="col-sm-3">Windsnelheid oppervlak</dt><dd class="col-sm-9">@(fp.SurfaceWindSpeedKt.HasValue ? $"{fp.SurfaceWindSpeedKt} kt" : "–")</dd>
                             <dt class="col-sm-3">Temperatuur</dt><dd class="col-sm-9">@(fp.TemperatuurC.HasValue ? $"{fp.TemperatuurC}°C" : "–")</dd>
                             <dt class="col-sm-3">Dauwpunt</dt><dd class="col-sm-9">@(fp.DauwpuntC.HasValue ? $"{fp.DauwpuntC}°C" : "–")</dd>
                             <dt class="col-sm-3">QNH</dt><dd class="col-sm-9">@(fp.QnhHpa.HasValue ? $"{fp.QnhHpa} hPa" : "–")</dd>
                             <dt class="col-sm-3">Zichtbaarheid</dt><dd class="col-sm-9">@(fp.ZichtbaarheidKm.HasValue ? $"{fp.ZichtbaarheidKm} km" : "–")</dd>
                             <dt class="col-sm-3">CAPE</dt><dd class="col-sm-9">@(fp.CapeJkg.HasValue ? $"{fp.CapeJkg} J/kg" : "–")</dd>
                         </dl>
+                        @if (fp.WindLevels.Count > 0)
+                        {
+                            <table class="table table-sm table-bordered mt-3">
+                                <thead class="table-light">
+                                    <tr><th>Hoogte (ft)</th><th>Richting (°)</th><th>Snelheid (kt)</th><th>Temp (°C)</th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var wl in fp.WindLevels.OrderBy(w => w.Order))
+                                    {
+                                        <tr>
+                                            <td>@wl.AltitudeFt</td>
+                                            <td>@(wl.DirectionDeg?.ToString() ?? "–")</td>
+                                            <td>@(wl.SpeedKt?.ToString() ?? "–")</td>
+                                            <td>@(wl.TempC?.ToString("F1") ?? "–")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
                         @{ var meteo = fp.Images.Where(i => i.Section == "Meteo").ToList(); }
                         @if (meteo.Count > 0)
                         {
@@ -195,8 +239,57 @@ else
                     <div class="card-body"><pre class="font-monospace small mb-0">@fp.Ballonbulletin</pre></div>
                 </div>
             </div>
+
+            @if (fp.IsFlown)
+            {
+                <div class="col-12 mb-4">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">✈️ Vluchtverslag</div>
+                        <div class="card-body">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-3">Werkelijke landing</dt><dd class="col-sm-9">@(fp.ActualLandingNotes ?? "–")</dd>
+                                <dt class="col-sm-3">Vluchtduur</dt><dd class="col-sm-9">@(fp.ActualFlightDurationMinutes.HasValue ? $"{fp.ActualFlightDurationMinutes} min" : "–")</dd>
+                                <dt class="col-sm-3">Opmerkingen</dt><dd class="col-sm-9" style="white-space:pre-wrap">@(fp.ActualRemarks ?? "–")</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            }
         </div>
     </div>
+}
+
+<!-- Mark as flown modal -->
+@if (showFlownModal)
+{
+    <div class="modal d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">🛬 Markeer als gevlogen</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Werkelijke landing</label>
+                        <input type="text" class="form-control" @bind="flownLandingNotes" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Vluchtduur (min)</label>
+                        <input type="number" class="form-control" @bind="flownDurationMinutes" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Opmerkingen</label>
+                        <textarea class="form-control" rows="3" @bind="flownRemarks"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-success" @onclick="SaveFlown">Opslaan</button>
+                    <button class="btn btn-secondary" @onclick="() => showFlownModal = false">Annuleren</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
 }
 
 <!-- Lightbox modal -->
@@ -217,6 +310,13 @@ else
     private FlightPreparation? fp;
     private FlightImage? lightboxImg;
 
+    private bool showFlownModal;
+    private string? flownLandingNotes;
+    private int? flownDurationMinutes;
+    private string? flownRemarks;
+
+    private (TimeOnly Sunrise, TimeOnly Sunset)? sunriseSunset;
+
     private void OpenLightbox(FlightImage img) => lightboxImg = img;
     private void CloseLightbox() => lightboxImg = null;
 
@@ -229,7 +329,41 @@ else
             .Include(f => f.Location)
             .Include(f => f.Passengers.OrderBy(p => p.Order))
             .Include(f => f.Images.OrderBy(i => i.Order))
+            .Include(f => f.WindLevels.OrderBy(w => w.Order))
             .FirstOrDefaultAsync(f => f.Id == Id);
+
+        if (fp != null)
+        {
+            // Initialise flown modal pre-fill
+            flownLandingNotes = fp.ActualLandingNotes;
+            flownDurationMinutes = fp.ActualFlightDurationMinutes;
+            flownRemarks = fp.ActualRemarks;
+
+            // Sunrise/sunset
+            var loc = fp.Location;
+            if (loc?.Latitude.HasValue == true && loc.Longitude.HasValue)
+                sunriseSunset = SunriseSvc.Calculate(fp.Datum, loc.Latitude!.Value, loc.Longitude!.Value);
+        }
+    }
+
+    private async Task SaveFlown()
+    {
+        if (fp == null) return;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var entity = await db.FlightPreparations.FindAsync(fp.Id);
+        if (entity == null) return;
+        entity.IsFlown = true;
+        entity.ActualLandingNotes = flownLandingNotes;
+        entity.ActualFlightDurationMinutes = flownDurationMinutes;
+        entity.ActualRemarks = flownRemarks;
+        entity.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        fp.IsFlown = true;
+        fp.ActualLandingNotes = flownLandingNotes;
+        fp.ActualFlightDurationMinutes = flownDurationMinutes;
+        fp.ActualRemarks = flownRemarks;
+        showFlownModal = false;
     }
 
     private async Task DownloadPdf()

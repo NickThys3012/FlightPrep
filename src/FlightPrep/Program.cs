@@ -22,6 +22,7 @@ builder.Services.AddDbContextFactory<AppDbContext>(opts =>
     opts.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddHttpClient<WeatherService>();
+builder.Services.AddSingleton<SunriseService>();
 builder.Services.AddScoped<PdfService>();
 
 builder.Services.AddRazorComponents()

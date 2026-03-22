@@ -17,6 +17,8 @@ public class FlightPreparation
     public Location? Location { get; set; }
 
     // Section 2 - Meteorologische Informatie
+    public double? SurfaceWindSpeedKt { get; set; }
+    public int? SurfaceWindDirectionDeg { get; set; }
     public string? Metar { get; set; }
     public string? Taf { get; set; }
     public string? WindPerHoogte { get; set; }
@@ -59,8 +61,17 @@ public class FlightPreparation
     // Section 8 - Traject
     public string? Traject { get; set; }
 
+    // Mark as flown
+    public bool IsFlown { get; set; }
+    public string? ActualLandingNotes { get; set; }
+    public int? ActualFlightDurationMinutes { get; set; }
+    public string? ActualRemarks { get; set; }
+
     // Images (stored in separate table)
     public List<FlightImage> Images { get; set; } = new();
+
+    // Wind profile (stored in separate table)
+    public List<WindLevel> WindLevels { get; set; } = new();
 
     // Section 9 - Ballonbulletin
     public string? Ballonbulletin { get; set; }
@@ -73,4 +84,16 @@ public class FlightPreparation
 
     public bool LiftVoldoende =>
         TotaalLiftKg.HasValue && TotaalLiftKg.Value > TotaalGewicht;
+
+    public string GoNoGo
+    {
+        get
+        {
+            bool hasData = SurfaceWindSpeedKt.HasValue || ZichtbaarheidKm.HasValue || CapeJkg.HasValue;
+            if (!hasData) return "unknown";
+            bool red = (SurfaceWindSpeedKt >= 15) || (ZichtbaarheidKm < 3) || (CapeJkg > 500);
+            bool yellow = (SurfaceWindSpeedKt >= 10) || (ZichtbaarheidKm < 5) || (CapeJkg > 300);
+            return red ? "red" : yellow ? "yellow" : "green";
+        }
+    }
 }
