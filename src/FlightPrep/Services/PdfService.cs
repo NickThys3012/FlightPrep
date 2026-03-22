@@ -51,7 +51,7 @@ public class PdfService(SunriseService sunriseSvc)
                 {
                     // Go/No-Go indicator
                     var gngBg = gng == "green" ? Colors.Green.Darken1 : gng == "yellow" ? Colors.Yellow.Darken1 : gng == "red" ? Colors.Red.Darken1 : Colors.Grey.Medium;
-                    var gngText = gng == "green" ? "✅ GO" : gng == "yellow" ? "⚠️ CAUTION" : gng == "red" ? "🔴 NO-GO" : "⬜ Go/No-Go onbekend";
+                    var gngText = gng == "green" ? "GO" : gng == "yellow" ? "CAUTION" : gng == "red" ? "NO-GO" : "Go/No-Go onbekend";
                     col.Item().PaddingBottom(4).Background(gngBg).Padding(5)
                         .Text(gngText).Bold().FontSize(11).FontColor(Colors.White);
 
@@ -152,7 +152,7 @@ public class PdfService(SunriseService sunriseSvc)
                         foreach (var (checked_, label) in checks)
                         {
                             section.Item().Background(alt ? LightBg : Colors.White).Padding(3)
-                                .Text($"{(checked_ ? "☑" : "☐")}  {label}");
+                                .Text($"{(checked_ ? "[JA]" : "[NEE]")}  {label}");
                             alt = !alt;
                         }
                     });
@@ -199,7 +199,7 @@ public class PdfService(SunriseService sunriseSvc)
                         section.Item().Background(Colors.White).Padding(3)
                             .Text($"Max Altitude: {(fp.MaxAltitudeFt.HasValue ? fp.MaxAltitudeFt + " ft" : "–")}  |  Lift units: {fp.LiftUnits?.ToString("F0") ?? "–"}  |  Totaal lift: {fp.TotaalLiftKg?.ToString("F1") ?? "–"} kg");
                         section.Item().Background(LightBg).Padding(3)
-                            .Text(fp.LiftVoldoende ? "✅ Lift voldoende" : "❌ Lift onvoldoende").Bold()
+                            .Text(fp.LiftVoldoende ? "Lift voldoende" : "Lift onvoldoende").Bold()
                             .FontColor(fp.LiftVoldoende ? Colors.Green.Darken2 : Colors.Red.Darken2);
                         if (!string.IsNullOrWhiteSpace(fp.LoadNotes))
                             section.Item().Background(Colors.White).Padding(3).Text($"Notities: {fp.LoadNotes}");
@@ -229,7 +229,7 @@ public class PdfService(SunriseService sunriseSvc)
                         col.Item().PaddingTop(6).Column(section =>
                         {
                             section.Item().Background(Colors.Green.Darken1).Padding(4)
-                                .Text("✈️ Vluchtverslag").Bold().FontColor(Colors.White).FontSize(10);
+                                .Text("Vluchtverslag").Bold().FontColor(Colors.White).FontSize(10);
                             section.Item().Background(LightBg).Padding(3).Row(row =>
                             {
                                 row.RelativeItem(1).Text("Werkelijke landing").Bold();
@@ -341,7 +341,7 @@ public class PdfService(SunriseService sunriseSvc)
                 case "h3":
                     body.Item().PaddingTop(4).Text(text).Bold().FontSize(10); break;
                 case "li":
-                    var bullet = attrs.Contains("ordered") ? "–" : "•";
+                    var bullet = attrs.Contains("ordered") ? "-" : "*";
                     body.Item().PaddingLeft(8 + indent).Text($"{bullet} {text}").FontSize(9); break;
                 default: // p
                     body.Item().PaddingTop(1).PaddingLeft(indent).Text(text).FontSize(9); break;
