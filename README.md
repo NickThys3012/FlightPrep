@@ -107,53 +107,26 @@ The connection string is injected automatically as an App Setting.
 
 ---
 
-### 2 – Create a GitHub Actions service principal (OIDC)
+### 2 – Get the App Service Publish Profile
 
-The pipeline uses **Workload Identity Federation** (no long-lived secrets).
-
-```bash
-# Replace with your actual values
-SUBSCRIPTION_ID=$(az account show --query id -o tsv)
-APP_NAME="flightprep-gh-actions"
-REPO="NickThys3012/FlightPrep"
-
-# Create app registration
-APP_ID=$(az ad app create --display-name "$APP_NAME" --query appId -o tsv)
-OBJECT_ID=$(az ad app show --id "$APP_ID" --query id -o tsv)
-
-# Create service principal
-az ad sp create --id "$APP_ID"
-
-# Assign Contributor on the resource group
-az role assignment create \
-  --assignee "$APP_ID" \
-  --role Contributor \
-  --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/flightprep-rg"
-
-# Add federated credential (main branch)
-az ad app federated-credential create --id "$OBJECT_ID" --parameters '{
-  "name": "flightprep-main",
-  "issuer": "https://token.actions.githubusercontent.com",
-  "subject": "repo:'"$REPO"':ref:refs/heads/main",
-  "audiences": ["api://AzureADTokenExchange"]
-}'
-```
+1. Go to the [Azure Portal](https://portal.azure.com)
+2. Navigate to **App Services → flightprep-web**
+3. Click **"Get publish profile"** (top toolbar) — this downloads a `.PublishSettings` XML file
+4. Open the file in a text editor and **copy the entire contents**
 
 ---
 
-### 3 – Add GitHub repository secrets
+### 3 – Add the GitHub repository secret
 
 Go to **Settings → Secrets and variables → Actions** in your GitHub repo and add:
 
 | Secret | Value |
 |---|---|
-| `AZURE_CLIENT_ID` | App registration client ID (the `APP_ID` from step 2) |
-| `AZURE_TENANT_ID` | `az account show --query tenantId -o tsv` |
-| `AZURE_SUBSCRIPTION_ID` | `az account show --query id -o tsv` |
+| `AZURE_PUBLISH_PROFILE` | The full XML contents of the `.PublishSettings` file |
 
 ---
 
-### 4 – Set the App Service name variable
+### 4 – Set the App Service name
 
 In `.github/workflows/ci-cd.yml` the deploy step uses `app-name: flightprep-web`. If you changed the app name in `infra/main.bicep`, update it there too.
 

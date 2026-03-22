@@ -44,15 +44,9 @@ jobs:
           name: flightprep-publish
           path: ./publish
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
           app-name: flightprep-web
+          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
           package: ./publish
