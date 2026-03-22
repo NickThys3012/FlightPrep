@@ -186,26 +186,16 @@ public class PdfService
 
     private static void AddImageGrid(ColumnDescriptor col, List<FlightImage> images)
     {
-        col.Item().PaddingTop(4).Row(row =>
+        const int perRow = 2; // 2-per-row gives larger images than 3
+        for (int start = 0; start < images.Count; start += perRow)
         {
-            foreach (var img in images.Take(3))
-            {
-                row.RelativeItem().Padding(2).Image(img.Data).FitArea();
-            }
-            // Fill remaining slots so layout stays consistent
-            for (int i = images.Count; i < 3; i++)
-                row.RelativeItem();
-        });
-
-        // Additional rows if more than 3 images
-        for (int start = 3; start < images.Count; start += 3)
-        {
-            var batch = images.Skip(start).Take(3).ToList();
-            col.Item().PaddingTop(2).Row(row =>
+            var batch = images.Skip(start).Take(perRow).ToList();
+            col.Item().PaddingTop(4).Row(row =>
             {
                 foreach (var img in batch)
-                    row.RelativeItem().Padding(2).Image(img.Data).FitArea();
-                for (int i = batch.Count; i < 3; i++)
+                    row.RelativeItem().Padding(3).Image(img.Data).FitArea();
+                // keep columns balanced when batch is smaller than perRow
+                for (int i = batch.Count; i < perRow; i++)
                     row.RelativeItem();
             });
         }

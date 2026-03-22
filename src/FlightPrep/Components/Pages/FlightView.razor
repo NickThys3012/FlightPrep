@@ -61,11 +61,10 @@ else
                             <div class="d-flex flex-wrap gap-2 mt-3">
                                 @foreach (var img in meteo)
                                 {
-                                    <a href="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)" target="_blank">
-                                        <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)"
-                                            class="img-thumbnail" style="height:120px;max-width:200px;object-fit:cover"
-                                            title="@img.FileName" />
-                                    </a>
+                                    <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)"
+                                        class="img-thumbnail flight-thumb"
+                                        title="@img.FileName"
+                                        @onclick="() => OpenLightbox(img)" />
                                 }
                             </div>
                         }
@@ -174,11 +173,10 @@ else
                             <div class="d-flex flex-wrap gap-2">
                                 @foreach (var img in traj)
                                 {
-                                    <a href="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)" target="_blank">
-                                        <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)"
-                                            class="img-thumbnail" style="height:120px;max-width:200px;object-fit:cover"
-                                            title="@img.FileName" />
-                                    </a>
+                                    <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)"
+                                        class="img-thumbnail flight-thumb"
+                                        title="@img.FileName"
+                                        @onclick="() => OpenLightbox(img)" />
                                 }
                             </div>
                         }
@@ -201,9 +199,26 @@ else
     </div>
 }
 
+<!-- Lightbox modal -->
+@if (lightboxImg != null)
+{
+    <div class="lightbox-backdrop" @onclick="CloseLightbox">
+        <div class="lightbox-content" @onclick:stopPropagation="true">
+            <button class="lightbox-close" @onclick="CloseLightbox">&times;</button>
+            <img src="data:@lightboxImg.ContentType;base64,@Convert.ToBase64String(lightboxImg.Data)"
+                 alt="@lightboxImg.FileName" class="lightbox-img" />
+            <div class="lightbox-caption">@lightboxImg.FileName</div>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public int Id { get; set; }
     private FlightPreparation? fp;
+    private FlightImage? lightboxImg;
+
+    private void OpenLightbox(FlightImage img) => lightboxImg = img;
+    private void CloseLightbox() => lightboxImg = null;
 
     protected override async Task OnInitializedAsync()
     {
