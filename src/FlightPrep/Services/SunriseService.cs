@@ -2,7 +2,8 @@ namespace FlightPrep.Services;
 
 /// <summary>
 /// Computes sunrise and sunset times using the NOAA solar calculation algorithm.
-/// Returns UTC times.
+/// Returns UTC times. Matches the NOAA Solar Calculator spreadsheet to within ~1 minute,
+/// which aligns with Belgian AIP published tables.
 /// </summary>
 public class SunriseService
 {
@@ -11,7 +12,7 @@ public class SunriseService
         // Julian date
         double jd = ToJulianDate(date);
 
-        // Julian century
+        // Julian century from J2000.0
         double t = (jd - 2451545.0) / 36525.0;
 
         // Geometric mean longitude of the sun (degrees)
@@ -21,15 +22,16 @@ public class SunriseService
         double m = 357.52911 + t * (35999.05029 - 0.0001537 * t);
         double mRad = ToRad(m);
 
+        // Orbital eccentricity of Earth (dimensionless, ~0.0167)
+        double e = 0.016708634 - t * (0.000042037 + 0.0000001267 * t);
+
         // Equation of centre
         double c = Math.Sin(mRad) * (1.914602 - t * (0.004817 + 0.000014 * t))
                  + Math.Sin(2 * mRad) * (0.019993 - 0.000101 * t)
                  + Math.Sin(3 * mRad) * 0.000289;
 
-        // Sun's true longitude
+        // Sun's true longitude → apparent longitude
         double sunLon = l0 + c;
-
-        // Sun's apparent longitude
         double omega = 125.04 - 1934.136 * t;
         double lambdaRad = ToRad(sunLon - 0.00569 - 0.00478 * Math.Sin(ToRad(omega)));
 
@@ -43,25 +45,24 @@ public class SunriseService
         // Sun's declination
         double declRad = Math.Asin(Math.Sin(epsRad) * Math.Sin(lambdaRad));
 
-        // Equation of time (minutes)
+        // Equation of time (minutes) — NOAA formula using orbital eccentricity e
         double y = Math.Tan(epsRad / 2) * Math.Tan(epsRad / 2);
         double l0Rad = ToRad(l0);
         double eot = 4.0 * ToDeg(
             y * Math.Sin(2 * l0Rad)
-            - 2 * ToRad(c) * Math.Sin(mRad)   // eccentricity term (approximation)
-            + 4 * ToRad(c) * y * Math.Sin(mRad) * Math.Cos(2 * l0Rad)
+            - 2 * e * Math.Sin(mRad)
+            + 4 * e * y * Math.Sin(mRad) * Math.Cos(2 * l0Rad)
             - 0.5 * y * y * Math.Sin(4 * l0Rad)
-            - 1.25 * ToRad(c) * ToRad(c) * Math.Sin(2 * mRad));
+            - 1.25 * e * e * Math.Sin(2 * mRad));
 
-        // Hour angle for sunrise (degrees)
+        // Hour angle for sunrise (90.833° = geometric horizon + 0.833° refraction/disc)
         double latRad = ToRad(latDeg);
         double cosHA = (Math.Cos(ToRad(90.833)) - Math.Sin(latRad) * Math.Sin(declRad))
                        / (Math.Cos(latRad) * Math.Cos(declRad));
 
         // Clamp to [-1,1] to handle polar day/night
         cosHA = Math.Max(-1.0, Math.Min(1.0, cosHA));
-        double haRad = Math.Acos(cosHA);
-        double haDeg = ToDeg(haRad);
+        double haDeg = ToDeg(Math.Acos(cosHA));
 
         // Solar noon in minutes past midnight UTC
         double solarNoonMinUtc = 720.0 - 4.0 * lonDeg - eot;
@@ -85,7 +86,6 @@ public class SunriseService
 
     private static TimeOnly MinutesToTimeOnly(double totalMinutes)
     {
-        // Wrap to [0, 1440)
         totalMinutes = ((totalMinutes % 1440) + 1440) % 1440;
         int h = (int)(totalMinutes / 60) % 24;
         int min = (int)(totalMinutes % 60);
