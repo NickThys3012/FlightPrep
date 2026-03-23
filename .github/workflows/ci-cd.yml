@@ -66,15 +66,7 @@ jobs:
         run: dotnet build src/FlightPrep.Tests.UI/FlightPrep.Tests.UI.csproj --no-restore
 
       - name: Install Playwright browsers
-        run: |
-          PLAYWRIGHT_DIR=src/FlightPrep.Tests.UI/bin/Debug/net10.0/.playwright
-          NODE="$PLAYWRIGHT_DIR/node/linux-x64/node"
-          CLI="$PLAYWRIGHT_DIR/package/cli.js"
-          if [ -f "$NODE" ] && [ -f "$CLI" ]; then
-            "$NODE" "$CLI" install --with-deps chromium
-          else
-            pwsh src/FlightPrep.Tests.UI/bin/Debug/net10.0/playwright.ps1 install --with-deps chromium
-          fi
+        run: pwsh src/FlightPrep.Tests.UI/bin/Debug/net10.0/playwright.ps1 install --with-deps chromium
 
       - name: Run E2E tests
         run: >
@@ -83,8 +75,6 @@ jobs:
           --settings src/FlightPrep.Tests.UI/NUnit.runsettings
           --logger "trx;LogFileName=e2e-results.trx"
           --results-directory ./test-results
-        env:
-          PLAYWRIGHT_BROWSERS_PATH: 0  # use installed browsers
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
