@@ -179,7 +179,7 @@ public class PdfService(SunriseService sunriseSvc)
                         col.Item().Background(altLoad ? LightBg : Colors.White).Padding(3).Row(row =>
                         {
                             row.RelativeItem(3).Text(p.Name);
-                            row.RelativeItem(1).AlignRight().Text(p.WeightKg.ToString("F1"));
+                            row.RelativeItem(1).AlignRight().Text(p.WeightKg > 0 ? p.WeightKg.ToString("F1") : "–");
                         });
                         altLoad = !altLoad;
                     }
