@@ -24,8 +24,8 @@
     else
     {
         <!-- Go/No-Go banner -->
-        @{ var gng = fp?.GoNoGo ?? "unknown"; }
-        <div class="fp-gng-banner @(gng == "green" ? "gng-go" : gng == "yellow" ? "gng-caution" : gng == "red" ? "gng-nogo" : "gng-unknown") mb-3">
+        <div class="fp-gng-banner @((fp?.GoNoGo ?? "unknown") == "green" ? "gng-go" : (fp?.GoNoGo ?? "unknown") == "yellow" ? "gng-caution" : (fp?.GoNoGo ?? "unknown") == "red" ? "gng-nogo" : "gng-unknown") mb-3">
+            @{ var gng = fp?.GoNoGo ?? "unknown"; }
             <span style="font-size:1.5rem">@(gng == "green" ? "✅" : gng == "yellow" ? "⚠️" : gng == "red" ? "🔴" : "⬜")</span>
             <div>
                 <div class="gng-label">@(gng == "green" ? "GO" : gng == "yellow" ? "CAUTION" : gng == "red" ? "NO-GO" : "Onbekend")</div>
@@ -441,13 +441,27 @@
                         <div class="mt-2">
                             @if (fp.TotaalLiftKg.HasValue)
                             {
-                                @if (fp.TotaalLiftKg.Value > CalcTotalWeight())
+                                var liftOk = fp.TotaalLiftKg.Value > CalcTotalWeight();
+                                var pct = fp.TotaalLiftKg.Value > 0
+                                    ? Math.Min(100, CalcTotalWeight() / fp.TotaalLiftKg.Value * 100)
+                                    : 0;
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <span>Belading: @CalcTotalWeight().ToString("F1") kg / @fp.TotaalLiftKg kg lift</span>
+                                        <span class="fw-semibold">@pct.ToString("F0")%</span>
+                                    </div>
+                                    <div class="fp-load-bar-wrap">
+                                        <div class="fp-load-bar @(liftOk ? "fp-load-bar-ok" : "fp-load-bar-warn")"
+                                             style="width:@pct.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)%"></div>
+                                    </div>
+                                </div>
+                                @if (liftOk)
                                 {
-                                    <span class="badge bg-success fs-6">✅ Lift voldoende (@fp.TotaalLiftKg kg &gt; @CalcTotalWeight().ToString("F1") kg)</span>
+                                    <span class="badge bg-success">✅ Lift voldoende</span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-danger fs-6">❌ Lift onvoldoende (@fp.TotaalLiftKg kg ≤ @CalcTotalWeight().ToString("F1") kg)</span>
+                                    <span class="badge bg-danger">❌ Lift onvoldoende</span>
                                 }
                             }
                         </div>

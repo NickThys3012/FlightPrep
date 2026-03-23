@@ -45,7 +45,6 @@ else
             <tbody>
                 @foreach (var f in PagedFlights)
                 {
-                    @{ var gng = f.GoNoGo; }
                     <tr>
                         <td class="fw-semibold">@f.Datum.ToString("dd/MM/yyyy")</td>
                         <td>@f.Tijdstip.ToString("HH:mm")</td>
@@ -53,8 +52,8 @@ else
                         <td>@(f.Pilot?.Name ?? "–")</td>
                         <td>@(f.Location?.Name ?? "–")</td>
                         <td>
-                            <span class="go-badge @(gng == "green" ? "go-badge-go" : gng == "yellow" ? "go-badge-caution" : gng == "red" ? "go-badge-nogo" : "go-badge-unknown")">
-                                @(gng == "green" ? "GO" : gng == "yellow" ? "CAUTION" : gng == "red" ? "NO-GO" : "–")
+                            <span class="go-badge @(f.GoNoGo == "green" ? "go-badge-go" : f.GoNoGo == "yellow" ? "go-badge-caution" : f.GoNoGo == "red" ? "go-badge-nogo" : "go-badge-unknown")">
+                                @(f.GoNoGo == "green" ? "GO" : f.GoNoGo == "yellow" ? "CAUTION" : f.GoNoGo == "red" ? "NO-GO" : "–")
                             </span>
                             @if (f.IsFlown)
                             {

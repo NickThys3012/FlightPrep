@@ -14,28 +14,30 @@
 else
 {
     <div class="container-fluid mt-3">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2>
-                📋 Vaart – @fp.Datum.ToString("dd/MM/yyyy") @fp.Tijdstip.ToString("HH:mm")
-                @if (fp.IsFlown)
-                {
-                    <span class="badge bg-success ms-2">✈️ Gevlogen</span>
-                }
-            </h2>
-            <div class="d-flex gap-2">
+        @if (fp.IsFlown)
+        {
+            <div class="fp-flown-banner">
+                ✈️ Deze vaart is gevlogen
+            </div>
+        }
+
+        <div class="fp-page-header">
+            <div>
+                <h2 class="mb-1">
+                    @fp.Datum.ToString("dd MMMM yyyy") &nbsp;
+                    <span class="text-muted fw-normal fs-5">@fp.Tijdstip.ToString("HH:mm")</span>
+                </h2>
+                @{ var gng = fp.GoNoGo; }
+                <span class="go-badge @(gng == "green" ? "go-badge-go" : gng == "yellow" ? "go-badge-caution" : gng == "red" ? "go-badge-nogo" : "go-badge-unknown")">
+                    @(gng == "green" ? "✅ GO" : gng == "yellow" ? "⚠️ CAUTION" : gng == "red" ? "🔴 NO-GO" : "⬜ Go/No-Go onbekend")
+                </span>
+            </div>
+            <div class="fp-toolbar">
                 <a href="/flights/@fp.Id/edit" class="btn btn-outline-secondary">✏️ Bewerken</a>
                 <button class="btn btn-success" @onclick="DownloadPdf">📄 Download PDF</button>
                 <button class="btn btn-outline-primary" @onclick="() => showFlownModal = true">🛬 Markeer als gevlogen</button>
                 <a href="/flights" class="btn btn-outline-secondary">← Terug</a>
             </div>
-        </div>
-
-        <!-- Go/No-Go badge -->
-        <div class="mb-3">
-            @{ var gng = fp.GoNoGo; }
-            <span class="badge fs-6 @(gng == "green" ? "bg-success" : gng == "yellow" ? "bg-warning text-dark" : gng == "red" ? "bg-danger" : "bg-secondary")">
-                @(gng == "green" ? "✅ GO" : gng == "yellow" ? "⚠️ CAUTION" : gng == "red" ? "🔴 NO-GO" : "⬜ Go/No-Go onbekend")
-            </span>
         </div>
 
         <div class="row g-3">
@@ -53,7 +55,7 @@ else
                         </dl>
                         @if (sunriseSunset.HasValue)
                         {
-                            <div class="alert alert-info py-2 mt-2 mb-0 d-flex gap-4">
+                            <div class="fp-sun-card">
                                 <span>🌅 Zonsopgang: <strong>@sunriseSunset.Value.Sunrise.ToString("HH:mm") UTC</strong></span>
                                 <span>🌇 Zonsondergang: <strong>@sunriseSunset.Value.Sunset.ToString("HH:mm") UTC</strong></span>
                             </div>
@@ -102,11 +104,11 @@ else
                         @{ var meteo = fp.Images.Where(i => i.Section == "Meteo").ToList(); }
                         @if (meteo.Count > 0)
                         {
-                            <div class="d-flex flex-wrap gap-2 mt-3">
+                            <div class="fp-thumb-grid">
                                 @foreach (var img in meteo)
                                 {
                                     <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)"
-                                        class="img-thumbnail flight-thumb"
+                                        class="flight-thumb"
                                         title="@img.FileName"
                                         @onclick="() => OpenLightbox(img)" />
                                 }
@@ -214,11 +216,11 @@ else
                         @{ var traj = fp.Images.Where(i => i.Section == "Traject").ToList(); }
                         @if (traj.Count > 0)
                         {
-                            <div class="d-flex flex-wrap gap-2">
+                            <div class="fp-thumb-grid">
                                 @foreach (var img in traj)
                                 {
                                     <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)"
-                                        class="img-thumbnail flight-thumb"
+                                        class="flight-thumb"
                                         title="@img.FileName"
                                         @onclick="() => OpenLightbox(img)" />
                                 }
