@@ -1,51 +1,37 @@
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">🎈 FlightPrep</a>
+<nav class="navbar navbar-expand-lg fp-navbar">
+    <div class="container-fluid px-3">
+        <a class="navbar-brand" href="/">🎈 FlightPrep</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#fpNav"
+                aria-controls="fpNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="fpNav">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="/flights" Match="NavLinkMatch.Prefix">
+                        📋 Vaarten
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="/flights/new">
+                        ✈️ Nieuwe Vaart
+                    </NavLink>
+                </li>
+            </ul>
+            <ul class="navbar-nav mb-2 mb-lg-0">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button"
+                       data-bs-toggle="dropdown" aria-expanded="false">
+                        ⚙️ Instellingen
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="/settings/balloons">🎈 Ballonnen</a></li>
+                        <li><a class="dropdown-item" href="/settings/pilots">👤 Piloten</a></li>
+                        <li><a class="dropdown-item" href="/settings/locations">📍 Locaties</a></li>
+                        <li><a class="dropdown-item" href="/settings/gonogo">🟢 Go/No-Go</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
     </div>
-</div>
-
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                🎈 <span>FlightPrep</span>
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="flights/new">
-                ➕ <span>Nieuwe Vaart</span>
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="flights">
-                📋 <span>Vaarten</span>
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3 mt-3">
-            <span class="nav-link text-muted small text-uppercase">Instellingen</span>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="settings/balloons">
-                🎈 <span>Ballonnen</span>
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="settings/pilots">
-                👤 <span>Piloten</span>
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="settings/locations">
-                📍 <span>Locaties</span>
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="settings/gonogo">
-                🟢 <span>Go/No-Go</span>
-            </NavLink>
-        </div>
-    </nav>
-</div>
+</nav>
