@@ -15,6 +15,7 @@ public class FlightPreparation
     public Pilot? Pilot { get; set; }
     public int? LocationId { get; set; }
     public Location? Location { get; set; }
+    public bool VeldEigenaarGemeld { get; set; }
 
     // Section 2 - Meteorologische Informatie
     public double? SurfaceWindSpeedKt { get; set; }

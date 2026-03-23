@@ -52,6 +52,18 @@ else
                             <dt class="col-sm-3">Ballon</dt><dd class="col-sm-9">@(fp.Balloon != null ? $"{fp.Balloon.Registration} – {fp.Balloon.Type} ({fp.Balloon.Volume})" : "–")</dd>
                             <dt class="col-sm-3">Piloot / PIC</dt><dd class="col-sm-9">@(fp.Pilot?.Name ?? "–")</dd>
                             <dt class="col-sm-3">Locatie</dt><dd class="col-sm-9">@(fp.Location?.Name ?? "–")</dd>
+                            <dt class="col-sm-3">Veld eigenaar gemeld</dt>
+                            <dd class="col-sm-9">
+                                @if (fp.VeldEigenaarGemeld)
+                                {
+                                    <span class="badge bg-success">Ja</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Nee / NVT</span>
+                                    <a href="https://forms.monday.com/forms/90b13ba3fa8356c3f9a6d5f46b10421a?r=euc1" target="_blank" rel="noopener" class="ms-2 small">formulier invullen</a>
+                                }
+                            </dd>
                         </dl>
                         @if (sunriseSunset.HasValue)
                         {

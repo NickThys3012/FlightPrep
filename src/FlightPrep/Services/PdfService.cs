@@ -63,6 +63,7 @@ public class PdfService(SunriseService sunriseSvc)
                         ("Ballon", fp.Balloon != null ? $"{fp.Balloon.Registration} – {fp.Balloon.Type} ({fp.Balloon.Volume})" : "–"),
                         ("Piloot / PIC", fp.Pilot?.Name ?? "–"),
                         ("Locatie", fp.Location?.Name ?? "–"),
+                        ("Veld eigenaar gemeld", fp.VeldEigenaarGemeld ? "Ja" : "Nee / NVT"),
                     };
                     if (sunriseSunset.HasValue)
                     {
