@@ -136,74 +136,65 @@ public class PdfService(SunriseService sunriseSvc)
                     });
 
                     // Section 5 - Technische Controle with checkboxes
-                    col.Item().PaddingTop(6).Column(section =>
+                    col.Item().PaddingTop(6).Background(PrimaryColor).Padding(4)
+                        .Text("5. Technische Controle").Bold().FontColor(Colors.White).FontSize(10);
+                    var checks = new[]
                     {
-                        section.Item().Background(PrimaryColor).Padding(4)
-                            .Text("5. Technische Controle").Bold().FontColor(Colors.White).FontSize(10);
-                        var checks = new[]
-                        {
-                            (fp.BranderGetest, "Brander getest"),
-                            (fp.GasflaconsGecontroleerd, "Gasflessen gevuld & gecontroleerd"),
-                            (fp.BallonVisueel, "Ballon en mand visueel geïnspecteerd"),
-                            (fp.VerankeringenGecontroleerd, "Verankeringen en touwen gecontroleerd"),
-                            (fp.InstrumentenWerkend, "Instrumenten werkend"),
-                        };
-                        bool alt = false;
-                        foreach (var (checked_, label) in checks)
-                        {
-                            section.Item().Background(alt ? LightBg : Colors.White).Padding(3)
-                                .Text($"{(checked_ ? "[JA]" : "[NEE]")}  {label}");
-                            alt = !alt;
-                        }
+                        (fp.BranderGetest, "Brander getest"),
+                        (fp.GasflaconsGecontroleerd, "Gasflessen gevuld & gecontroleerd"),
+                        (fp.BallonVisueel, "Ballon en mand visueel geïnspecteerd"),
+                        (fp.VerankeringenGecontroleerd, "Verankeringen en touwen gecontroleerd"),
+                        (fp.InstrumentenWerkend, "Instrumenten werkend"),
+                    };
+                    bool alt5 = false;
+                    foreach (var (checked_, label) in checks)
+                    {
+                        col.Item().Background(alt5 ? LightBg : Colors.White).Padding(3)
+                            .Text($"{(checked_ ? "[JA]" : "[NEE]")}  {label}");
+                        alt5 = !alt5;
+                    }
+
+                    col.Item().PaddingTop(6).Background(PrimaryColor).Padding(4)
+                        .Text("6. Pax Briefing").Bold().FontColor(Colors.White).FontSize(10);
+                    col.Item().Background(Colors.White).Padding(4).Column(body =>
+                        RenderHtmlToColumn(body, fp.PaxBriefing));
+
+                    // Section 7 - Load Calculation (items added directly to outer col for proper page-break support)
+                    col.Item().PaddingTop(6).Background(PrimaryColor).Padding(4)
+                        .Text("7. Load Berekening").Bold().FontColor(Colors.White).FontSize(10);
+                    col.Item().Background(LightBg).Padding(3)
+                        .Text($"Gewicht envelop+brander+mand+flessen: {fp.EnvelopeWeightKg?.ToString("F1") ?? "–"} kg");
+                    col.Item().Background(Colors.White).Padding(3)
+                        .Text($"Piloot: {fp.Pilot?.Name ?? "–"}  –  {fp.Pilot?.WeightKg?.ToString("F1") ?? "–"} kg");
+
+                    // Passenger table header
+                    col.Item().Background(Colors.Grey.Lighten2).Padding(3).Row(row =>
+                    {
+                        row.RelativeItem(3).Text("Passagier").Bold();
+                        row.RelativeItem(1).AlignRight().Text("Gewicht (kg)").Bold();
                     });
-
-                    col.Item().PaddingTop(6).Column(section =>
+                    bool altLoad = false;
+                    foreach (var p in fp.Passengers.OrderBy(x => x.Order))
                     {
-                        section.Item().Background(PrimaryColor).Padding(4)
-                            .Text("6. Pax Briefing").Bold().FontColor(Colors.White).FontSize(10);
-                        section.Item().Background(Colors.White).Padding(4).Column(body =>
-                            RenderHtmlToColumn(body, fp.PaxBriefing));
-                    });
-
-                    // Section 7 - Load Calculation
-                    col.Item().PaddingTop(6).Column(section =>
-                    {
-                        section.Item().Background(PrimaryColor).Padding(4)
-                            .Text("7. Load Berekening").Bold().FontColor(Colors.White).FontSize(10);
-                        section.Item().Background(LightBg).Padding(3)
-                            .Text($"Gewicht envelop+brander+mand+flessen: {fp.EnvelopeWeightKg?.ToString("F1") ?? "–"} kg");
-                        section.Item().Background(Colors.White).Padding(3)
-                            .Text($"Piloot: {fp.Pilot?.Name ?? "–"}  –  {fp.Pilot?.WeightKg?.ToString("F1") ?? "–"} kg");
-
-                        // Passenger table header
-                        section.Item().Background(Colors.Grey.Lighten2).Padding(3).Row(row =>
+                        col.Item().Background(altLoad ? LightBg : Colors.White).Padding(3).Row(row =>
                         {
-                            row.RelativeItem(3).Text("Passagier").Bold();
-                            row.RelativeItem(1).AlignRight().Text("Gewicht (kg)").Bold();
+                            row.RelativeItem(3).Text(p.Name);
+                            row.RelativeItem(1).AlignRight().Text(p.WeightKg.ToString("F1"));
                         });
-                        bool alt = false;
-                        foreach (var p in fp.Passengers.OrderBy(x => x.Order))
-                        {
-                            section.Item().Background(alt ? LightBg : Colors.White).Padding(3).Row(row =>
-                            {
-                                row.RelativeItem(3).Text(p.Name);
-                                row.RelativeItem(1).AlignRight().Text(p.WeightKg.ToString("F1"));
-                            });
-                            alt = !alt;
-                        }
-                        section.Item().Background(Colors.Grey.Lighten3).Padding(3).Row(row =>
-                        {
-                            row.RelativeItem(3).Text("Totaal gewicht").Bold();
-                            row.RelativeItem(1).AlignRight().Text($"{fp.TotaalGewicht:F1} kg").Bold();
-                        });
-                        section.Item().Background(Colors.White).Padding(3)
-                            .Text($"Max Altitude: {(fp.MaxAltitudeFt.HasValue ? fp.MaxAltitudeFt + " ft" : "–")}  |  Lift units: {fp.LiftUnits?.ToString("F0") ?? "–"}  |  Totaal lift: {fp.TotaalLiftKg?.ToString("F1") ?? "–"} kg");
-                        section.Item().Background(LightBg).Padding(3)
-                            .Text(fp.LiftVoldoende ? "Lift voldoende" : "Lift onvoldoende").Bold()
-                            .FontColor(fp.LiftVoldoende ? Colors.Green.Darken2 : Colors.Red.Darken2);
-                        if (!string.IsNullOrWhiteSpace(fp.LoadNotes))
-                            section.Item().Background(Colors.White).Padding(3).Text($"Notities: {fp.LoadNotes}");
+                        altLoad = !altLoad;
+                    }
+                    col.Item().Background(Colors.Grey.Lighten3).Padding(3).Row(row =>
+                    {
+                        row.RelativeItem(3).Text("Totaal gewicht").Bold();
+                        row.RelativeItem(1).AlignRight().Text($"{fp.TotaalGewicht:F1} kg").Bold();
                     });
+                    col.Item().Background(Colors.White).Padding(3)
+                        .Text($"Max Altitude: {(fp.MaxAltitudeFt.HasValue ? fp.MaxAltitudeFt + " ft" : "–")}  |  Lift units: {fp.LiftUnits?.ToString("F0") ?? "–"}  |  Totaal lift: {fp.TotaalLiftKg?.ToString("F1") ?? "–"} kg");
+                    col.Item().Background(LightBg).Padding(3)
+                        .Text(fp.LiftVoldoende ? "Lift voldoende" : "Lift onvoldoende").Bold()
+                        .FontColor(fp.LiftVoldoende ? Colors.Green.Darken2 : Colors.Red.Darken2);
+                    if (!string.IsNullOrWhiteSpace(fp.LoadNotes))
+                        col.Item().Background(Colors.White).Padding(3).Text($"Notities: {fp.LoadNotes}");
 
                     AddSection(col, "8. Traject", new[]
                     {
@@ -215,36 +206,29 @@ public class PdfService(SunriseService sunriseSvc)
                     if (trajImgs.Count > 0)
                         AddImageGrid(col, trajImgs);
 
-                    col.Item().PaddingTop(6).Column(section =>
-                    {
-                        section.Item().Background(PrimaryColor).Padding(4)
-                            .Text("9. Ballonbulletin").Bold().FontColor(Colors.White).FontSize(10);
-                        section.Item().Background(Colors.White).Padding(4)
-                            .Text(fp.Ballonbulletin ?? "–").FontFamily("Courier New").FontSize(7.5f);
-                    });
+                    col.Item().PaddingTop(6).Background(PrimaryColor).Padding(4)
+                        .Text("9. Ballonbulletin").Bold().FontColor(Colors.White).FontSize(10);
+                    col.Item().Background(Colors.White).Padding(4)
+                        .Text(fp.Ballonbulletin ?? "–").FontFamily("Courier New").FontSize(7.5f);
 
-                    // Actual flight section
                     if (fp.IsFlown)
                     {
-                        col.Item().PaddingTop(6).Column(section =>
+                        col.Item().PaddingTop(6).Background(Colors.Green.Darken1).Padding(4)
+                            .Text("Vluchtverslag").Bold().FontColor(Colors.White).FontSize(10);
+                        col.Item().Background(LightBg).Padding(3).Row(row =>
                         {
-                            section.Item().Background(Colors.Green.Darken1).Padding(4)
-                                .Text("Vluchtverslag").Bold().FontColor(Colors.White).FontSize(10);
-                            section.Item().Background(LightBg).Padding(3).Row(row =>
-                            {
-                                row.RelativeItem(1).Text("Werkelijke landing").Bold();
-                                row.RelativeItem(2).Text(fp.ActualLandingNotes ?? "–");
-                            });
-                            section.Item().Background(Colors.White).Padding(3).Row(row =>
-                            {
-                                row.RelativeItem(1).Text("Vluchtduur").Bold();
-                                row.RelativeItem(2).Text(fp.ActualFlightDurationMinutes.HasValue ? $"{fp.ActualFlightDurationMinutes} min" : "–");
-                            });
-                            section.Item().Background(LightBg).Padding(3).Row(row =>
-                            {
-                                row.RelativeItem(1).Text("Opmerkingen").Bold();
-                                row.RelativeItem(2).Text(fp.ActualRemarks ?? "–");
-                            });
+                            row.RelativeItem(1).Text("Werkelijke landing").Bold();
+                            row.RelativeItem(2).Text(fp.ActualLandingNotes ?? "–");
+                        });
+                        col.Item().Background(Colors.White).Padding(3).Row(row =>
+                        {
+                            row.RelativeItem(1).Text("Vluchtduur").Bold();
+                            row.RelativeItem(2).Text(fp.ActualFlightDurationMinutes.HasValue ? $"{fp.ActualFlightDurationMinutes} min" : "–");
+                        });
+                        col.Item().Background(LightBg).Padding(3).Row(row =>
+                        {
+                            row.RelativeItem(1).Text("Opmerkingen").Bold();
+                            row.RelativeItem(2).Text(fp.ActualRemarks ?? "–");
                         });
                     }
                 });
