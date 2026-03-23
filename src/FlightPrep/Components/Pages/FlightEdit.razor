@@ -13,8 +13,8 @@
 
 <div class="container-fluid mt-3">
     <div class="fp-page-header">
-        <h2>@(Id.HasValue ? "✏️ Vaart Bewerken" : "➕ Nieuwe Vaart")</h2>
-        <a href="/flights" class="btn btn-outline-secondary">← Terug</a>
+        <h2>@(Id.HasValue ? "Vaart Bewerken" : "Nieuwe Vaart")</h2>
+        <a href="/flights" class="btn btn-outline-secondary">Terug</a>
     </div>
 
     @if (fp == null)
@@ -23,15 +23,19 @@
     }
     else
     {
-        <!-- Go/No-Go banner -->
-        <div class="fp-gng-banner @((fp?.GoNoGo ?? "unknown") == "green" ? "gng-go" : (fp?.GoNoGo ?? "unknown") == "yellow" ? "gng-caution" : (fp?.GoNoGo ?? "unknown") == "red" ? "gng-nogo" : "gng-unknown") mb-3">
-            @{ var gng = fp?.GoNoGo ?? "unknown"; }
-            <span style="font-size:1.5rem">@(gng == "green" ? "✅" : gng == "yellow" ? "⚠️" : gng == "red" ? "🔴" : "⬜")</span>
-            <div>
-                <div class="gng-label">@(gng == "green" ? "GO" : gng == "yellow" ? "CAUTION" : gng == "red" ? "NO-GO" : "Onbekend")</div>
-                <div class="gng-desc">@(gng == "green" ? "Vlucht is goedgekeurd" : gng == "yellow" ? "Voorzichtigheid geboden" : gng == "red" ? "Vlucht niet toegestaan" : "Go/No-Go status nog niet bepaald")</div>
+        <!-- Go/No-Go inline badge (hidden when unknown) -->
+        var gng = fp?.GoNoGo ?? "unknown";
+        if (gng != "unknown")
+        {
+            <div class="mb-3">
+                <span class="badge px-3 py-2 fs-6 @(gng == "green" ? "bg-success" : gng == "yellow" ? "bg-warning text-dark" : "bg-danger")">
+                    @(gng == "green" ? "GO" : gng == "yellow" ? "CAUTION" : "NO-GO")
+                </span>
+                <span class="text-muted ms-2 small">
+                    @(gng == "green" ? "Vlucht goedgekeurd" : gng == "yellow" ? "Voorzichtigheid geboden" : "Vlucht niet toegestaan")
+                </span>
             </div>
-        </div>
+        }
 
         <div class="accordion" id="flightAccordion">
 
@@ -427,7 +431,7 @@
                             <tfoot>
                                 <tr>
                                     <td colspan="3">
-                                        <button class="btn btn-sm btn-outline-success" @onclick="AddPassenger">➕ Passagier toevoegen</button>
+                                        <button class="btn btn-sm btn-outline-success" @onclick="AddPassenger">+ Passagier toevoegen</button>
                                     </td>
                                 </tr>
                                 <tr class="table-secondary fw-bold">
@@ -548,7 +552,7 @@
                 {
                     <span class="spinner-border spinner-border-sm me-1"></span>
                 }
-                📄 Opslaan &amp; PDF
+                Opslaan & PDF
             </button>
             <a href="/flights" class="btn btn-outline-secondary btn-lg">Annuleren</a>
         </div>

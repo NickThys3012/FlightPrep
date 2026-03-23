@@ -63,28 +63,45 @@ body {
     letter-spacing: 0.01em;
 }
 
-.fp-navbar .nav-link {
+.fp-navbar .nav-link:not(.btn) {
     color: rgba(255,255,255,0.82) !important;
     font-size: 0.9rem;
     font-weight: 500;
     padding: 0.5rem 0.9rem !important;
-    border-radius: 4px;
-    transition: color 0.15s, background 0.15s;
+    border-radius: 0 !important;
+    background: transparent !important;
+    transition: color 0.15s;
 }
 
-.fp-navbar .nav-link:hover {
+.fp-navbar .nav-link:not(.btn):hover,
+.fp-navbar .nav-link:not(.btn):focus {
     color: var(--fp-white) !important;
-    background: rgba(255,255,255,0.10);
+    background: transparent !important;
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
-.fp-navbar .nav-link.active {
+.fp-navbar .nav-link:not(.btn).active {
     color: var(--fp-white) !important;
-    background: rgba(74,159,212,0.18);
+    background: transparent !important;
     border-bottom: 2px solid var(--fp-sky);
-    border-radius: 4px 4px 0 0;
+    padding-bottom: calc(0.5rem - 2px) !important;
+    text-decoration: none !important;
 }
 
-.fp-navbar .dropdown-toggle::after {
+/* Ensure btn-primary inside navbar keeps its style */
+.fp-navbar .btn-primary {
+    background-color: var(--fp-blue) !important;
+    border-color: var(--fp-blue) !important;
+    color: #fff !important;
+    font-size: 0.875rem;
+    padding: 0.35rem 1rem;
+}
+
+.fp-navbar .btn-primary:hover {
+    background-color: #1558a0 !important;
+    border-color: #1558a0 !important;
+}
     margin-left: 0.4em;
 }
 
