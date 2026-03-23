@@ -5,30 +5,31 @@
                 aria-controls="fpNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="collapse navbar-collapse" id="fpNav">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <div class="collapse navbar-collapse align-items-center" id="fpNav">
+            <ul class="navbar-nav me-auto align-items-lg-center gap-1 mb-0">
                 <li class="nav-item">
                     <NavLink class="nav-link" href="/flights" Match="NavLinkMatch.Prefix">
-                        📋 Vaarten
+                        Vaarten
                     </NavLink>
                 </li>
                 <li class="nav-item">
-                    <NavLink class="nav-link" href="/flights/new">
-                        ✈️ Nieuwe Vaart
+                    <NavLink class="nav-link btn btn-sm btn-primary px-3 ms-1" href="/flights/new">
+                        + Nieuwe Vaart
                     </NavLink>
                 </li>
             </ul>
-            <ul class="navbar-nav mb-2 mb-lg-0">
+            <ul class="navbar-nav align-items-lg-center mb-0">
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button"
                        data-bs-toggle="dropdown" aria-expanded="false">
-                        ⚙️ Instellingen
+                        Instellingen
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="/settings/balloons">🎈 Ballonnen</a></li>
-                        <li><a class="dropdown-item" href="/settings/pilots">👤 Piloten</a></li>
-                        <li><a class="dropdown-item" href="/settings/locations">📍 Locaties</a></li>
-                        <li><a class="dropdown-item" href="/settings/gonogo">🟢 Go/No-Go</a></li>
+                        <li><a class="dropdown-item" href="/settings/balloons">Ballonnen</a></li>
+                        <li><a class="dropdown-item" href="/settings/pilots">Piloten</a></li>
+                        <li><a class="dropdown-item" href="/settings/locations">Locaties</a></li>
+                        <li><hr class="dropdown-divider" style="border-color:rgba(255,255,255,0.15)"></li>
+                        <li><a class="dropdown-item" href="/settings/gonogo">Go/No-Go instellingen</a></li>
                     </ul>
                 </li>
             </ul>
