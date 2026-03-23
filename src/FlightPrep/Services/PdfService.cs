@@ -171,22 +171,24 @@ public class PdfService(SunriseService sunriseSvc)
                     col.Item().Background(Colors.Grey.Lighten2).Padding(3).Row(row =>
                     {
                         row.RelativeItem(3).Text("Passagier").Bold();
-                        row.RelativeItem(1).AlignRight().Text("Gewicht (kg)").Bold();
+                        row.RelativeItem(1).Text(t => { t.AlignRight(); t.Span("Gewicht (kg)").Bold(); });
                     });
                     bool altLoad = false;
                     foreach (var p in fp.Passengers.OrderBy(x => x.Order))
                     {
+                        var pWeight = p.WeightKg > 0 ? p.WeightKg.ToString("F1") : "–";
                         col.Item().Background(altLoad ? LightBg : Colors.White).Padding(3).Row(row =>
                         {
                             row.RelativeItem(3).Text(p.Name);
-                            row.RelativeItem(1).AlignRight().Text(p.WeightKg > 0 ? p.WeightKg.ToString("F1") : "–");
+                            row.RelativeItem(1).Text(t => { t.AlignRight(); t.Span(pWeight); });
                         });
                         altLoad = !altLoad;
                     }
+                    var totalWeight = $"{fp.TotaalGewicht:F1} kg";
                     col.Item().Background(Colors.Grey.Lighten3).Padding(3).Row(row =>
                     {
                         row.RelativeItem(3).Text("Totaal gewicht").Bold();
-                        row.RelativeItem(1).AlignRight().Text($"{fp.TotaalGewicht:F1} kg").Bold();
+                        row.RelativeItem(1).Text(t => { t.AlignRight(); t.Span(totalWeight).Bold(); });
                     });
                     col.Item().Background(Colors.White).Padding(3)
                         .Text($"Max Altitude: {(fp.MaxAltitudeFt.HasValue ? fp.MaxAltitudeFt + " ft" : "–")}  |  Lift units: {fp.LiftUnits?.ToString("F0") ?? "–"}  |  Totaal lift: {fp.TotaalLiftKg?.ToString("F1") ?? "–"} kg");
