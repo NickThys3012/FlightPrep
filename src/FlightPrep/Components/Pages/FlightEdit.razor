@@ -12,7 +12,7 @@
 <PageTitle>@(Id.HasValue ? "Vaart Bewerken" : "Nieuwe Vaart") – FlightPrep</PageTitle>
 
 <div class="container-fluid mt-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="fp-page-header">
         <h2>@(Id.HasValue ? "✏️ Vaart Bewerken" : "➕ Nieuwe Vaart")</h2>
         <a href="/flights" class="btn btn-outline-secondary">← Terug</a>
     </div>
@@ -23,12 +23,14 @@
     }
     else
     {
-        <!-- Go/No-Go badge -->
-        <div class="mb-3">
-            @{ var gng = fp?.GoNoGo ?? "unknown"; }
-            <span class="badge fs-6 @(gng == "green" ? "bg-success" : gng == "yellow" ? "bg-warning text-dark" : gng == "red" ? "bg-danger" : "bg-secondary")">
-                @(gng == "green" ? "✅ GO" : gng == "yellow" ? "⚠️ CAUTION" : gng == "red" ? "🔴 NO-GO" : "⬜ Go/No-Go onbekend")
-            </span>
+        <!-- Go/No-Go banner -->
+        @{ var gng = fp?.GoNoGo ?? "unknown"; }
+        <div class="fp-gng-banner @(gng == "green" ? "gng-go" : gng == "yellow" ? "gng-caution" : gng == "red" ? "gng-nogo" : "gng-unknown") mb-3">
+            <span style="font-size:1.5rem">@(gng == "green" ? "✅" : gng == "yellow" ? "⚠️" : gng == "red" ? "🔴" : "⬜")</span>
+            <div>
+                <div class="gng-label">@(gng == "green" ? "GO" : gng == "yellow" ? "CAUTION" : gng == "red" ? "NO-GO" : "Onbekend")</div>
+                <div class="gng-desc">@(gng == "green" ? "Vlucht is goedgekeurd" : gng == "yellow" ? "Voorzichtigheid geboden" : gng == "red" ? "Vlucht niet toegestaan" : "Go/No-Go status nog niet bepaald")</div>
+            </div>
         </div>
 
         <div class="accordion" id="flightAccordion">
@@ -37,7 +39,7 @@
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#sec1">
-                        1. Algemene Gegevens
+                        <span class="acc-num">1</span> Algemene Gegevens
                     </button>
                 </h2>
                 <div id="sec1" class="accordion-collapse collapse show">
@@ -87,7 +89,7 @@
                         @if (sunriseSunset.HasValue)
                         {
                             <div class="col-12 mt-3">
-                                <div class="alert alert-info py-2 mb-0 d-flex gap-4">
+                                <div class="fp-sun-card">
                                     <span>🌅 Zonsopgang: <strong>@sunriseSunset.Value.Sunrise.ToString("HH:mm") UTC</strong></span>
                                     <span>🌇 Zonsondergang: <strong>@sunriseSunset.Value.Sunset.ToString("HH:mm") UTC</strong></span>
                                 </div>
@@ -101,7 +103,7 @@
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec2">
-                        2. Meteorologische Informatie
+                        <span class="acc-num">2</span> Meteorologische Informatie
                     </button>
                 </h2>
                 <div id="sec2" class="accordion-collapse collapse">
@@ -239,7 +241,7 @@
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec3">
-                        3. Luchtruim en NOTAMs
+                        <span class="acc-num">3</span> Luchtruim en NOTAMs
                     </button>
                 </h2>
                 <div id="sec3" class="accordion-collapse collapse">
@@ -273,7 +275,7 @@
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec4">
-                        4. Veiligheid en Communicatie
+                        <span class="acc-num">4</span> Veiligheid en Communicatie
                     </button>
                 </h2>
                 <div id="sec4" class="accordion-collapse collapse">
@@ -311,7 +313,7 @@
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec5">
-                        5. Technische Controle
+                        <span class="acc-num">5</span> Technische Controle
                     </button>
                 </h2>
                 <div id="sec5" class="accordion-collapse collapse">
@@ -345,7 +347,7 @@
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                         data-bs-target="#sec6" @onclick="InitQuillOnOpen">
-                        6. Pax Briefing
+                        <span class="acc-num">6</span> Pax Briefing
                     </button>
                 </h2>
                 <div id="sec6" class="accordion-collapse collapse">
@@ -359,7 +361,7 @@
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec7">
-                        7. Load Berekening
+                        <span class="acc-num">7</span> Load Berekening
                     </button>
                 </h2>
                 <div id="sec7" class="accordion-collapse collapse">
@@ -462,7 +464,7 @@
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec8">
-                        8. Traject
+                        <span class="acc-num">8</span> Traject
                     </button>
                 </h2>
                 <div id="sec8" class="accordion-collapse collapse">
@@ -504,7 +506,7 @@
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec9">
-                        9. Ballonbulletin
+                        <span class="acc-num">9</span> Ballonbulletin
                     </button>
                 </h2>
                 <div id="sec9" class="accordion-collapse collapse">

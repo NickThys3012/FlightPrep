@@ -5,26 +5,35 @@
 
 <PageTitle>Vaarten – FlightPrep</PageTitle>
 
-<div class="container-fluid mt-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>📋 Vaarten</h2>
-        <a href="/flights/new" class="btn btn-primary">➕ Nieuwe Vaart</a>
-    </div>
+<div class="fp-page-header">
+    <h2>📋 Vaarten</h2>
+    <a href="/flights/new" class="btn btn-primary">✈️ Nieuwe Vaart</a>
+</div>
 
-    @if (flights == null)
-    {
-        <p><em>Laden...</em></p>
-    }
-    else if (!flights.Any())
-    {
-        <div class="alert alert-info">Nog geen vaarten. <a href="/flights/new">Maak een nieuwe vaart aan.</a></div>
-    }
-    else
-    {
-        <table class="table table-hover">
-            <thead class="table-dark">
+@if (flights == null)
+{
+    <p class="text-muted"><em>Laden...</em></p>
+}
+else if (!flights.Any())
+{
+    <div class="fp-card">
+        <div class="fp-empty-state">
+            <div class="fp-empty-icon">🎈</div>
+            <h5>Geen vaarten gevonden</h5>
+            <p>Maak uw eerste vaartvoorbereiding aan.</p>
+            <a href="/flights/new" class="btn btn-primary">✈️ Nieuwe Vaart</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="fp-card p-0 overflow-hidden">
+        <table class="table mb-0">
+            <thead>
                 <tr>
-                    <th>Datum</th>
+                    <th style="cursor:pointer" @onclick="() => ToggleSort()">
+                        Datum @(sortDesc ? "▼" : "▲")
+                    </th>
                     <th>Tijdstip</th>
                     <th>Ballon</th>
                     <th>Piloot</th>
@@ -34,64 +43,104 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var f in flights)
+                @foreach (var f in PagedFlights)
                 {
+                    @{ var gng = f.GoNoGo; }
                     <tr>
-                        <td>@f.Datum.ToString("dd/MM/yyyy")</td>
+                        <td class="fw-semibold">@f.Datum.ToString("dd/MM/yyyy")</td>
                         <td>@f.Tijdstip.ToString("HH:mm")</td>
                         <td>@(f.Balloon?.Registration ?? "–")</td>
                         <td>@(f.Pilot?.Name ?? "–")</td>
                         <td>@(f.Location?.Name ?? "–")</td>
                         <td>
-                            <span class="badge @(f.GoNoGo == "green" ? "bg-success" : f.GoNoGo == "yellow" ? "bg-warning text-dark" : f.GoNoGo == "red" ? "bg-danger" : "bg-secondary")">
-                                @(f.GoNoGo == "green" ? "✅ GO" : f.GoNoGo == "yellow" ? "⚠️" : f.GoNoGo == "red" ? "🔴" : "–")
+                            <span class="go-badge @(gng == "green" ? "go-badge-go" : gng == "yellow" ? "go-badge-caution" : gng == "red" ? "go-badge-nogo" : "go-badge-unknown")">
+                                @(gng == "green" ? "GO" : gng == "yellow" ? "CAUTION" : gng == "red" ? "NO-GO" : "–")
                             </span>
                             @if (f.IsFlown)
                             {
-                                <span class="badge bg-success ms-1">✈️</span>
+                                <span class="badge bg-success ms-1">Gevlogen</span>
                             }
                         </td>
                         <td>
-                            <a href="/flights/@f.Id" class="btn btn-sm btn-outline-primary">👁️ Bekijken</a>
-                            <a href="/flights/@f.Id/edit" class="btn btn-sm btn-outline-secondary">✏️ Bewerken</a>
-                            <button class="btn btn-sm btn-outline-danger" @onclick="() => ConfirmDelete(f.Id)">🗑️ Verwijder</button>
+                            <div class="btn-group btn-group-sm">
+                                <a href="/flights/@f.Id" class="btn btn-outline-primary">👁 Bekijken</a>
+                                <a href="/flights/@f.Id/edit" class="btn btn-outline-secondary">✏️ Bewerken</a>
+                                <button class="btn btn-outline-danger" @onclick="() => ConfirmDelete(f.Id)">🗑</button>
+                            </div>
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
-    }
+    </div>
 
-    @if (deleteId.HasValue)
+    @if (TotalPages > 1)
     {
-        <div class="modal d-block" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Vaart verwijderen?</h5>
-                    </div>
-                    <div class="modal-body">
-                        <p>Weet u zeker dat u deze vaart wilt verwijderen?</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-danger" @onclick="DeleteFlight">Verwijderen</button>
-                        <button class="btn btn-secondary" @onclick="() => deleteId = null">Annuleren</button>
-                    </div>
+        <nav class="mt-3 d-flex justify-content-center">
+            <ul class="pagination pagination-sm">
+                <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                    <button class="page-link" @onclick="() => currentPage--">‹</button>
+                </li>
+                @for (int p = 1; p <= TotalPages; p++)
+                {
+                    var pg = p;
+                    <li class="page-item @(currentPage == pg ? "active" : "")">
+                        <button class="page-link" @onclick="() => currentPage = pg">@pg</button>
+                    </li>
+                }
+                <li class="page-item @(currentPage == TotalPages ? "disabled" : "")">
+                    <button class="page-link" @onclick="() => currentPage++">›</button>
+                </li>
+            </ul>
+        </nav>
+    }
+}
+
+@if (deleteId.HasValue)
+{
+    <div class="modal d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Vaart verwijderen?</h5>
+                </div>
+                <div class="modal-body">
+                    <p>Weet u zeker dat u deze vaart wilt verwijderen?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-danger" @onclick="DeleteFlight">Verwijderen</button>
+                    <button class="btn btn-secondary" @onclick="() => deleteId = null">Annuleren</button>
                 </div>
             </div>
         </div>
-        <div class="modal-backdrop fade show"></div>
-    }
-</div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
 
 @code {
     private List<FlightPreparation>? flights;
     private int? deleteId;
+    private bool sortDesc = true;
+    private int currentPage = 1;
+    private const int PageSize = 20;
 
-    protected override async Task OnInitializedAsync()
+    private IEnumerable<FlightPreparation> SortedFlights =>
+        sortDesc
+            ? flights!.OrderByDescending(f => f.Datum).ThenByDescending(f => f.Tijdstip)
+            : flights!.OrderBy(f => f.Datum).ThenBy(f => f.Tijdstip);
+
+    private int TotalPages => (int)Math.Ceiling((flights?.Count ?? 0) / (double)PageSize);
+
+    private IEnumerable<FlightPreparation> PagedFlights =>
+        SortedFlights.Skip((currentPage - 1) * PageSize).Take(PageSize);
+
+    private void ToggleSort()
     {
-        await LoadFlights();
+        sortDesc = !sortDesc;
+        currentPage = 1;
     }
+
+    protected override async Task OnInitializedAsync() => await LoadFlights();
 
     private async Task LoadFlights()
     {
@@ -100,8 +149,6 @@
             .Include(f => f.Balloon)
             .Include(f => f.Pilot)
             .Include(f => f.Location)
-            .OrderByDescending(f => f.Datum)
-            .ThenByDescending(f => f.Tijdstip)
             .ToListAsync();
     }
 

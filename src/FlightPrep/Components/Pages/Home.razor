@@ -1,14 +1,114 @@
 @page "/"
+@rendermode InteractiveServer
+@inject IDbContextFactory<AppDbContext> DbFactory
 
-<PageTitle>FlightPrep – Vaartvoorbereiding</PageTitle>
+<PageTitle>FlightPrep – Dashboard</PageTitle>
 
-<div class="container mt-5">
-    <div class="text-center">
-        <h1 class="display-4">🎈 BalloonPrep</h1>
-        <p class="lead text-muted">Vaartvoorbereiding voor ballonvluchten</p>
-        <div class="mt-4 d-flex justify-content-center gap-3">
-            <a href="/flights/new" class="btn btn-primary btn-lg">➕ Nieuwe Vaart</a>
-            <a href="/flights" class="btn btn-outline-secondary btn-lg">📋 Alle Vaarten</a>
+<!-- Hero -->
+<div class="fp-hero">
+    <h1>🎈 Welkom bij FlightPrep</h1>
+    <p class="lead">Vaartvoorbereiding voor ballonvluchten — professioneel en overzichtelijk.</p>
+    <div class="d-flex gap-2 mt-3">
+        <a href="/flights/new" class="btn btn-light fw-semibold">✈️ Nieuwe Vaart</a>
+        <a href="/flights" class="btn btn-outline-light">📋 Bekijk Vaarten</a>
+    </div>
+</div>
+
+<!-- Stats row -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-4">
+        <div class="fp-stat-card">
+            <div class="stat-number">@totalFlights</div>
+            <div class="stat-label">Totaal Vaarten</div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="fp-stat-card">
+            <div class="stat-number">@flightsThisYear</div>
+            <div class="stat-label">Dit Jaar</div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="fp-stat-card">
+            <div class="stat-number">@flightsFlown</div>
+            <div class="stat-label">Gevlogen</div>
         </div>
     </div>
 </div>
+
+<!-- Recent flights -->
+<div class="fp-card p-0 overflow-hidden">
+    <div class="fp-section-header d-flex justify-content-between align-items-center">
+        <span>Recente Vaarten</span>
+        <a href="/flights" class="btn btn-sm btn-outline-light">Alle vaarten →</a>
+    </div>
+    <div class="p-3">
+        @if (recentFlights == null)
+        {
+            <p class="text-muted"><em>Laden...</em></p>
+        }
+        else if (!recentFlights.Any())
+        {
+            <div class="fp-empty-state">
+                <div class="fp-empty-icon">🎈</div>
+                <h5>Nog geen vaarten</h5>
+                <p>Maak een nieuwe vaartvoorbereiding aan om te beginnen.</p>
+                <a href="/flights/new" class="btn btn-primary">✈️ Eerste Vaart Aanmaken</a>
+            </div>
+        }
+        else
+        {
+            <div class="list-group list-group-flush">
+                @foreach (var f in recentFlights)
+                {
+                    <a href="/flights/@f.Id" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
+                        <div>
+                            <div class="fw-semibold">@f.Datum.ToString("dd/MM/yyyy") @f.Tijdstip.ToString("HH:mm")</div>
+                            <div class="text-muted small">
+                                @(f.Balloon?.Registration ?? "–") &nbsp;·&nbsp;
+                                @(f.Pilot?.Name ?? "–") &nbsp;·&nbsp;
+                                @(f.Location?.Name ?? "–")
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2 align-items-center">
+                            @{ var gng = f.GoNoGo; }
+                            <span class="go-badge @(gng == "green" ? "go-badge-go" : gng == "yellow" ? "go-badge-caution" : gng == "red" ? "go-badge-nogo" : "go-badge-unknown")">
+                                @(gng == "green" ? "GO" : gng == "yellow" ? "CAUTION" : gng == "red" ? "NO-GO" : "–")
+                            </span>
+                            @if (f.IsFlown)
+                            {
+                                <span class="badge bg-success">Gevlogen</span>
+                            }
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private int totalFlights;
+    private int flightsThisYear;
+    private int flightsFlown;
+    private List<FlightPreparation>? recentFlights;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var currentYear = DateTime.UtcNow.Year;
+
+        totalFlights     = await db.FlightPreparations.CountAsync();
+        flightsThisYear  = await db.FlightPreparations.CountAsync(f => f.Datum.Year == currentYear);
+        flightsFlown     = await db.FlightPreparations.CountAsync(f => f.IsFlown);
+
+        recentFlights = await db.FlightPreparations
+            .Include(f => f.Balloon)
+            .Include(f => f.Pilot)
+            .Include(f => f.Location)
+            .OrderByDescending(f => f.Datum)
+            .ThenByDescending(f => f.Tijdstip)
+            .Take(5)
+            .ToListAsync();
+    }
+}

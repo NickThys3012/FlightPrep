@@ -66,7 +66,15 @@ jobs:
         run: dotnet build src/FlightPrep.Tests.UI/FlightPrep.Tests.UI.csproj --no-restore
 
       - name: Install Playwright browsers
-        run: pwsh src/FlightPrep.Tests.UI/bin/Debug/net10.0/playwright.ps1 install --with-deps chromium
+        run: |
+          PLAYWRIGHT_DIR=src/FlightPrep.Tests.UI/bin/Debug/net10.0/.playwright
+          NODE="$PLAYWRIGHT_DIR/node/linux-x64/node"
+          CLI="$PLAYWRIGHT_DIR/package/cli.js"
+          if [ -f "$NODE" ] && [ -f "$CLI" ]; then
+            "$NODE" "$CLI" install --with-deps chromium
+          else
+            pwsh src/FlightPrep.Tests.UI/bin/Debug/net10.0/playwright.ps1 install --with-deps chromium
+          fi
 
       - name: Run E2E tests
         run: >
