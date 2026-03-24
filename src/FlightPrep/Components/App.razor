@@ -303,8 +303,8 @@
                     setTimeout(resolve, 4000); // fallback timeout
                 });
                 await new Promise(r => setTimeout(r, 500)); // settle
-                const canvas = await html2canvas(container, { useCORS: true, allowTaint: false, scale: 1, logging: false });
-                return canvas.toDataURL('image/png').split(',')[1]; // return base64 only
+                const canvas = await html2canvas(container, { useCORS: true, allowTaint: false, scale: 0.75, logging: false });
+                return canvas.toDataURL('image/jpeg', 0.85).split(',')[1]; // JPEG, smaller size
             } catch(e) {
                 console.warn('Map capture failed:', e);
                 return null;

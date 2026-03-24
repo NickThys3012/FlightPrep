@@ -49,6 +49,9 @@ builder.Services.AddScoped<TrajectoryService>();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// Increase SignalR message size to handle trajectory map PNG (~2MB)
+builder.Services.AddSignalR(o => o.MaximumReceiveMessageSize = 5 * 1024 * 1024);
+
 var app = builder.Build();
 
 // Auto-apply migrations
