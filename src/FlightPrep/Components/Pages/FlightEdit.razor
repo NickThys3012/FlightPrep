@@ -539,6 +539,65 @@
                                 @bind="fp.Traject"></textarea>
                         </div>
 
+                        <!-- Trajectory Prediction -->
+                        @if (currentLocation?.Latitude.HasValue == true && currentLocation.Longitude.HasValue)
+                        {
+                            <div class="card mb-3" style="background:var(--fp-surface);border:1px solid var(--fp-border)">
+                                <div class="card-header fw-semibold small py-2">🗺️ Traject voorspelling</div>
+                                <div class="card-body">
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-auto">
+                                            <label class="form-label small mb-1">Vluchttijd (min)</label>
+                                            <input type="number" class="form-control form-control-sm" style="width:100px"
+                                                @bind="fp!.TrajectoryDurationMin" min="15" max="240" step="15" />
+                                        </div>
+                                    </div>
+                                    <div class="mb-2 fw-semibold small">Hoogtes (selecteer niveaus)</div>
+                                    <div class="d-flex flex-wrap gap-2 mb-3">
+                                        @foreach (var kvp in TrajectoryService.AvailableLevels.OrderByDescending(k => k.Key))
+                                        {
+                                            var hpa = kvp.Key;
+                                            var alt = kvp.Value;
+                                            var isSelected = selectedLevels.Contains(hpa);
+                                            <button type="button"
+                                                class="btn btn-sm @(isSelected ? "btn-primary" : "btn-outline-secondary")"
+                                                @onclick="() => ToggleLevel(hpa)">
+                                                @hpa hPa <span class="text-opacity-75">~@alt m</span>
+                                            </button>
+                                        }
+                                    </div>
+                                    <button class="btn btn-sm btn-success" @onclick="GenerateTrajectories" disabled="@(generatingTrajectory || selectedLevels.Count == 0)">
+                                        @(generatingTrajectory ? "Berekenen..." : "🗺️ Genereer trajecten")
+                                    </button>
+                                    @if (trajectoryError != null)
+                                    {
+                                        <span class="text-danger small ms-2">@trajectoryError</span>
+                                    }
+                                    @if (predictedTrajectories.Count > 0)
+                                    {
+                                        <div class="mt-3">
+                                            <div class="d-flex flex-wrap gap-3 mb-2">
+                                                @foreach (var t in predictedTrajectories)
+                                                {
+                                                    <span class="small">
+                                                        <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:@t.Color;vertical-align:middle;margin-right:4px"></span>
+                                                        @t.HpaLevel hPa (~@t.AltitudeM m) — eindpunt: @t.Points.Last().Lat.ToString("F4")°N, @t.Points.Last().Lon.ToString("F4")°E
+                                                    </span>
+                                                }
+                                            </div>
+                                            <div id="trajectory-map" style="height:400px;border-radius:8px;border:1px solid var(--fp-border)"></div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else if (fp?.LocationId != null && fp.LocationId != 0)
+                        {
+                            <div class="alert alert-secondary small py-2 mb-3">
+                                ⚠️ Voeg GPS-coördinaten toe aan deze locatie (<a href="/settings/locations">Instellingen → Locaties</a>) om trajectvoorspellingen te genereren.
+                            </div>
+                        }
+
                         <!-- Image upload – Traject -->
                         <div>
                             <label class="form-label fw-semibold">📷 Foto's (trajectkaart, wind chart, ...)</label>
@@ -635,6 +694,58 @@
     private bool saving;
     private string? saveMessage;
     private bool saveError;
+
+    [Inject] TrajectoryService TrajectorySvc { get; set; } = default!;
+
+    private HashSet<int> selectedLevels = new() { 850, 800, 750 };
+    private bool generatingTrajectory = false;
+    private string? trajectoryError = null;
+    private List<PredictedTrajectory> predictedTrajectories = new();
+
+    private void ToggleLevel(int hpa)
+    {
+        if (selectedLevels.Contains(hpa)) selectedLevels.Remove(hpa);
+        else selectedLevels.Add(hpa);
+    }
+
+    private async Task GenerateTrajectories()
+    {
+        if (fp == null || currentLocation?.Latitude == null || currentLocation.Longitude == null) return;
+        generatingTrajectory = true;
+        trajectoryError = null;
+        predictedTrajectories = new();
+
+        try
+        {
+            var flightTime = fp.Datum.ToDateTime(fp.Tijdstip);
+            predictedTrajectories = await TrajectorySvc.PredictAsync(
+                currentLocation.Latitude.Value,
+                currentLocation.Longitude.Value,
+                flightTime,
+                selectedLevels.OrderBy(x => x).ToArray(),
+                fp.TrajectoryDurationMin);
+
+            if (predictedTrajectories.Count == 0)
+            {
+                trajectoryError = "Geen data beschikbaar voor deze locatie/tijd.";
+            }
+            else
+            {
+                StateHasChanged();
+                await Task.Delay(100);
+                await JS.InvokeVoidAsync("initTrajectoryMap", "trajectory-map", predictedTrajectories
+                    .Select(t => new {
+                        color = t.Color,
+                        label = $"{t.HpaLevel} hPa (~{t.AltitudeM}m)",
+                        points = t.Points.Select(p => new[] { p.Lat, p.Lon }).ToArray()
+                    }).ToArray(),
+                    currentLocation.Latitude.Value,
+                    currentLocation.Longitude.Value);
+            }
+        }
+        catch (Exception ex) { trajectoryError = ex.Message; }
+        finally { generatingTrajectory = false; }
+    }
 
     private bool _showWindProfile;
     private bool showWindProfile

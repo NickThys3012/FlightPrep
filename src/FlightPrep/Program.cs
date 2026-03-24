@@ -44,6 +44,7 @@ builder.Services.AddHttpClient("openmeteo", c =>
     c.Timeout = TimeSpan.FromSeconds(10);
 });
 builder.Services.AddScoped<WeatherFetchService>();
+builder.Services.AddScoped<TrajectoryService>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
