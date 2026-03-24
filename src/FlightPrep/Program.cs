@@ -25,6 +25,20 @@ builder.Services.AddHttpClient<WeatherService>();
 builder.Services.AddSingleton<SunriseService>();
 builder.Services.AddScoped<PdfService>();
 builder.Services.AddScoped<GoNoGoService>();
+builder.Services.AddSingleton<KmlService>();
+
+builder.Services.AddHttpClient("aviationweather", c =>
+{
+    c.BaseAddress = new Uri("https://aviationweather.gov/");
+    c.DefaultRequestHeaders.UserAgent.ParseAdd("FlightPrep/1.0");
+    c.Timeout = TimeSpan.FromSeconds(10);
+});
+builder.Services.AddHttpClient("openmeteo", c =>
+{
+    c.BaseAddress = new Uri("https://api.open-meteo.com/");
+    c.Timeout = TimeSpan.FromSeconds(10);
+});
+builder.Services.AddScoped<WeatherFetchService>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -47,6 +61,17 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseAntiforgery();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        if (ctx.File.Name == "service-worker.js")
+        {
+            ctx.Context.Response.Headers["Service-Worker-Allowed"] = "/";
+            ctx.Context.Response.Headers["Cache-Control"] = "no-cache";
+        }
+    }
+});
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

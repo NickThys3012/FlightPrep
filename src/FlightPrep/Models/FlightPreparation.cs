@@ -68,6 +68,9 @@ public class FlightPreparation
     public int? ActualFlightDurationMinutes { get; set; }
     public string? ActualRemarks { get; set; }
 
+    // KML flight track
+    public string? KmlTrack { get; set; }
+
     // Images (stored in separate table)
     public List<FlightImage> Images { get; set; } = new();
 
