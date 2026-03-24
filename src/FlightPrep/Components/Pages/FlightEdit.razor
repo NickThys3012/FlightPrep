@@ -290,31 +290,6 @@
                 </h2>
                 <div id="sec3" class="accordion-collapse collapse">
                     <div class="accordion-body">
-                        <div class="mb-3">
-                            <div class="fw-semibold small mb-1">Snelle NOTAM links</div>
-                            <div class="d-flex flex-wrap gap-2">
-                                @{
-                                    var icao = currentLocation?.IcaoCode;
-                                    var lat = currentLocation?.Latitude;
-                                    var lon = currentLocation?.Longitude;
-                                }
-                                <a href="https://www.notaminfo.com/belgiummap" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
-                                    NOTAMinfo België
-                                </a>
-                                <a href="https://www.ops.group/notams" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
-                                    ops.group NOTAMs
-                                </a>
-                                @if (!string.IsNullOrEmpty(icao))
-                                {
-                                    <a href="@($"https://www.notaminfo.com/belgiummap?icao={icao}")" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
-                                        NOTAMs voor @icao
-                                    </a>
-                                }
-                                <a href="https://www.skeyes.be/en/services/aeronautical-information/notam/" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
-                                    skeyes NOTAM
-                                </a>
-                            </div>
-                        </div>
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label class="form-label">NOTAMs gecontroleerd</label>
