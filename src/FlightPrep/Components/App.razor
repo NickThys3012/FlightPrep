@@ -31,6 +31,7 @@
     <Routes />
     <ReconnectModal />
     <script src="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <script src="@Assets["lib/bootstrap/dist/js/bootstrap.bundle.min.js"]"></script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script>
@@ -226,6 +227,31 @@
         window.quillGetHtml = function (id) {
             const q = window._quills[id];
             return q ? q.root.innerHTML : null;
+        };
+
+        window.initLogboekCharts = function(monthLabels, monthData, locationLabels, locationData) {
+            var ctx1 = document.getElementById('chart-months');
+            if (ctx1) {
+                new Chart(ctx1.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: monthLabels,
+                        datasets: [{ label: 'Vaarten', data: monthData, backgroundColor: 'rgba(26,58,92,0.75)', borderRadius: 4 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+                });
+            }
+            var ctx2 = document.getElementById('chart-locations');
+            if (ctx2) {
+                new Chart(ctx2.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: locationLabels,
+                        datasets: [{ label: 'Vaarten', data: locationData, backgroundColor: 'rgba(41,182,246,0.75)', borderRadius: 4 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+                });
+            }
         };
 
         // Register service worker for PWA
