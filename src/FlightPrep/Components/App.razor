@@ -35,11 +35,18 @@
             a.click();
         };
 
+        window._flightMap = null;
+        window._flightPoints = null;
+        window._hoverMarker = null;
+
         window.initFlightMap = function(mapId, points) {
             // points: array of [lat, lon, altM]
             if (!points || points.length === 0) return;
 
             var map = L.map(mapId).setView([points[0][0], points[0][1]], 13);
+            window._flightMap = map;
+            window._flightPoints = points;
+
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors',
                 maxZoom: 18
@@ -72,6 +79,12 @@
                 icon: L.divIcon({ className: '', html: '<div style="background:#e74c3c;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,.5)"></div>', iconAnchor:[7,7] })
             }).bindPopup('Landing').addTo(map);
 
+            // Crosshair marker (hidden until chart hover)
+            window._hoverMarker = L.marker([points[0][0], points[0][1]], {
+                icon: L.divIcon({ className: '', html: '<div style="background:#f39c12;width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 0 6px rgba(0,0,0,.6)"></div>', iconAnchor:[6,6] }),
+                zIndexOffset: 1000
+            });
+
             // Fit bounds
             var latlngs = points.map(function(p) { return [p[0], p[1]]; });
             map.fitBounds(latlngs);
@@ -81,12 +94,14 @@
             // points: array of [lat, lon, altM]
             if (!points || points.length === 0) return;
 
-            // Compute cumulative distance (km) as x-axis
+            var M_TO_FT = 3.28084;
+
+            // Compute cumulative distance (km) as x-axis, altitudes in feet
             var labels = [];
-            var altitudes = [];
+            var altitudesFt = [];
             var dist = 0;
             labels.push('0.0');
-            altitudes.push(Math.round(points[0][2]));
+            altitudesFt.push(Math.round(points[0][2] * M_TO_FT));
             for (var i = 1; i < points.length; i++) {
                 var dLat = (points[i][0] - points[i-1][0]) * Math.PI / 180;
                 var dLon = (points[i][1] - points[i-1][1]) * Math.PI / 180;
@@ -94,16 +109,15 @@
                         Math.cos(points[i-1][0]*Math.PI/180)*Math.cos(points[i][0]*Math.PI/180)*
                         Math.sin(dLon/2)*Math.sin(dLon/2);
                 dist += 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                // Only label every ~10 points to keep x-axis readable
                 labels.push(i % 10 === 0 ? dist.toFixed(1) : '');
-                altitudes.push(Math.round(points[i][2]));
+                altitudesFt.push(Math.round(points[i][2] * M_TO_FT));
             }
 
             // Color each point based on altitude (same blue→red scale as map)
-            var minAlt = Math.min.apply(null, altitudes);
-            var maxAlt = Math.max.apply(null, altitudes);
+            var minAlt = Math.min.apply(null, altitudesFt);
+            var maxAlt = Math.max.apply(null, altitudesFt);
             var range = maxAlt - minAlt || 1;
-            var pointColors = altitudes.map(function(a) {
+            var pointColors = altitudesFt.map(function(a) {
                 var t = (a - minAlt) / range;
                 var r = Math.round(t * 220);
                 var b = Math.round((1 - t) * 220);
@@ -116,13 +130,13 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Hoogte (m)',
-                        data: altitudes,
+                        label: 'Hoogte (ft)',
+                        data: altitudesFt,
                         borderColor: 'rgba(26,58,92,0.7)',
                         borderWidth: 1.5,
                         pointBackgroundColor: pointColors,
                         pointRadius: 2,
-                        pointHoverRadius: 5,
+                        pointHoverRadius: 6,
                         fill: true,
                         backgroundColor: 'rgba(26,58,92,0.08)',
                         tension: 0.3
@@ -131,12 +145,33 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
                     plugins: {
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
-                                title: function(items) { return 'Afstand: ' + (labels[items[0].dataIndex] || '–') + ' km'; },
-                                label: function(item) { return 'Hoogte: ' + item.raw + ' m'; }
+                                title: function(items) {
+                                    var d = labels[items[0].dataIndex];
+                                    return d ? 'Afstand: ' + d + ' km' : '';
+                                },
+                                label: function(item) { return 'Hoogte: ' + item.raw + ' ft'; }
+                            }
+                        }
+                    },
+                    onHover: function(event, activeElements) {
+                        if (!window._flightMap || !window._flightPoints || !window._hoverMarker) return;
+                        if (activeElements && activeElements.length > 0) {
+                            var idx = activeElements[0].index;
+                            var pt = window._flightPoints[idx];
+                            window._hoverMarker.setLatLng([pt[0], pt[1]]);
+                            if (!window._hoverMarker._map) {
+                                window._hoverMarker.addTo(window._flightMap);
+                            }
+                            var altFt = Math.round(pt[2] * M_TO_FT);
+                            window._hoverMarker.bindTooltip(altFt + ' ft', { permanent: false, direction: 'top', offset: [0, -8] });
+                        } else {
+                            if (window._hoverMarker._map) {
+                                window._hoverMarker.remove();
                             }
                         }
                     },
@@ -147,7 +182,7 @@
                             grid: { color: 'rgba(0,0,0,0.05)' }
                         },
                         y: {
-                            title: { display: true, text: 'Hoogte (m)' },
+                            title: { display: true, text: 'Hoogte (ft)' },
                             grid: { color: 'rgba(0,0,0,0.05)' },
                             beginAtZero: false
                         }

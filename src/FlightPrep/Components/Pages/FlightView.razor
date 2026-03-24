@@ -298,11 +298,11 @@ else
                             var stats = KmlSvc.ComputeStats(trackPoints);
                             <div class="d-flex gap-4 px-3 pt-3 pb-2 flex-wrap">
                                 <div class="text-center">
-                                    <div class="fw-bold fs-5">@stats.MaxAltM.ToString("F0") m</div>
+                                    <div class="fw-bold fs-5">@((stats.MaxAltM * 3.28084).ToString("F0")) ft</div>
                                     <div class="text-muted small">Max hoogte</div>
                                 </div>
                                 <div class="text-center">
-                                    <div class="fw-bold fs-5">@stats.MinAltM.ToString("F0") m</div>
+                                    <div class="fw-bold fs-5">@((stats.MinAltM * 3.28084).ToString("F0")) ft</div>
                                     <div class="text-muted small">Min hoogte</div>
                                 </div>
                                 <div class="text-center">
