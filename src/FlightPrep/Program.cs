@@ -26,6 +26,19 @@ builder.Services.AddSingleton<SunriseService>();
 builder.Services.AddScoped<PdfService>();
 builder.Services.AddScoped<GoNoGoService>();
 
+builder.Services.AddHttpClient("aviationweather", c =>
+{
+    c.BaseAddress = new Uri("https://aviationweather.gov/");
+    c.DefaultRequestHeaders.UserAgent.ParseAdd("FlightPrep/1.0");
+    c.Timeout = TimeSpan.FromSeconds(10);
+});
+builder.Services.AddHttpClient("openmeteo", c =>
+{
+    c.BaseAddress = new Uri("https://api.open-meteo.com/");
+    c.Timeout = TimeSpan.FromSeconds(10);
+});
+builder.Services.AddScoped<WeatherFetchService>();
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 

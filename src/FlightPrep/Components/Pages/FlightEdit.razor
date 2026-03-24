@@ -3,7 +3,7 @@
 @rendermode InteractiveServer
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject NavigationManager Nav
-@inject WeatherService WeatherSvc
+@inject WeatherFetchService WeatherFetchSvc
 @inject PdfService PdfSvc
 @inject SunriseService SunriseSvc
 @inject IJSRuntime JS
@@ -123,27 +123,56 @@
                 </h2>
                 <div id="sec2" class="accordion-collapse collapse">
                     <div class="accordion-body">
-                        <div class="mb-3">
-                            <button class="btn btn-info" @onclick="FetchWeather" disabled="@fetchingWeather">
-                                @if (fetchingWeather)
+                        @if (!string.IsNullOrEmpty(currentLocation?.IcaoCode))
+                        {
+                            <div class="mb-3 d-flex align-items-center gap-2">
+                                <button class="btn btn-sm btn-outline-primary" @onclick="FetchWeather" disabled="@fetchingWeather">
+                                    @(fetchingWeather ? "Ophalen..." : "METAR/TAF ophalen")
+                                </button>
+                                <span class="text-muted small">@(currentLocation.IcaoCode)</span>
+                                @if (weatherError != null)
                                 {
-                                    <span class="spinner-border spinner-border-sm me-1"></span>
-                                    <span>Ophalen...</span>
+                                    <span class="text-danger small">@weatherError</span>
                                 }
-                                else
+                                @if (weatherSuccess)
                                 {
-                                    <span>🌤️ Haal METAR/TAF Op</span>
+                                    <span class="text-success small">✅ METAR/TAF opgehaald!</span>
                                 }
-                            </button>
-                            @if (weatherError != null)
+                            </div>
+                        }
+                        @if (currentLocation?.Latitude.HasValue == true && currentLocation.Longitude.HasValue)
+                        {
+                            <div class="mb-3">
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="FetchForecast" disabled="@fetchingForecast">
+                                    @(fetchingForecast ? "Laden..." : "Weersvoorspelling ophalen")
+                                </button>
+                            </div>
+                            @if (forecast.Count > 0)
                             {
-                                <span class="text-danger ms-3">@weatherError</span>
+                                <div class="mb-3">
+                                    <div class="fw-semibold small mb-1">Weersvoorspelling (3 dagen)</div>
+                                    <div style="overflow-x:auto;">
+                                        <table class="table table-sm table-bordered small">
+                                            <thead class="table-secondary">
+                                                <tr><th>Tijd</th><th>Temp</th><th>Wind</th><th>Richting</th><th>Neerslag</th></tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var h in forecast.Where((_, i) => i % 3 == 0).Take(24))
+                                                {
+                                                    <tr>
+                                                        <td>@h.Time.ToString("dd/MM HH:mm")</td>
+                                                        <td>@h.TempC.ToString("F1")°C</td>
+                                                        <td>@h.WindSpeedKmh.ToString("F0") km/h</td>
+                                                        <td>@h.WindDirDeg°</td>
+                                                        <td>@h.PrecipProb%</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             }
-                            @if (weatherSuccess)
-                            {
-                                <span class="text-success ms-3">✅ METAR/TAF opgehaald!</span>
-                            }
-                        </div>
+                        }
                         <div class="row g-3">
                             <div class="col-12">
                                 <label class="form-label">METAR</label>
@@ -261,6 +290,31 @@
                 </h2>
                 <div id="sec3" class="accordion-collapse collapse">
                     <div class="accordion-body">
+                        <div class="mb-3">
+                            <div class="fw-semibold small mb-1">Snelle NOTAM links</div>
+                            <div class="d-flex flex-wrap gap-2">
+                                @{
+                                    var icao = currentLocation?.IcaoCode;
+                                    var lat = currentLocation?.Latitude;
+                                    var lon = currentLocation?.Longitude;
+                                }
+                                <a href="https://www.notaminfo.com/belgiummap" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                                    NOTAMinfo België
+                                </a>
+                                <a href="https://www.ops.group/notams" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                                    ops.group NOTAMs
+                                </a>
+                                @if (!string.IsNullOrEmpty(icao))
+                                {
+                                    <a href="@($"https://www.notaminfo.com/belgiummap?icao={icao}")" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
+                                        NOTAMs voor @icao
+                                    </a>
+                                }
+                                <a href="https://www.skeyes.be/en/services/aeronautical-information/notam/" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                                    skeyes NOTAM
+                                </a>
+                            </div>
+                        </div>
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label class="form-label">NOTAMs gecontroleerd</label>
@@ -586,6 +640,7 @@
     private List<Pilot> pilots = new();
     private List<Location> locations = new();
     private Pilot? currentPilot;
+    private Location? currentLocation;
 
     // Images kept in memory; persisted on save
     private List<FlightImage> meteoImages = new();
@@ -594,6 +649,8 @@
     private bool fetchingWeather;
     private string? weatherError;
     private bool weatherSuccess;
+    private bool fetchingForecast;
+    private List<HourlyForecast> forecast = new();
     private bool saving;
     private string? saveMessage;
     private bool saveError;
@@ -692,6 +749,7 @@
         }
 
         UpdateSunriseSunset();
+        UpdateCurrentLocation();
     }
 
     private void OnBalloonChanged()
@@ -714,7 +772,13 @@
         var loc = locations.FirstOrDefault(l => l.Id == fp.LocationId);
         if (loc?.AirspaceNotes != null && string.IsNullOrWhiteSpace(fp.Luchtruimstructuur))
             fp.Luchtruimstructuur = loc.AirspaceNotes;
+        UpdateCurrentLocation();
         UpdateSunriseSunset();
+    }
+
+    private void UpdateCurrentLocation()
+    {
+        currentLocation = locations.FirstOrDefault(l => l.Id == fp?.LocationId);
     }
 
     private void UpdateSunriseSunset()
@@ -745,20 +809,31 @@
 
     private async Task FetchWeather()
     {
-        if (fp == null) return;
+        if (currentLocation?.IcaoCode == null || fp == null) return;
         weatherError = null; weatherSuccess = false;
-        var loc = locations.FirstOrDefault(l => l.Id == fp.LocationId);
-        if (loc?.IcaoCode == null) { weatherError = "Geen ICAO-code voor deze locatie."; return; }
         fetchingWeather = true;
         try
         {
-            var (metar, taf) = await WeatherSvc.FetchAsync(loc.IcaoCode);
-            fp.Metar = metar ?? "Geen METAR beschikbaar";
-            fp.Taf = taf ?? "Geen TAF beschikbaar";
-            weatherSuccess = true;
+            var metar = await WeatherFetchSvc.FetchMetarAsync(currentLocation.IcaoCode);
+            var taf = await WeatherFetchSvc.FetchTafAsync(currentLocation.IcaoCode);
+            if (metar != null) fp.Metar = metar;
+            if (taf != null) fp.Taf = taf;
+            if (metar == null && taf == null)
+                weatherError = "Geen data gevonden voor " + currentLocation.IcaoCode;
+            else
+                weatherSuccess = true;
         }
-        catch (Exception ex) { weatherError = $"Fout: {ex.Message}"; }
+        catch (Exception ex) { weatherError = ex.Message; }
         finally { fetchingWeather = false; }
+    }
+
+    private async Task FetchForecast()
+    {
+        if (currentLocation?.Latitude == null || currentLocation.Longitude == null || fp == null) return;
+        fetchingForecast = true;
+        try { forecast = await WeatherFetchSvc.FetchForecastAsync(currentLocation.Latitude.Value, currentLocation.Longitude.Value); }
+        catch { }
+        finally { fetchingForecast = false; }
     }
 
     // ── Image upload ─────────────────────────────────────────────────────────
