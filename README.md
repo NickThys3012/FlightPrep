@@ -1,25 +1,47 @@
 # FlightPrep ✈️
 
-A Blazor Server web app for hot air balloon pilots to create, save, and export pre-flight preparation documents (Vaartvoorbereiding).
+A Blazor Server web app for hot air balloon pilots to create, manage, and export pre-flight preparation documents (*Vaartvoorbereiding*).
 
 ---
 
 ## Features
 
+### Pre-flight preparation
 - **9-section accordion form** covering all pre-flight topics:
-  1. General info (date, balloon, pilot, launch/landing sites)
-  2. Meteo – METAR/TAF fetch + image upload (Stüve, sounding, etc.)
+  1. General info (date, balloon, pilot, launch/landing site, field owner notification)
+  2. Meteo – METAR/TAF auto-fetch + image upload (Stüve, sounding, etc.)
   3. NOTAMs
   4. Airspace
   5. Crew
   6. Pax Briefing – **rich text editor** (Quill)
-  7. Load calculation (auto-computed lift/weight)
+  7. Load calculation (auto-computed lift/weight balance)
   8. Trajectory – image upload
   9. Emergency / remarks
-- **PDF export** – generates a print-ready A4 document including uploaded images
+- **Sunrise/sunset** times auto-calculated from location coordinates (NOAA algorithm, matches AIP values)
+- **Go/No-Go** decision badge computed from form data
+
+### After a flight
+- **KML flight track** upload (e.g. from the Hot Air app) with an interactive Leaflet map
+- **Altitude profile chart** (in feet) with map crosshair synced to chart hover
+
+### Export
+- **PDF export** – print-ready A4 document with all sections, uploaded images, and passenger weights
+
+### Other
 - **Save & reload** – all flights stored in PostgreSQL; accessible from the flight list
-- **Reference data settings** – manage balloons, pilots, and locations
-- **Image upload** – photos stored directly in the database (no filesystem needed)
+- **Reference data settings** – manage balloons, pilots, and locations (with ICAO code + coordinates)
+- **Image upload** – photos stored in the database (no filesystem required)
+
+---
+
+## Feature branches
+
+| Branch | Description |
+|---|---|
+| `feature/kml-flight-track` | KML upload, Leaflet map, altitude chart |
+| `feature/pwa` | PWA support – installable on phone/desktop, offline fallback |
+| `feature/logboek` | Statistics dashboard: total flights, flight time, charts by month/location |
+| `feature/operationeel` | METAR/TAF auto-fetch button, Open-Meteo 3-day weather forecast |
 
 ---
 
@@ -37,7 +59,7 @@ docker compose up --build
 
 App is available at **http://localhost:8082**
 
-The database migrations run automatically on startup. No manual setup needed.
+Database migrations run automatically on startup — no manual setup needed.
 
 ### Stop
 
@@ -53,36 +75,46 @@ docker compose down
 flightPrep/
 ├── src/FlightPrep/
 │   ├── Components/
-│   │   ├── App.razor          # HTML shell; Bootstrap + Quill JS/CSS
-│   │   ├── Layout/            # NavMenu, MainLayout
+│   │   ├── App.razor              # HTML shell; Bootstrap, Quill, Leaflet, Chart.js
+│   │   ├── Layout/                # NavMenu, MainLayout
 │   │   └── Pages/
-│   │       ├── FlightEdit.razor   # Main prep form (9-section accordion)
+│   │       ├── FlightEdit.razor   # Pre-flight prep form (9-section accordion)
 │   │       ├── FlightList.razor   # Overview of all saved flights
-│   │       ├── FlightView.razor   # Read-only view + PDF export
+│   │       ├── FlightView.razor   # Read-only view, KML track, PDF export
+│   │       ├── Logboek.razor      # Statistics dashboard (feature/logboek)
 │   │       └── Settings/          # Balloon, Pilot, Location CRUD
 │   ├── Data/
 │   │   ├── AppDbContext.cs        # EF Core context
 │   │   └── Migrations/            # Auto-applied on startup
-│   ├── Models/                    # FlightPreparation, FlightImage, Balloon, Pilot, etc.
+│   ├── Models/                    # FlightPreparation, Balloon, Pilot, Location, etc.
 │   ├── Services/
-│   │   ├── PdfService.cs          # QuestPDF document generation
-│   │   └── WeatherService.cs      # METAR/TAF from aviationweather.gov
+│   │   ├── PdfService.cs          # QuestPDF A4 document generation
+│   │   ├── KmlService.cs          # KML parser + flight stats
+│   │   ├── SunriseService.cs      # NOAA solar algorithm
+│   │   ├── WeatherService.cs      # Background meteo image fetching
+│   │   ├── WeatherFetchService.cs # METAR/TAF + Open-Meteo forecast
+│   │   └── GoNoGoService.cs       # Go/No-Go decision logic
+│   ├── wwwroot/
+│   │   ├── app.css                # Aviation theme
+│   │   ├── manifest.json          # PWA manifest (feature/pwa)
+│   │   ├── service-worker.js      # PWA service worker (feature/pwa)
+│   │   └── icons/                 # PWA icons
 │   ├── Dockerfile
 │   └── Program.cs
 ├── docker-compose.yml
 ├── infra/
-│   ├── main.bicep             # Azure App Service B2 + PostgreSQL Flexible B1ms
-│   └── deploy.sh              # One-shot Azure provisioning script
+│   ├── main.bicep                 # Azure App Service B2 + PostgreSQL Flexible B1ms
+│   └── deploy.sh                  # One-shot Azure provisioning script
 └── .github/
     └── workflows/
-        └── ci-cd.yml          # Build + deploy pipeline
+        └── ci-cd.yml              # Build → E2E tests (Playwright) → deploy pipeline
 ```
 
 ---
 
 ## Deploying to Azure
 
-### 1 – Provision Azure infrastructure
+### 1 – Provision infrastructure
 
 You need the [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) installed and logged in (`az login`).
 
@@ -103,57 +135,33 @@ This creates:
 
 The connection string is injected automatically as an App Setting.
 
-> ⚠️ Note the DB password — you'll need it again if you re-run the script.
+> ⚠️ Note the DB password — you'll need it if you re-run the script.
 
----
+### 2 – Add the GitHub secret
 
-### 2 – Get the App Service Publish Profile
-
-1. Go to the [Azure Portal](https://portal.azure.com)
-2. Navigate to **App Services → flightprep-web**
-3. Click **"Get publish profile"** (top toolbar) — this downloads a `.PublishSettings` XML file
-4. Open the file in a text editor and **copy the entire contents**
-
----
-
-### 3 – Add the GitHub repository secret
-
-Go to **Settings → Secrets and variables → Actions** in your GitHub repo and add:
+1. Azure Portal → **App Services → flightprep-web** → **Get publish profile** → copy the XML
+2. GitHub repo → **Settings → Secrets and variables → Actions** → add:
 
 | Secret | Value |
 |---|---|
-| `AZURE_PUBLISH_PROFILE` | The full XML contents of the `.PublishSettings` file |
+| `AZURE_PUBLISH_PROFILE` | Full XML contents of the `.PublishSettings` file |
 
----
-
-### 4 – Set the App Service name
-
-In `.github/workflows/ci-cd.yml` the deploy step uses `app-name: flightprep-web`. If you changed the app name in `infra/main.bicep`, update it there too.
-
----
-
-### 5 – Push to main → pipeline runs automatically
+### 3 – Push to main
 
 ```bash
 git push origin main
 ```
 
-The **CI/CD** workflow will:
-1. Restore, build, and publish the .NET app
-2. Upload the artifact
-3. Log in to Azure via OIDC (no password stored)
-4. Deploy to App Service
-
-You can monitor progress under **Actions** in your GitHub repo.
+The CI/CD pipeline will build, run Playwright E2E tests, and deploy to Azure automatically.
 
 ---
 
 ## Environment variables
 
-| Variable | Description | Default |
-|---|---|---|
-| `ConnectionStrings__DefaultConnection` | PostgreSQL connection string | Set by docker-compose / Azure App Setting |
-| `ASPNETCORE_ENVIRONMENT` | `Development` or `Production` | `Production` in Docker/Azure |
+| Variable | Description |
+|---|---|
+| `ConnectionStrings__DefaultConnection` | PostgreSQL connection string |
+| `ASPNETCORE_ENVIRONMENT` | `Development` or `Production` |
 
 ---
 
@@ -164,8 +172,10 @@ You can monitor progress under **Actions** in your GitHub repo.
 | Framework | .NET 10 Blazor Server |
 | Database | PostgreSQL 16 via EF Core (Npgsql) |
 | PDF export | QuestPDF |
-| Rich text | Quill 2.x (snow theme) |
+| Rich text | Quill 2.x |
+| Maps | Leaflet.js |
+| Charts | Chart.js 4 |
 | UI | Bootstrap 5 |
 | Hosting | Azure App Service (Linux) |
-| CI/CD | GitHub Actions + OIDC |
+| CI/CD | GitHub Actions + OIDC (Playwright E2E) |
 | Container | Docker / Docker Compose |
