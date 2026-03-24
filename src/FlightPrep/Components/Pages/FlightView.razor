@@ -315,6 +315,12 @@ else
                                 </div>
                             </div>
                             <div id="flight-track-map" style="height:450px;width:100%;"></div>
+                            <div class="px-3 pt-3 pb-2">
+                                <div class="fw-semibold small text-muted mb-1">Hoogteprofiel</div>
+                                <div style="height:180px;position:relative;">
+                                    <canvas id="altitude-chart"></canvas>
+                                </div>
+                            </div>
                         }
                         else if (fp!.KmlTrack == null)
                         {
@@ -435,6 +441,7 @@ else
             mapInitialized = true;
             var pts = trackPoints.Select(p => new double[] { p.Lat, p.Lon, p.AltM }).ToArray();
             await JS.InvokeVoidAsync("initFlightMap", "flight-track-map", pts);
+            await JS.InvokeVoidAsync("initAltitudeChart", "altitude-chart", pts);
         }
     }
 
