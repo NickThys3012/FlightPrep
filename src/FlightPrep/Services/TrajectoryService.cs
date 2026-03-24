@@ -9,15 +9,19 @@ public record PredictedTrajectory(int HpaLevel, int AltitudeM, List<TrajectoryPo
 
 public class TrajectoryService(IHttpClientFactory httpFactory)
 {
+    // Key 9999 = surface (~10m / 33 ft), fetched via windspeed_10m
     private static readonly Dictionary<int, int> LevelAltitudes = new()
     {
+        { 9999, 10 },
         { 1000, 110 }, { 975, 320 }, { 950, 540 }, { 925, 760 },
         { 850, 1500 }, { 800, 1950 }, { 750, 2450 }, { 700, 3000 },
         { 650, 3600 }, { 600, 4200 }, { 500, 5500 }
     };
 
     private static readonly string[] Colors =
-        { "#e74c3c", "#3498db", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c", "#e67e22", "#e74c3c", "#16a085", "#8e44ad", "#d35400" };
+        { "#e74c3c", "#3498db", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c", "#e67e22", "#16a085", "#8e44ad", "#d35400", "#2c3e50" };
+
+    public static string LevelLabel(int hpa) => hpa == 9999 ? "Oppervlak" : $"{hpa} hPa";
 
     public async Task<List<PredictedTrajectory>> PredictAsync(
         double lat, double lon,
@@ -28,10 +32,23 @@ public class TrajectoryService(IHttpClientFactory httpFactory)
         var levels = hpaLevels.Where(l => LevelAltitudes.ContainsKey(l)).ToArray();
         if (levels.Length == 0) return new();
 
-        var hourlyParams = string.Join(",", levels.SelectMany(l =>
-            new[] { $"windspeed_{l}hPa", $"winddirection_{l}hPa" }));
+        // Pressure levels (exclude surface sentinel 9999)
+        var pressureLevels = levels.Where(l => l != 9999).ToArray();
+        bool includeSurface = levels.Contains(9999);
 
-        var url = $"v1/forecast?latitude={lat.ToString(CultureInfo.InvariantCulture)}&longitude={lon.ToString(CultureInfo.InvariantCulture)}&hourly={hourlyParams}&forecast_days=3&timezone=Europe%2FBrussels";
+        var hourlyParams = new List<string>();
+        if (includeSurface)
+        {
+            hourlyParams.Add("windspeed_10m");
+            hourlyParams.Add("winddirection_10m");
+        }
+        foreach (var l in pressureLevels)
+        {
+            hourlyParams.Add($"windspeed_{l}hPa");
+            hourlyParams.Add($"winddirection_{l}hPa");
+        }
+
+        var url = $"v1/forecast?latitude={lat.ToString(CultureInfo.InvariantCulture)}&longitude={lon.ToString(CultureInfo.InvariantCulture)}&hourly={string.Join(",", hourlyParams)}&forecast_days=3&timezone=Europe%2FBrussels";
 
         try
         {
@@ -56,12 +73,15 @@ public class TrajectoryService(IHttpClientFactory httpFactory)
 
             foreach (var hpa in levels)
             {
-                var speeds = hourly.GetProperty($"windspeed_{hpa}hPa").EnumerateArray().ToList();
-                var dirs   = hourly.GetProperty($"winddirection_{hpa}hPa").EnumerateArray().ToList();
+                var speedKey = hpa == 9999 ? "windspeed_10m"     : $"windspeed_{hpa}hPa";
+                var dirKey   = hpa == 9999 ? "winddirection_10m" : $"winddirection_{hpa}hPa";
+
+                var speeds = hourly.GetProperty(speedKey).EnumerateArray().ToList();
+                var dirs   = hourly.GetProperty(dirKey).EnumerateArray().ToList();
 
                 var points = new List<TrajectoryPoint> { new(lat, lon) };
                 double curLat = lat, curLon = lon;
-                int stepMin = 5;
+                const int stepMin = 5;
 
                 for (int min = 0; min < durationMinutes; min += stepMin)
                 {
@@ -71,7 +91,6 @@ public class TrajectoryService(IHttpClientFactory httpFactory)
                     double speedKmh = speeds[dataIdx].GetDouble();
                     double dirDeg   = dirs[dataIdx].GetDouble();
 
-                    // Wind direction is where wind comes FROM; balloon moves toward opposite direction
                     double moveDirRad = (dirDeg + 180) % 360 * Math.PI / 180;
                     double distKm = speedKmh * (stepMin / 60.0);
 
