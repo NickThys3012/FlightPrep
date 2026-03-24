@@ -7,6 +7,9 @@ using QuestPDF.Infrastructure;
 
 namespace FlightPrep.Services;
 
+// Local DTO for deserializing trajectory JSON in PDF (mirrors TrajectoryResultEntry)
+file record TrajectoryResultEntryPdf(int HpaLevel, int AltitudeM, double EndLat, double EndLon, double DistanceKm, double WindSpeedKmh, double WindDirDeg);
+
 public class PdfService(SunriseService sunriseSvc)
 {
     private static readonly string PrimaryColor = "#1a3a5c";
@@ -203,6 +206,42 @@ public class PdfService(SunriseService sunriseSvc)
                     {
                         ("Trajectnotities", fp.Traject ?? "–"),
                     });
+
+                    // Trajectory prediction summary table
+                    if (!string.IsNullOrEmpty(fp.TrajectoryResultJson))
+                    {
+                        try
+                        {
+                            var entries = System.Text.Json.JsonSerializer.Deserialize<List<TrajectoryResultEntryPdf>>(fp.TrajectoryResultJson);
+                            if (entries?.Count > 0)
+                            {
+                                col.Item().PaddingTop(4).Text("Trajectvoorspelling").Bold().FontSize(8);
+                                col.Item().Table(table =>
+                                {
+                                    table.ColumnsDefinition(c =>
+                                    {
+                                        c.RelativeColumn(2); c.RelativeColumn(2); c.RelativeColumn(2);
+                                        c.RelativeColumn(3); c.RelativeColumn(2);
+                                    });
+                                    static IContainer CellStyle(IContainer c) => c.BorderBottom(0.5f).BorderColor("#cccccc").PaddingVertical(3).PaddingHorizontal(4);
+                                    static IContainer HeaderStyle(IContainer c) => c.Background("#1a3a5c").PaddingVertical(3).PaddingHorizontal(4);
+                                    foreach (var h in new[] { "Niveau", "Hoogte (ft)", "Afstand (km)", "Eindpunt", "Richting (°)" })
+                                        HeaderStyle(table.Cell()).Text(h).FontSize(7).Bold().FontColor(Colors.White);
+                                    foreach (var e in entries)
+                                    {
+                                        var label = e.HpaLevel == 9999 ? "Oppervlak" : $"{e.HpaLevel} hPa";
+                                        var ft = (int)Math.Round(e.AltitudeM * 3.28084);
+                                        CellStyle(table.Cell()).Text(label).FontSize(7);
+                                        CellStyle(table.Cell()).Text($"~{ft} ft").FontSize(7);
+                                        CellStyle(table.Cell()).Text(e.DistanceKm.ToString("F1")).FontSize(7);
+                                        CellStyle(table.Cell()).Text($"{e.EndLat:F4}°N  {e.EndLon:F4}°E").FontSize(7);
+                                        CellStyle(table.Cell()).Text(e.WindDirDeg.ToString("F0")).FontSize(7);
+                                    }
+                                });
+                            }
+                        }
+                        catch { /* malformed JSON - skip */ }
+                    }
 
                     // Traject images
                     var trajImgs = fp.Images.Where(i => i.Section == "Traject").ToList();

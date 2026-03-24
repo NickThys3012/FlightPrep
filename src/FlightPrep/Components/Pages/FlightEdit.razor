@@ -731,6 +731,10 @@
             }
             else
             {
+                // Serialize summary for PDF export
+                var entries = TrajectoryService.ToResultEntries(predictedTrajectories, currentLocation.Latitude.Value, currentLocation.Longitude.Value);
+                fp!.TrajectoryResultJson = System.Text.Json.JsonSerializer.Serialize(entries);
+
                 StateHasChanged();
                 await Task.Delay(100);
                 await JS.InvokeVoidAsync("initTrajectoryMap", "trajectory-map", predictedTrajectories

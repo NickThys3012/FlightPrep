@@ -65,6 +65,7 @@ public class FlightPreparation
     // Trajectory prediction
     public string? TrajectoryLevels { get; set; }  // comma-separated hPa levels, e.g. "850,800,750"
     public int TrajectoryDurationMin { get; set; } = 90;
+    public string? TrajectoryResultJson { get; set; } // serialized List<TrajectoryResultEntry>
 
     // Mark as flown
     public bool IsFlown { get; set; }

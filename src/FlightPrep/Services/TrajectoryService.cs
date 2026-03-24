@@ -6,6 +6,7 @@ namespace FlightPrep.Services;
 public record WindAtLevel(int HpaLevel, int AltitudeM, double SpeedKmh, double DirectionDeg);
 public record TrajectoryPoint(double Lat, double Lon);
 public record PredictedTrajectory(int HpaLevel, int AltitudeM, List<TrajectoryPoint> Points, string Color);
+public record TrajectoryResultEntry(int HpaLevel, int AltitudeM, double EndLat, double EndLon, double DistanceKm, double WindSpeedKmh, double WindDirDeg);
 
 public class TrajectoryService(IHttpClientFactory httpFactory)
 {
@@ -114,4 +115,33 @@ public class TrajectoryService(IHttpClientFactory httpFactory)
 
     public static int ToFeet(int metres) => (int)Math.Round(metres * 3.28084);
     public static Dictionary<int, int> AvailableLevels => LevelAltitudes;
+
+    public static List<TrajectoryResultEntry> ToResultEntries(List<PredictedTrajectory> trajectories, double startLat, double startLon)
+    {
+        return trajectories.Select(t =>
+        {
+            var end = t.Points.Last();
+            double dist = 0;
+            for (int i = 1; i < t.Points.Count; i++)
+                dist += Haversine(t.Points[i-1].Lat, t.Points[i-1].Lon, t.Points[i].Lat, t.Points[i].Lon);
+            // bearing from start to end
+            double dLon = (end.Lon - startLon) * Math.PI / 180;
+            double lat1 = startLat * Math.PI / 180, lat2 = end.Lat * Math.PI / 180;
+            double bearing = Math.Atan2(Math.Sin(dLon) * Math.Cos(lat2),
+                Math.Cos(lat1) * Math.Sin(lat2) - Math.Sin(lat1) * Math.Cos(lat2) * Math.Cos(dLon));
+            double bearingDeg = (bearing * 180 / Math.PI + 360) % 360;
+            return new TrajectoryResultEntry(t.HpaLevel, t.AltitudeM, end.Lat, end.Lon, dist, dist / (t.Points.Count * 5.0 / 60.0), bearingDeg);
+        }).ToList();
+    }
+
+    private static double Haversine(double lat1, double lon1, double lat2, double lon2)
+    {
+        const double R = 6371.0;
+        var dLat = (lat2 - lat1) * Math.PI / 180;
+        var dLon = (lon2 - lon1) * Math.PI / 180;
+        var a = Math.Sin(dLat/2) * Math.Sin(dLat/2) +
+                Math.Cos(lat1 * Math.PI / 180) * Math.Cos(lat2 * Math.PI / 180) *
+                Math.Sin(dLon/2) * Math.Sin(dLon/2);
+        return R * 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1-a));
+    }
 }
