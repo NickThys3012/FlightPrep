@@ -1,0 +1,159 @@
+@page "/handleiding"
+
+<PageTitle>Handleiding – FlightPrep</PageTitle>
+
+<div class="container py-4" style="max-width:900px">
+    <h1 class="mb-1">📖 Handleiding</h1>
+    <p class="text-muted mb-4">Overzicht van alle functionaliteiten in FlightPrep.</p>
+
+    <!-- TOC -->
+    <div class="card mb-5" style="background:var(--fp-surface);border:1px solid var(--fp-border)">
+        <div class="card-body py-3 px-4">
+            <div class="fw-semibold small mb-2 text-muted text-uppercase" style="letter-spacing:.05em">Inhoud</div>
+            <ol class="mb-0 ps-3" style="line-height:2">
+                <li><a href="#vluchtenlijst" class="text-decoration-none">Vluchtenlijst</a></li>
+                <li><a href="#nieuwe-vaart" class="text-decoration-none">Nieuwe vaart aanmaken</a></li>
+                <li><a href="#meteo" class="text-decoration-none">Meteo – METAR/TAF &amp; weersvoorspelling</a></li>
+                <li><a href="#load" class="text-decoration-none">Load berekening</a></li>
+                <li><a href="#kml" class="text-decoration-none">KML vluchttrack uploaden</a></li>
+                <li><a href="#logboek" class="text-decoration-none">Logboek dashboard</a></li>
+                <li><a href="#instellingen" class="text-decoration-none">Instellingen</a></li>
+                <li><a href="#pdf" class="text-decoration-none">PDF exporteren</a></li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- 1. Vluchtenlijst -->
+    <section id="vluchtenlijst" class="mb-5">
+        <h2 class="h4 mb-3 border-bottom pb-2">1. Vluchtenlijst</h2>
+        <p>
+            Via <strong>Vaarten</strong> in de navigatiebalk zie je alle bewaarde vaartvoorbereidingen.
+            Elke rij toont de datum, locatie, ballon, piloot en de Go/No-Go status.
+            Klik op een rij om de voorbereiding te openen.
+        </p>
+        <img src="/handleiding/01-vluchtenlijst.png" alt="Vluchtenlijst" class="img-fluid rounded shadow-sm border mb-3" style="border-color:var(--fp-border)!important" />
+        <ul>
+            <li>Klik <strong>+ Nieuwe Vaart</strong> (rechtsboven of in de navigatiebalk) om een nieuwe voorbereiding te starten.</li>
+            <li>De <span class="badge bg-success">Go</span> / <span class="badge bg-danger">No-Go</span> badge wordt automatisch berekend op basis van de ingevulde gegevens.</li>
+        </ul>
+    </section>
+
+    <!-- 2. Nieuwe vaart -->
+    <section id="nieuwe-vaart" class="mb-5">
+        <h2 class="h4 mb-3 border-bottom pb-2">2. Nieuwe vaart aanmaken</h2>
+        <p>
+            Het formulier is opgebouwd als een accordeon met 9 secties.
+            Vul de secties van boven naar beneden in en klik <strong>Opslaan</strong> onderaan.
+        </p>
+        <img src="/handleiding/02-nieuwe-vaart.png" alt="Nieuwe vaart formulier" class="img-fluid rounded shadow-sm border mb-3" style="border-color:var(--fp-border)!important" />
+        <table class="table table-sm small">
+            <thead class="table-secondary"><tr><th>#</th><th>Sectie</th><th>Inhoud</th></tr></thead>
+            <tbody>
+                <tr><td>1</td><td>Algemeen</td><td>Datum, ballon, piloot, start- en landingslocatie. Checkbox om veld­eigenaar te melden via Monday.com formulier.</td></tr>
+                <tr><td>2</td><td>Meteo</td><td>METAR/TAF ophalen, 3-daagse weers­voorspelling, foto's (Stüve, klankings­diagram, …).</td></tr>
+                <tr><td>3</td><td>NOTAMs</td><td>Vrij tekstveld voor relevante NOTAMs.</td></tr>
+                <tr><td>4</td><td>Luchtruim</td><td>Luchtruim­beperkingen notities.</td></tr>
+                <tr><td>5</td><td>Bemanning</td><td>Beman­nings­leden.</td></tr>
+                <tr><td>6</td><td>Pax briefing</td><td>Rich-text editor (Quill) voor de passagiers­briefing.</td></tr>
+                <tr><td>7</td><td>Load berekening</td><td>Passagiers + gewichten; auto­matische lift/gewicht balans.</td></tr>
+                <tr><td>8</td><td>Traject</td><td>Traject­foto uploaden.</td></tr>
+                <tr><td>9</td><td>Nood &amp; opmerkingen</td><td>Nood­procedures en vrije opmerkingen.</td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- 3. Meteo -->
+    <section id="meteo" class="mb-5">
+        <h2 class="h4 mb-3 border-bottom pb-2">3. Meteo – METAR/TAF &amp; weersvoorspelling</h2>
+        <p>
+            In sectie 2 kan je automatisch de actuele METAR en TAF ophalen via <strong>aviationweather.gov</strong>.
+            Dit werkt enkel als de geselecteerde locatie een ICAO-code heeft (in te stellen bij Instellingen → Locaties).
+        </p>
+        <img src="/handleiding/03-meteo.png" alt="Meteo sectie" class="img-fluid rounded shadow-sm border mb-3" style="border-color:var(--fp-border)!important" />
+        <ul>
+            <li>Klik <strong>METAR/TAF ophalen</strong> om de live data te laden.</li>
+            <li>Klik <strong>Weersvoorspelling ophalen</strong> om een 3-daagse Open-Meteo voorspelling te laden (temperatuur, wind, neerslagkans per 3 uur).</li>
+            <li>Je kan ook zelf foto's uploaden (Stüve-diagram, klanking, …) via de upload­knoppen.</li>
+            <li>Zonsopkomst en -ondergang worden automatisch berekend op basis van de locatie­coördinaten.</li>
+        </ul>
+    </section>
+
+    <!-- 4. Load berekening -->
+    <section id="load" class="mb-5">
+        <h2 class="h4 mb-3 border-bottom pb-2">4. Load berekening</h2>
+        <p>
+            Sectie 7 berekent automatisch het totale gewicht en vergelijkt dit met de maximale lift van de ballon.
+            Voeg passagiers toe met hun gewicht; de balans wordt live bijgewerkt.
+        </p>
+        <img src="/handleiding/04-load-berekening.png" alt="Load berekening" class="img-fluid rounded shadow-sm border mb-3" style="border-color:var(--fp-border)!important" />
+        <ul>
+            <li>Klik <strong>+ Passagier toevoegen</strong> om een naam en gewicht in te vullen.</li>
+            <li>Het maximale vlieggewicht van de ballon wordt ingesteld bij Instellingen → Ballonnen.</li>
+            <li>De load berekening verschijnt volledig in de PDF-export.</li>
+        </ul>
+    </section>
+
+    <!-- 5. KML vluchttrack -->
+    <section id="kml" class="mb-5">
+        <h2 class="h4 mb-3 border-bottom pb-2">5. KML vluchttrack uploaden</h2>
+        <p>
+            Na een vaart kan je een KML-bestand uploaden (bijv. geëxporteerd vanuit de <em>Hot Air</em> app op iPhone).
+            De track wordt getoond op een interactieve kaart met hoogtekleur­codering.
+        </p>
+        <ul>
+            <li>Open de vaart via de vluchten­lijst en scroll naar <strong>Vluchttrack</strong>.</li>
+            <li>Upload het <code>.kml</code>-bestand — de kaart en het hoogteprofiel laden automatisch.</li>
+            <li>Hover over de <strong>hoogtegrafiek</strong> om het bijhorende punt op de kaart te zien.</li>
+            <li>Statistieken (max hoogte, min hoogte, totale afstand) worden automatisch berekend.</li>
+        </ul>
+    </section>
+
+    <!-- 6. Logboek -->
+    <section id="logboek" class="mb-5">
+        <h2 class="h4 mb-3 border-bottom pb-2">6. Logboek dashboard</h2>
+        <p>
+            Het <strong>Logboek</strong> geeft een overzicht van alle vaarten met statistieken en grafieken.
+        </p>
+        <img src="/handleiding/05-logboek.png" alt="Logboek dashboard" class="img-fluid rounded shadow-sm border mb-3" style="border-color:var(--fp-border)!important" />
+        <ul>
+            <li>Totaal aantal vaarten, gevlogen vaarten, totale vluchttijd en meest gebruikte locatie.</li>
+            <li>Grafiek van vaarten per maand en per locatie.</li>
+            <li>Volledige lijst met alle vaarten onderaan.</li>
+        </ul>
+    </section>
+
+    <!-- 7. Instellingen -->
+    <section id="instellingen" class="mb-5">
+        <h2 class="h4 mb-3 border-bottom pb-2">7. Instellingen</h2>
+        <p>
+            Beheer je referentie­data via het <strong>Instellingen</strong> menu rechtsboven.
+        </p>
+        <img src="/handleiding/06-instellingen.png" alt="Instellingen" class="img-fluid rounded shadow-sm border mb-3" style="border-color:var(--fp-border)!important" />
+        <table class="table table-sm small">
+            <thead class="table-secondary"><tr><th>Pagina</th><th>Wat stel je in?</th></tr></thead>
+            <tbody>
+                <tr><td>Ballonnen</td><td>Naam, type, max vlieggewicht (kg), certificaat­nummer.</td></tr>
+                <tr><td>Piloten</td><td>Naam, licentienummer.</td></tr>
+                <tr><td>Locaties</td><td>Naam, ICAO-code (voor METAR/TAF), GPS-coördinaten (voor weers­voorspelling en zonsopkomst).</td></tr>
+                <tr><td>Go/No-Go</td><td>Drempel­waarden voor de automatische Go/No-Go berekening.</td></tr>
+            </tbody>
+        </table>
+        <div class="alert alert-info small py-2 mb-0">
+            💡 Stel altijd eerst ballonnen, piloten en locaties in voordat je een vaart aanmaakt.
+        </div>
+    </section>
+
+    <!-- 8. PDF -->
+    <section id="pdf" class="mb-5">
+        <h2 class="h4 mb-3 border-bottom pb-2">8. PDF exporteren</h2>
+        <p>
+            Open een opgeslagen vaart (vluchtenlijst → rij klikken) en klik rechtsboven op <strong>📄 Export PDF</strong>.
+            De PDF bevat alle 9 secties inclusief geüploade foto's, load berekening en passagiers­gewichten.
+        </p>
+        <ul>
+            <li>De PDF is A4-formaat en printklaar.</li>
+            <li>Uploade afbeeldingen (Stüve, traject, …) worden in de PDF opgenomen.</li>
+            <li>De pax briefing (rich text) wordt als geformatteerde tekst weergegeven.</li>
+        </ul>
+    </section>
+</div>

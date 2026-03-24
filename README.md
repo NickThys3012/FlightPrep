@@ -31,17 +31,7 @@ A Blazor Server web app for hot air balloon pilots to create, manage, and export
 - **Save & reload** – all flights stored in PostgreSQL; accessible from the flight list
 - **Reference data settings** – manage balloons, pilots, and locations (with ICAO code + coordinates)
 - **Image upload** – photos stored in the database (no filesystem required)
-
----
-
-## Feature branches
-
-| Branch | Description |
-|---|---|
-| `feature/kml-flight-track` | KML upload, Leaflet map, altitude chart |
-| `feature/pwa` | PWA support – installable on phone/desktop, offline fallback |
-| `feature/logboek` | Statistics dashboard: total flights, flight time, charts by month/location |
-| `feature/operationeel` | METAR/TAF auto-fetch button, Open-Meteo 3-day weather forecast |
+- **In-app handleiding** – user manual with screenshots at `/handleiding`
 
 ---
 
