@@ -51,17 +51,17 @@
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label class="form-label">Datum</label>
-                                <input type="date" class="form-control" value="@fp.Datum.ToString("yyyy-MM-dd")"
-                                    @onchange="e => { fp.Datum = DateOnly.Parse(e.Value!.ToString()!); UpdateSunriseSunset(); }" />
+                                <input type="date" class="form-control" value="@fp?.Datum.ToString("yyyy-MM-dd")"
+                                    @onchange="e => { fp!.Datum = DateOnly.Parse(e.Value!.ToString()!); UpdateSunriseSunset(); }" />
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Tijdstip (LT)</label>
-                                <input type="time" class="form-control" value="@fp.Tijdstip.ToString("HH:mm")"
-                                    @onchange="e => fp.Tijdstip = TimeOnly.Parse(e.Value!.ToString()!)" />
+                                <input type="time" class="form-control" value="@fp?.Tijdstip.ToString("HH:mm")"
+                                    @onchange="e => fp!.Tijdstip = TimeOnly.Parse(e.Value!.ToString()!)" />
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Ballon</label>
-                                <select class="form-select" @bind="fp.BalloonId" @bind:after="OnBalloonChanged">
+                                <select class="form-select" @bind="fp!.BalloonId" @bind:after="OnBalloonChanged">
                                     <option value="">– Selecteer ballon –</option>
                                     @foreach (var b in balloons)
                                     {

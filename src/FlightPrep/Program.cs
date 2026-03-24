@@ -25,9 +25,7 @@ builder.Services.AddHttpClient<WeatherService>();
 builder.Services.AddSingleton<SunriseService>();
 builder.Services.AddScoped<PdfService>();
 builder.Services.AddScoped<GoNoGoService>();
-builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new System.IO.DirectoryInfo("/root/.aspnet/DataProtection-Keys"))
-    .SetApplicationName("FlightPrep");
+// Data protection keys persist to /root/.aspnet/DataProtection-Keys (mounted as Docker volume)
 
 // Application Insights — only active when APPLICATIONINSIGHTS_CONNECTION_STRING is set
 builder.Services.AddApplicationInsightsTelemetry();
