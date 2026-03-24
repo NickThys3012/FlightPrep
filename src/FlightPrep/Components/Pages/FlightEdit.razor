@@ -140,6 +140,12 @@
                                 }
                             </div>
                         }
+                        else if (fp?.LocationId != null && fp.LocationId != 0)
+                        {
+                            <div class="mb-3">
+                                <span class="text-muted small">⚠️ Voeg een ICAO-code toe aan deze locatie (<a href="/settings/locations">Instellingen → Locaties</a>) om METAR/TAF op te halen.</span>
+                            </div>
+                        }
                         @if (currentLocation?.Latitude.HasValue == true && currentLocation.Longitude.HasValue)
                         {
                             <div class="mb-3">
