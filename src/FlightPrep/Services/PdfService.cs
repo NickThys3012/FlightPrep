@@ -207,7 +207,15 @@ public class PdfService(SunriseService sunriseSvc)
                         ("Trajectnotities", fp.Traject ?? "–"),
                     });
 
-                    // Trajectory prediction summary table
+                    // Trajectory prediction map image + summary table
+                    if (fp.TrajectoryMapPng?.Length > 0 || !string.IsNullOrEmpty(fp.TrajectoryResultJson))
+                    {
+                        col.Item().PaddingTop(4).Text("Trajectvoorspelling").Bold().FontSize(9);
+
+                        if (fp.TrajectoryMapPng?.Length > 0)
+                            col.Item().PaddingVertical(4).Image(fp.TrajectoryMapPng).FitWidth();
+                    }
+
                     if (!string.IsNullOrEmpty(fp.TrajectoryResultJson))
                     {
                         try
@@ -215,7 +223,6 @@ public class PdfService(SunriseService sunriseSvc)
                             var entries = System.Text.Json.JsonSerializer.Deserialize<List<TrajectoryResultEntryPdf>>(fp.TrajectoryResultJson);
                             if (entries?.Count > 0)
                             {
-                                col.Item().PaddingTop(4).Text("Trajectvoorspelling").Bold().FontSize(8);
                                 col.Item().Table(table =>
                                 {
                                     table.ColumnsDefinition(c =>

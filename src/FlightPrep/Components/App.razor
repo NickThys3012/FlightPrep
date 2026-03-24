@@ -33,6 +33,7 @@
     <script src="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <script src="@Assets["lib/bootstrap/dist/js/bootstrap.bundle.min.js"]"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script>
         window.downloadFileFromBytes = function (fileName, contentType, base64) {
@@ -263,20 +264,21 @@
             });
         }
 
-        window.initTrajectoryMap = function(containerId, trajectories, startLat, startLon) {
+        window.initTrajectoryMap = async function(containerId, trajectories, startLat, startLon) {
             const container = document.getElementById(containerId);
-            if (!container) return;
+            if (!container) return null;
 
             if (container._leafletMap) {
                 container._leafletMap.remove();
                 container._leafletMap = null;
             }
 
-            const map = L.map(containerId).setView([startLat, startLon], 10);
+            const map = L.map(containerId, { renderer: L.canvas() }).setView([startLat, startLon], 10);
             container._leafletMap = map;
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
+            const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                crossOrigin: 'anonymous'
             }).addTo(map);
 
             L.circleMarker([startLat, startLon], { radius: 8, color: '#ffffff', fillColor: '#0B2340', fillOpacity: 1, weight: 2 })
@@ -284,20 +286,29 @@
                 .addTo(map);
 
             const allPoints = [[startLat, startLon]];
-
             trajectories.forEach(function(traj) {
                 const latlngs = traj.points.map(function(p) { return [p[0], p[1]]; });
                 allPoints.push.apply(allPoints, latlngs);
-
-                L.polyline(latlngs, { color: traj.color, weight: 3, opacity: 0.85 }).addTo(map);
-
+                L.polyline(latlngs, { color: traj.color, weight: 3, opacity: 0.9 }).addTo(map);
                 const end = latlngs[latlngs.length - 1];
                 L.circleMarker(end, { radius: 6, color: traj.color, fillColor: traj.color, fillOpacity: 0.9, weight: 2 })
-                    .bindPopup('Eindpunt: ' + traj.label)
-                    .addTo(map);
+                    .bindPopup('Eindpunt: ' + traj.label).addTo(map);
             });
-
             if (allPoints.length > 1) map.fitBounds(allPoints, { padding: [30, 30] });
+
+            // Capture map as PNG after tiles finish loading
+            try {
+                await new Promise((resolve) => {
+                    tileLayer.on('load', resolve);
+                    setTimeout(resolve, 4000); // fallback timeout
+                });
+                await new Promise(r => setTimeout(r, 500)); // settle
+                const canvas = await html2canvas(container, { useCORS: true, allowTaint: false, scale: 1, logging: false });
+                return canvas.toDataURL('image/png').split(',')[1]; // return base64 only
+            } catch(e) {
+                console.warn('Map capture failed:', e);
+                return null;
+            }
         };
     </script>
 </body>

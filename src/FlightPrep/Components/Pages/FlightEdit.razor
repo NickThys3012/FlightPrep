@@ -737,7 +737,7 @@
 
                 StateHasChanged();
                 await Task.Delay(100);
-                await JS.InvokeVoidAsync("initTrajectoryMap", "trajectory-map", predictedTrajectories
+                var base64 = await JS.InvokeAsync<string?>("initTrajectoryMap", "trajectory-map", predictedTrajectories
                     .Select(t => new {
                         color = t.Color,
                         label = $"{TrajectoryService.LevelLabel(t.HpaLevel)} (~{TrajectoryService.ToFeet(t.AltitudeM)} ft)",
@@ -745,6 +745,9 @@
                     }).ToArray(),
                     currentLocation.Latitude.Value,
                     currentLocation.Longitude.Value);
+
+                if (!string.IsNullOrEmpty(base64))
+                    fp!.TrajectoryMapPng = Convert.FromBase64String(base64);
             }
         }
         catch (Exception ex) { trajectoryError = ex.Message; }
