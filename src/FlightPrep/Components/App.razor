@@ -294,7 +294,7 @@
                 L.circleMarker(end, { radius: 6, color: traj.color, fillColor: traj.color, fillOpacity: 0.9, weight: 2 })
                     .bindPopup('Eindpunt: ' + traj.label).addTo(map);
             });
-            if (allPoints.length > 1) map.fitBounds(allPoints, { padding: [30, 30] });
+            if (allPoints.length > 1) map.fitBounds(allPoints, { padding: [0, 0], maxZoom: 18 });
 
             // Capture map as PNG after tiles finish loading
             try {
