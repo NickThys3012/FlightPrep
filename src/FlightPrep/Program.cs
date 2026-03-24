@@ -25,6 +25,9 @@ builder.Services.AddHttpClient<WeatherService>();
 builder.Services.AddSingleton<SunriseService>();
 builder.Services.AddScoped<PdfService>();
 builder.Services.AddScoped<GoNoGoService>();
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new System.IO.DirectoryInfo("/root/.aspnet/DataProtection-Keys"))
+    .SetApplicationName("FlightPrep");
 builder.Services.AddSingleton<KmlService>();
 
 builder.Services.AddHttpClient("aviationweather", c =>

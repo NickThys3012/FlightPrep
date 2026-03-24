@@ -9,6 +9,8 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=flightprep;Username=fpuser;Password=fppass
+    volumes:
+      - dpkeys:/root/.aspnet/DataProtection-Keys
     depends_on:
       db:
         condition: service_healthy
@@ -29,3 +31,4 @@ services:
     restart: unless-stopped
 volumes:
   pgdata:
+  dpkeys:
