@@ -47,6 +47,17 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseAntiforgery();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        if (ctx.File.Name == "service-worker.js")
+        {
+            ctx.Context.Response.Headers["Service-Worker-Allowed"] = "/";
+            ctx.Context.Response.Headers["Cache-Control"] = "no-cache";
+        }
+    }
+});
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

@@ -8,6 +8,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <base href="/" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0B2340" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="FlightPrep" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.snow.css" />
@@ -62,6 +68,15 @@
             const q = window._quills[id];
             return q ? q.root.innerHTML : null;
         };
+
+        // Register service worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(function(reg) { console.log('SW registered:', reg.scope); })
+                    .catch(function(err) { console.log('SW registration failed:', err); });
+            });
+        }
     </script>
 </body>
 
