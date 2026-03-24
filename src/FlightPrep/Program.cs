@@ -25,6 +25,7 @@ builder.Services.AddHttpClient<WeatherService>();
 builder.Services.AddSingleton<SunriseService>();
 builder.Services.AddScoped<PdfService>();
 builder.Services.AddScoped<GoNoGoService>();
+builder.Services.AddSingleton<KmlService>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

@@ -4,6 +4,7 @@
 @inject PdfService PdfSvc
 @inject SunriseService SunriseSvc
 @inject IJSRuntime JS
+@inject KmlService KmlSvc
 
 <PageTitle>Vaart Bekijken – FlightPrep</PageTitle>
 
@@ -269,6 +270,59 @@ else
                     </div>
                 </div>
             }
+
+            <!-- Section: Vlucht Track -->
+            <div class="col-12 mt-3">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center" style="background:#1a3a5c;color:white;">
+                        <span>Vlucht Track</span>
+                        <button class="btn btn-sm btn-outline-light" @onclick="() => showTrackUpload = !showTrackUpload">
+                            @(fp!.KmlTrack != null ? "Vervangen" : "KML Uploaden")
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (showTrackUpload || fp!.KmlTrack == null)
+                        {
+                            <div class="p-3">
+                                <p class="text-muted small mb-2">Upload een KML bestand van de Hot Air app (of ander GPS logger). Het track wordt op een kaart weergegeven.</p>
+                                <InputFile OnChange="OnKmlUpload" accept=".kml" class="form-control form-control-sm" />
+                                @if (kmlUploadError != null)
+                                {
+                                    <div class="alert alert-danger mt-2 py-1 small">@kmlUploadError</div>
+                                }
+                            </div>
+                        }
+
+                        @if (trackPoints != null && trackPoints.Count > 0)
+                        {
+                            var stats = KmlSvc.ComputeStats(trackPoints);
+                            <div class="d-flex gap-4 px-3 pt-3 pb-2 flex-wrap">
+                                <div class="text-center">
+                                    <div class="fw-bold fs-5">@stats.MaxAltM.ToString("F0") m</div>
+                                    <div class="text-muted small">Max hoogte</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="fw-bold fs-5">@stats.MinAltM.ToString("F0") m</div>
+                                    <div class="text-muted small">Min hoogte</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="fw-bold fs-5">@stats.DistanceKm.ToString("F1") km</div>
+                                    <div class="text-muted small">Afstand</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="fw-bold fs-5">@trackPoints.Count</div>
+                                    <div class="text-muted small">GPS punten</div>
+                                </div>
+                            </div>
+                            <div id="flight-track-map" style="height:450px;width:100%;"></div>
+                        }
+                        else if (fp!.KmlTrack == null)
+                        {
+                            <div class="p-3 text-muted small">Nog geen track geüpload.</div>
+                        }
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 }
@@ -331,8 +385,19 @@ else
 
     private (TimeOnly Sunrise, TimeOnly Sunset)? sunriseSunset;
 
+    private List<TrackPoint>? trackPoints;
+    private bool showTrackUpload = false;
+    private string? kmlUploadError;
+    private bool mapInitialized = false;
+
     private void OpenLightbox(FlightImage img) => lightboxImg = img;
     private void CloseLightbox() => lightboxImg = null;
+
+    private void LoadExistingTrack()
+    {
+        if (fp?.KmlTrack != null)
+            trackPoints = KmlSvc.ParseCoordinates(fp.KmlTrack);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -357,6 +422,47 @@ else
             var loc = fp.Location;
             if (loc?.Latitude.HasValue == true && loc.Longitude.HasValue)
                 sunriseSunset = SunriseSvc.Calculate(fp.Datum, loc.Latitude!.Value, loc.Longitude!.Value);
+
+            LoadExistingTrack();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        if (trackPoints != null && trackPoints.Count > 0 && !mapInitialized)
+        {
+            mapInitialized = true;
+            var pts = trackPoints.Select(p => new double[] { p.Lat, p.Lon, p.AltM }).ToArray();
+            await JS.InvokeVoidAsync("initFlightMap", "flight-track-map", pts);
+        }
+    }
+
+    private async Task OnKmlUpload(InputFileChangeEventArgs e)
+    {
+        kmlUploadError = null;
+        try
+        {
+            using var stream = e.File.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var reader = new System.IO.StreamReader(stream);
+            var kml = await reader.ReadToEndAsync();
+            var pts = KmlSvc.ParseCoordinates(kml);
+            if (pts.Count == 0) { kmlUploadError = "Geen geldige coördinaten gevonden in het KML bestand."; return; }
+
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var flight = await db.FlightPreparations.FindAsync(fp!.Id);
+            if (flight == null) return;
+            flight.KmlTrack = kml;
+            await db.SaveChangesAsync();
+
+            fp.KmlTrack = kml;
+            trackPoints = pts;
+            mapInitialized = false;
+            showTrackUpload = false;
+        }
+        catch (Exception ex)
+        {
+            kmlUploadError = $"Fout bij uploaden: {ex.Message}";
         }
     }
 

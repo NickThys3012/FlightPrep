@@ -11,6 +11,8 @@
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.snow.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["FlightPrep.styles.css"]" />
     <ImportMap />
@@ -30,6 +32,48 @@
             a.href = `data:${contentType};base64,${base64}`;
             a.download = fileName;
             a.click();
+        };
+
+        window.initFlightMap = function(mapId, points) {
+            // points: array of [lat, lon, altM]
+            if (!points || points.length === 0) return;
+
+            var map = L.map(mapId).setView([points[0][0], points[0][1]], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18
+            }).addTo(map);
+
+            // Compute altitude range for color
+            var altitudes = points.map(function(p) { return p[2]; });
+            var minAlt = Math.min.apply(null, altitudes);
+            var maxAlt = Math.max.apply(null, altitudes);
+            var range = maxAlt - minAlt || 1;
+
+            // Draw colored polyline segments (blue low → red high)
+            for (var i = 1; i < points.length; i++) {
+                var t = (points[i][2] - minAlt) / range;
+                var r = Math.round(t * 220);
+                var b = Math.round((1 - t) * 220);
+                var color = 'rgb(' + r + ',50,' + b + ')';
+                L.polyline([[points[i-1][0], points[i-1][1]], [points[i][0], points[i][1]]], {
+                    color: color, weight: 3, opacity: 0.85
+                }).addTo(map);
+            }
+
+            // Start marker (green) and end marker (red)
+            L.marker([points[0][0], points[0][1]], {
+                icon: L.divIcon({ className: '', html: '<div style="background:#2ecc71;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,.5)"></div>', iconAnchor:[7,7] })
+            }).bindPopup('Start').addTo(map);
+
+            var last = points[points.length - 1];
+            L.marker([last[0], last[1]], {
+                icon: L.divIcon({ className: '', html: '<div style="background:#e74c3c;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,.5)"></div>', iconAnchor:[7,7] })
+            }).bindPopup('Landing').addTo(map);
+
+            // Fit bounds
+            var latlngs = points.map(function(p) { return [p[0], p[1]]; });
+            map.fitBounds(latlngs);
         };
 
         window._quills = {};
