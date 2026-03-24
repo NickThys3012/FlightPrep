@@ -8,6 +8,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <base href="/" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0B2340" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="FlightPrep" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.snow.css" />
@@ -22,6 +28,7 @@
     <Routes />
     <ReconnectModal />
     <script src="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <script src="@Assets["lib/bootstrap/dist/js/bootstrap.bundle.min.js"]"></script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script>
@@ -62,6 +69,40 @@
             const q = window._quills[id];
             return q ? q.root.innerHTML : null;
         };
+
+        window.initLogboekCharts = function(monthLabels, monthData, locationLabels, locationData) {
+            var ctx1 = document.getElementById('chart-months');
+            if (ctx1) {
+                new Chart(ctx1.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: monthLabels,
+                        datasets: [{ label: 'Vaarten', data: monthData, backgroundColor: 'rgba(26,58,92,0.75)', borderRadius: 4 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+                });
+            }
+            var ctx2 = document.getElementById('chart-locations');
+            if (ctx2) {
+                new Chart(ctx2.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: locationLabels,
+                        datasets: [{ label: 'Vaarten', data: locationData, backgroundColor: 'rgba(41,182,246,0.75)', borderRadius: 4 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+                });
+            }
+        };
+
+        // Register service worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(function(reg) { console.log('SW registered:', reg.scope); })
+                    .catch(function(err) { console.log('SW registration failed:', err); });
+            });
+        }
     </script>
 </body>
 
