@@ -28,7 +28,8 @@ builder.Services.AddScoped<GoNoGoService>();
 // Data protection keys persist to /root/.aspnet/DataProtection-Keys (mounted as Docker volume)
 
 // Application Insights — only active when APPLICATIONINSIGHTS_CONNECTION_STRING is set
-builder.Services.AddApplicationInsightsTelemetry();
+if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
+    builder.Services.AddApplicationInsightsTelemetry();
 builder.Services.AddSingleton<KmlService>();
 
 builder.Services.AddHttpClient("aviationweather", c =>
