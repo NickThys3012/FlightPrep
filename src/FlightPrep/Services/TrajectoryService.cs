@@ -11,12 +11,13 @@ public class TrajectoryService(IHttpClientFactory httpFactory)
 {
     private static readonly Dictionary<int, int> LevelAltitudes = new()
     {
+        { 1000, 110 }, { 975, 320 }, { 950, 540 }, { 925, 760 },
         { 850, 1500 }, { 800, 1950 }, { 750, 2450 }, { 700, 3000 },
         { 650, 3600 }, { 600, 4200 }, { 500, 5500 }
     };
 
     private static readonly string[] Colors =
-        { "#e74c3c", "#3498db", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c", "#e67e22" };
+        { "#e74c3c", "#3498db", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c", "#e67e22", "#e74c3c", "#16a085", "#8e44ad", "#d35400" };
 
     public async Task<List<PredictedTrajectory>> PredictAsync(
         double lat, double lon,

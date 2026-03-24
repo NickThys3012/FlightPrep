@@ -697,7 +697,7 @@
 
     [Inject] TrajectoryService TrajectorySvc { get; set; } = default!;
 
-    private HashSet<int> selectedLevels = new() { 850, 800, 750 };
+    private HashSet<int> selectedLevels = new() { 1000, 975, 950, 925 };
     private bool generatingTrajectory = false;
     private string? trajectoryError = null;
     private List<PredictedTrajectory> predictedTrajectories = new();
