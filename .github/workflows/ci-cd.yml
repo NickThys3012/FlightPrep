@@ -23,6 +23,12 @@ jobs:
       - name: Build
         run: dotnet build src/FlightPrep/FlightPrep.csproj --no-restore -c Release
 
+      - name: Build unit tests
+        run: dotnet build src/FlightPrep.Tests/FlightPrep.Tests.csproj -c Release
+
+      - name: Run unit tests
+        run: dotnet test src/FlightPrep.Tests/FlightPrep.Tests.csproj --no-build -c Release --logger "trx;LogFileName=unit-results.trx"
+
       - name: Publish
         run: dotnet publish src/FlightPrep/FlightPrep.csproj -c Release -o ./publish /p:UseAppHost=false
 
