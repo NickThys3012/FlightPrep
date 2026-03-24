@@ -28,6 +28,9 @@ builder.Services.AddScoped<GoNoGoService>();
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new System.IO.DirectoryInfo("/root/.aspnet/DataProtection-Keys"))
     .SetApplicationName("FlightPrep");
+
+// Application Insights — only active when APPLICATIONINSIGHTS_CONNECTION_STRING is set
+builder.Services.AddApplicationInsightsTelemetry();
 builder.Services.AddSingleton<KmlService>();
 
 builder.Services.AddHttpClient("aviationweather", c =>
