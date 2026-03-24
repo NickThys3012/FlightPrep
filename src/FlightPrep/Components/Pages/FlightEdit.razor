@@ -562,7 +562,7 @@
                                             <button type="button"
                                                 class="btn btn-sm @(isSelected ? "btn-primary" : "btn-outline-secondary")"
                                                 @onclick="() => ToggleLevel(hpa)">
-                                                @hpa hPa <span class="text-opacity-75">~@alt m</span>
+                                                @hpa hPa <span class="text-opacity-75">~@TrajectoryService.ToFeet(alt) ft</span>
                                             </button>
                                         }
                                     </div>
@@ -581,7 +581,7 @@
                                                 {
                                                     <span class="small">
                                                         <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:@t.Color;vertical-align:middle;margin-right:4px"></span>
-                                                        @t.HpaLevel hPa (~@t.AltitudeM m) — eindpunt: @t.Points.Last().Lat.ToString("F4")°N, @t.Points.Last().Lon.ToString("F4")°E
+                                                        @t.HpaLevel hPa (~@TrajectoryService.ToFeet(t.AltitudeM) ft) — eindpunt: @t.Points.Last().Lat.ToString("F4")°N, @t.Points.Last().Lon.ToString("F4")°E
                                                     </span>
                                                 }
                                             </div>
@@ -736,7 +736,7 @@
                 await JS.InvokeVoidAsync("initTrajectoryMap", "trajectory-map", predictedTrajectories
                     .Select(t => new {
                         color = t.Color,
-                        label = $"{t.HpaLevel} hPa (~{t.AltitudeM}m)",
+                        label = $"{t.HpaLevel} hPa (~{TrajectoryService.ToFeet(t.AltitudeM)} ft)",
                         points = t.Points.Select(p => new[] { p.Lat, p.Lon }).ToArray()
                     }).ToArray(),
                     currentLocation.Latitude.Value,

@@ -93,5 +93,6 @@ public class TrajectoryService(IHttpClientFactory httpFactory)
         catch { return new(); }
     }
 
+    public static int ToFeet(int metres) => (int)Math.Round(metres * 3.28084);
     public static Dictionary<int, int> AvailableLevels => LevelAltitudes;
 }
