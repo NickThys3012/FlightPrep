@@ -1,10 +1,9 @@
 @page "/release-notes"
 @rendermode InteractiveServer
-@inject IWebHostEnvironment Env
+@inject ReleaseNotesService ReleaseNotesSvc
 @inject ILogger<ReleaseNotes> Logger
-@using System.Text.Json
-@using System.Text.Json.Serialization
-@using Microsoft.AspNetCore.Hosting
+@using FlightPrep.Models.ReleaseNotes
+@using FlightPrep.Services
 
 <PageTitle>Release Notes – FlightPrep</PageTitle>
 
@@ -25,9 +24,9 @@
     </div>
 
     <div class="mb-4 small text-muted">
-        <span class="badge bg-primary me-1">feature</span> major bump &nbsp;·&nbsp;
-        <span class="badge bg-info text-dark me-1">refactor</span> minor bump &nbsp;·&nbsp;
-        <span class="badge bg-danger me-1">bug</span> patch bump
+        <span class="badge bg-primary me-1">feature</span> major &nbsp;·&nbsp;
+        <span class="badge bg-info text-dark me-1">refactor</span> minor &nbsp;·&nbsp;
+        <span class="badge bg-danger me-1">bug</span> patch
     </div>
 
     @if (entries == null)
@@ -48,11 +47,11 @@
                 <div class="release-entry card mb-4 shadow-sm border-0">
                     <div class="card-header d-flex align-items-center gap-2 flex-wrap py-3"
                          style="background:var(--fp-surface);border-bottom:1px solid var(--fp-border)">
-                        <a href="https://github.com/NickThys3012/FlightPrep/pull/@entry.Pr"
+                        <a href="https://github.com/NickThys3012/FlightPrep/pull/@(entry.Pr)"
                            target="_blank" rel="noopener"
                            class="badge text-decoration-none"
                            style="background:#1a3a5c;font-size:.85rem">
-                            #@entry.Pr
+                            #@(entry.Pr)
                         </a>
                         @if (!string.IsNullOrEmpty(entry.Version))
                         {
@@ -84,9 +83,9 @@
                         <img src="@($"https://github.com/{entry.Author}.png?size=20")"
                              class="rounded-circle" width="20" height="20"
                              alt="@entry.Author" />
-                        <a href="https://github.com/@entry.Author" target="_blank" rel="noopener"
-                           class="text-muted text-decoration-none">@@@entry.Author</a>
-                        <a href="https://github.com/NickThys3012/FlightPrep/pull/@entry.Pr"
+                        <a href="https://github.com/@(entry.Author)" target="_blank" rel="noopener"
+                           class="text-muted text-decoration-none">@@@(entry.Author)</a>
+                        <a href="https://github.com/NickThys3012/FlightPrep/pull/@(entry.Pr)"
                            target="_blank" rel="noopener"
                            class="ms-auto text-decoration-none text-muted small">
                             Bekijk PR →
@@ -109,29 +108,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            var path = Path.Combine(Env.WebRootPath, "release-notes.json");
-            if (!File.Exists(path))
-            {
-                Logger.LogWarning("release-notes.json not found at {Path}", path);
-                entries = new();
-                return;
-            }
-            var json = await File.ReadAllTextAsync(path);
-            var doc = JsonSerializer.Deserialize<ReleaseNotesDocument>(json, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-            entries = doc?.Entries ?? new();
-            currentVersion = doc?.CurrentVersion ?? "";
-            Logger.LogInformation("Loaded {Count} release notes entries, currentVersion={Version}", entries.Count, currentVersion);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to load release notes");
-            entries = new();
-        }
+        var doc = await ReleaseNotesSvc.GetAsync();
+        entries = doc.Entries;
+        currentVersion = doc.CurrentVersion;
     }
 
     private static string GetLabelClass(string label) => label.ToLower() switch
@@ -155,19 +134,4 @@
         if (diff.TotalDays < 365) return $"{(int)(diff.TotalDays / 30)} maanden geleden";
         return $"{(int)(diff.TotalDays / 365)} jaar geleden";
     }
-
-    private record ReleaseNotesDocument(
-        string CurrentVersion,
-        List<ReleaseEntry> Entries
-    );
-
-    private record ReleaseEntry(
-        int Pr,
-        string Version,
-        string Title,
-        string Description,
-        string Author,
-        [property: JsonPropertyName("labels")] List<string> Labels,
-        DateTime Date
-    );
 }
