@@ -97,12 +97,49 @@ flightPrep/
 │   └── deploy.sh                  # One-shot Azure provisioning script
 └── .github/
     └── workflows/
-        └── ci-cd.yml              # Build → E2E tests (Playwright) → deploy pipeline
+        ├── ci-cd.yml              # Build → E2E tests (Playwright) → deploy
+        └── release-notes.yml      # AI release notes on PR merge
 ```
 
 ---
 
-## Deploying to Azure
+## CI/CD & Release Notes
+
+### Pipeline overview
+
+```
+Push / PR merge → main
+  ├─ build job     → dotnet build + unit tests + publish artifact
+  ├─ e2e job       → Playwright E2E tests (skipped for release-note commits)
+  └─ deploy job    → Azure App Service  (runs when e2e succeeds OR is skipped)
+```
+
+### Release notes automation
+
+When a PR is **merged to main**, a second workflow runs automatically:
+
+```
+PR merged → main
+  1. Fetch list of changed files (gh CLI)
+  2. Call GitHub Models API (gpt-4o-mini) with PR title, body, labels
+     → AI generates a Dutch description (≤ 3 sentences)
+     → fallback: PR body or title if API is unavailable
+  3. Bump version in release-notes.json
+       [feature] / label feature  →  major  (X+1.0.0)
+       [refactor] / label refactor →  minor  (X.X+1.0)
+       [BUG] / label bug           →  patch  (X.X.X+1)
+  4. Commit release-notes.json to main  [skip e2e]
+  5. CI re-runs: build ✓  →  e2e SKIPPED  →  deploy ✓
+     ↳ updated release notes are live within ~3 minutes
+```
+
+The `/release-notes` page reads the baked-in JSON from the Docker image (always up-to-date after deploy).
+
+> **Note:** No extra secrets required — the workflow uses the built-in `GITHUB_TOKEN` for both the GitHub Models API and the git push.
+
+---
+
+
 
 ### 1 – Provision infrastructure
 
