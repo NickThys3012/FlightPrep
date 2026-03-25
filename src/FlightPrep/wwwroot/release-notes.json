@@ -1,0 +1,41 @@
+{
+  "currentVersion": "4.0.0",
+  "entries": [
+    {
+      "pr": 4,
+      "version": "4.0.0",
+      "title": "Logboek dashboard met statistieken en grafieken",
+      "description": "Toegevoegd: een logboek-dashboard met vliegstatistieken, grafieken (uren per maand, vluchten per locatie) en een overzicht van alle voorbije vaarten.",
+      "author": "NickThys3012",
+      "labels": ["feature"],
+      "date": "2026-03-24T09:21:37Z"
+    },
+    {
+      "pr": 3,
+      "version": "3.0.0",
+      "title": "PWA-ondersteuning (installeerbaar, offline fallback)",
+      "description": "FlightPrep is nu installeerbaar als Progressive Web App op desktop en mobiel. Offline-fallbackpagina toegevoegd zodat de app ook zonder verbinding bruikbaar blijft.",
+      "author": "NickThys3012",
+      "labels": ["feature"],
+      "date": "2026-03-24T09:08:14Z"
+    },
+    {
+      "pr": 2,
+      "version": "2.0.0",
+      "title": "KML vluchttracks importeren en visualiseren",
+      "description": "KML-bestanden kunnen nu geüpload worden per vaart. De vluchttrack wordt gevisualiseerd op een interactieve Leaflet-kaart met hoogtestatistieken (max/min hoogte, afstand).",
+      "author": "NickThys3012",
+      "labels": ["feature"],
+      "date": "2026-03-24T09:00:51Z"
+    },
+    {
+      "pr": 1,
+      "version": "1.0.0",
+      "title": "Operationele informatie & Go/No-Go indicator",
+      "description": "Sectie voor operationele gegevens toegevoegd: wind, zichtbaarheid, CAPE-waarde. Automatische Go/No-Go berekening op basis van configureerbare drempelwaarden (groen/geel/rood).",
+      "author": "NickThys3012",
+      "labels": ["feature"],
+      "date": "2026-03-24T09:12:40Z"
+    }
+  ]
+}

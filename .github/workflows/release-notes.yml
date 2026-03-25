@@ -1,0 +1,84 @@
+name: Generate Release Notes
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release-notes:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update release-notes.json
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          MERGE_DATE: ${{ github.event.pull_request.merged_at }}
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = 'src/FlightPrep/wwwroot/release-notes.json';
+          const data = JSON.parse(fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : '{\"currentVersion\":\"0.0.0\",\"entries\":[]}');
+
+          const labels = JSON.parse(process.env.PR_LABELS || '[]');
+          const title = process.env.PR_TITLE || '';
+          const labelStr = labels.join(' ').toLowerCase();
+          const titleLower = title.toLowerCase();
+
+          // Determine bump type: [feature] -> major, [refactor] -> minor, [BUG] -> patch
+          let bumpType = 'patch';
+          if (/\[feature\]/i.test(title) || labelStr.includes('feature') || labelStr.includes('enhancement')) {
+            bumpType = 'major';
+          } else if (/\[refactor\]/i.test(title) || labelStr.includes('refactor')) {
+            bumpType = 'minor';
+          } else if (/\[bug\]/i.test(title) || /\[fix\]/i.test(title) || labelStr.includes('bug') || labelStr.includes('fix')) {
+            bumpType = 'patch';
+          }
+
+          function bumpVersion(v, type) {
+            const [maj, min, pat] = v.split('.').map(Number);
+            if (type === 'major') return (maj + 1) + '.0.0';
+            if (type === 'minor') return maj + '.' + (min + 1) + '.0';
+            return maj + '.' + min + '.' + (pat + 1);
+          }
+
+          const newVersion = bumpVersion(data.currentVersion || '0.0.0', bumpType);
+
+          const entry = {
+            pr: parseInt(process.env.PR_NUMBER),
+            version: newVersion,
+            title: title,
+            description: (process.env.PR_BODY || '').trim(),
+            author: process.env.PR_AUTHOR || '',
+            labels: labels,
+            date: process.env.MERGE_DATE || new Date().toISOString()
+          };
+
+          data.currentVersion = newVersion;
+          data.entries = [entry, ...(data.entries || [])];
+
+          fs.writeFileSync(path, JSON.stringify(data, null, 2) + '\n');
+          console.log('Version bumped (' + bumpType + '): ' + newVersion + ' — PR #' + entry.pr + ': ' + title);
+          "
+
+      - name: Commit release notes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/FlightPrep/wwwroot/release-notes.json
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "docs: release notes voor PR #${{ github.event.pull_request.number }} [skip ci]"
+          git push
