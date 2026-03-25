@@ -1,0 +1,58 @@
+name: Generate Release Notes
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release-notes:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update release-notes.json
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          MERGE_DATE: ${{ github.event.pull_request.merged_at }}
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = 'src/FlightPrep/wwwroot/release-notes.json';
+          const current = JSON.parse(fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : '[]');
+
+          const entry = {
+            pr: parseInt(process.env.PR_NUMBER),
+            title: process.env.PR_TITLE || '',
+            description: (process.env.PR_BODY || '').trim(),
+            author: process.env.PR_AUTHOR || '',
+            labels: JSON.parse(process.env.PR_LABELS || '[]'),
+            date: process.env.MERGE_DATE || new Date().toISOString()
+          };
+
+          // Prepend new entry (newest first)
+          current.unshift(entry);
+          fs.writeFileSync(path, JSON.stringify(current, null, 2) + '\n');
+          console.log('Added release note for PR #' + entry.pr + ': ' + entry.title);
+          "
+
+      - name: Commit release notes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/FlightPrep/wwwroot/release-notes.json
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "docs: release notes voor PR #${{ github.event.pull_request.number }} [skip ci]"
+          git push
