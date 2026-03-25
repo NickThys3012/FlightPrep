@@ -1,6 +1,17 @@
 {
-  "currentVersion": "5.0.0",
+  "currentVersion": "5.0.1",
   "entries": [
+    {
+      "pr": 7,
+      "version": "5.0.1",
+      "title": "fix: YAML syntax error in release-notes.yml",
+      "description": "Er is een YAML-syntaxisfout opgelost in de release-notes.yml door de JavaScript-logica te verplaatsen naar aparte scriptbestanden. Dit voorkomt problemen met het vroegtijdig afsluiten van het run-blok en verbetert de stabiliteit van de release-notes-generatie. Piloten profiteren van een soepelere en foutloze ervaring bij het genereren van release-informatie.",
+      "author": "NickThys3012",
+      "labels": [
+        "bug"
+      ],
+      "date": "2026-03-25T10:18:01Z"
+    },
     {
       "pr": 5,
       "version": "5.0.0",
