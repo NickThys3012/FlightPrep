@@ -1,6 +1,17 @@
 {
-  "currentVersion": "5.0.2",
+  "currentVersion": "5.0.3",
   "entries": [
+    {
+      "pr": 10,
+      "version": "5.0.3",
+      "title": "fix: voeg permissions toe aan build job in ci-cd.yml",
+      "description": "In deze release zijn de permissies voor de build job in ci-cd.yml bijgewerkt, waardoor de applicatie nu correct de release-notes.json naar de hoofdbranch kan pushen en toegang heeft tot de GitHub Models API voor verbeterde AI-gegenereerde beschrijvingen van pull requests. Dit zorgt voor een efficiënter releaseproces en een betere gebruikerservaring voor piloten. De verbeterde integratie met de GitHub API stelt ons in staat om actuele informatie over pull requests te tonen, wat de transparantie verhoogt.",
+      "author": "NickThys3012",
+      "labels": [
+        "bug"
+      ],
+      "date": "2026-03-25T10:54:32Z"
+    },
     {
       "pr": 8,
       "version": "5.0.2",
