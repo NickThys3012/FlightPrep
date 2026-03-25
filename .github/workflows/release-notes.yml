@@ -1,8 +1,9 @@
 name: Generate Release Notes
 
 on:
-  pull_request:
-    types: [closed]
+  workflow_run:
+    workflows: ["CI/CD"]
+    types: [completed]
     branches: [main]
 
 permissions:
@@ -12,55 +13,77 @@ permissions:
 
 jobs:
   release-notes:
-    if: github.event.pull_request.merged == true
+    # Only after a successful CI/CD deploy, never for our own [skip e2e] commits
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      !contains(github.event.workflow_run.head_commit.message, '[skip e2e]')
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
-          # PAT needed: GITHUB_TOKEN pushes don't trigger other workflows (GitHub security)
-          # Create a PAT (classic, scopes: repo + workflow) and add as RELEASE_NOTES_PAT secret
           token: ${{ secrets.RELEASE_NOTES_PAT || secrets.GITHUB_TOKEN }}
 
-      - name: Get changed files
-        id: files
+      - name: Get PR info for this commit
+        id: pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          FILES=$(gh pr view ${{ github.event.pull_request.number }} \
-            --repo ${{ github.repository }} \
-            --json files \
-            --jq '[.files[].path] | join(", ")' \
-            | head -c 800)
-          echo "list=$FILES" >> $GITHUB_OUTPUT
+          PR_JSON=$(gh api "repos/${{ github.repository }}/commits/${HEAD_SHA}/pulls" \
+            --jq '.[0] // empty')
+
+          if [ -z "$PR_JSON" ]; then
+            echo "No PR found for ${HEAD_SHA} — skipping release notes"
+            echo "found=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "found=true"                                           >> $GITHUB_OUTPUT
+          echo "number=$(echo "$PR_JSON"  | jq -r '.number')"        >> $GITHUB_OUTPUT
+          echo "title=$(echo "$PR_JSON"   | jq -r '.title')"         >> $GITHUB_OUTPUT
+          echo "author=$(echo "$PR_JSON"  | jq -r '.user.login')"    >> $GITHUB_OUTPUT
+          echo "merged_at=$(echo "$PR_JSON" | jq -r '.merged_at')"   >> $GITHUB_OUTPUT
+          echo "labels=$(echo "$PR_JSON"  | jq -c '[.labels[].name]')" >> $GITHUB_OUTPUT
+
+          # Write body to file to safely handle newlines and special chars
+          echo "$PR_JSON" | jq -r '.body // ""' > /tmp/pr_body.txt
+
+          FILES=$(gh api "repos/${{ github.repository }}/pulls/$(echo "$PR_JSON" | jq -r '.number')/files" \
+            --jq '[.[].filename] | join(", ")' | head -c 800)
+          echo "files=$FILES" >> $GITHUB_OUTPUT
 
       - name: Generate AI release note description
+        if: steps.pr.outputs.found == 'true'
         env:
           GITHUB_TOKEN:  ${{ secrets.GITHUB_TOKEN }}
-          PR_TITLE:      ${{ github.event.pull_request.title }}
-          PR_BODY:       ${{ github.event.pull_request.body }}
-          PR_LABELS:     ${{ toJson(github.event.pull_request.labels.*.name) }}
-          CHANGED_FILES: ${{ steps.files.outputs.list }}
-        run: node --input-type=module < .github/scripts/generate-ai-description.mjs
+          PR_TITLE:      ${{ steps.pr.outputs.title }}
+          PR_LABELS:     ${{ steps.pr.outputs.labels }}
+          CHANGED_FILES: ${{ steps.pr.outputs.files }}
+        run: |
+          export PR_BODY=$(cat /tmp/pr_body.txt)
+          node --input-type=module < .github/scripts/generate-ai-description.mjs
 
       - name: Update release-notes.json
+        if: steps.pr.outputs.found == 'true'
         env:
-          PR_NUMBER:  ${{ github.event.pull_request.number }}
-          PR_TITLE:   ${{ github.event.pull_request.title }}
-          PR_AUTHOR:  ${{ github.event.pull_request.user.login }}
-          PR_LABELS:  ${{ toJson(github.event.pull_request.labels.*.name) }}
-          MERGE_DATE: ${{ github.event.pull_request.merged_at }}
+          PR_NUMBER:  ${{ steps.pr.outputs.number }}
+          PR_TITLE:   ${{ steps.pr.outputs.title }}
+          PR_AUTHOR:  ${{ steps.pr.outputs.author }}
+          PR_LABELS:  ${{ steps.pr.outputs.labels }}
+          MERGE_DATE: ${{ steps.pr.outputs.merged_at }}
         run: node --input-type=module < .github/scripts/update-release-notes.mjs
 
-      - name: Commit release notes
+      - name: Commit and push release notes
+        if: steps.pr.outputs.found == 'true'
         env:
-          # Use PAT so the push triggers the ci-cd.yml deploy workflow
           GIT_TOKEN: ${{ secrets.RELEASE_NOTES_PAT || secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add src/FlightPrep/wwwroot/release-notes.json
           git diff --cached --quiet && echo "No changes to commit" && exit 0
-          git commit -m "docs: release notes voor PR #${{ github.event.pull_request.number }} [skip e2e]"
+          git commit -m "docs: release notes voor PR #${{ steps.pr.outputs.number }} [skip e2e]"
           git push https://x-access-token:${GIT_TOKEN}@github.com/${{ github.repository }}.git HEAD:main
