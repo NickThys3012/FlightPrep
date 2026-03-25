@@ -50,14 +50,49 @@
             // points: array of [lat, lon, altM]
             if (!points || points.length === 0) return;
 
-            var map = L.map(mapId).setView([points[0][0], points[0][1]], 13);
+            // ── Base layers ──────────────────────────────────────────────────
+            var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+                maxZoom: 18
+            });
+            var topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                attribution: '© <a href="https://opentopomap.org">OpenTopoMap</a>, © OpenStreetMap',
+                maxZoom: 17
+            });
+
+            // ── AIP overlays (geen API-key nodig) ────────────────────────────
+            // Luchtruim: CTR, TMA, verboden/beperkte zones (Open Flightmaps)
+            var airspaceLayer = L.tileLayer(
+                'https://nwy-tiles-api.prod.newaydata.com/tiles/{z}/{x}/{y}.png?path=latest/aero/',
+                {
+                    attribution: '© <a href="https://open.flightmaps.org">openflightmaps</a>, © OpenStreetMap',
+                    opacity: 0.65,
+                    maxZoom: 14
+                }
+            );
+            // Hoogspanningslijnen (OpenInfraMap — laag op OSM data)
+            var powerLayer = L.tileLayer('https://tiles.openinframap.org/power/{z}/{x}/{y}.png', {
+                attribution: '© <a href="https://openinframap.org">OpenInfraMap</a>, © OpenStreetMap',
+                opacity: 0.85,
+                maxZoom: 18
+            });
+
+            // Start met OSM + luchtruim standaard aan
+            var map = L.map(mapId, { layers: [osmLayer, airspaceLayer] })
+                       .setView([points[0][0], points[0][1]], 13);
             window._flightMap = map;
             window._flightPoints = points;
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
-                maxZoom: 18
-            }).addTo(map);
+            // Layer control
+            var baseLayers = {
+                '🗺 Kaart': osmLayer,
+                '⛰ Topografisch': topoLayer
+            };
+            var overlayLayers = {
+                '✈ Luchtruim': airspaceLayer,
+                '⚡ Hoogspanning': powerLayer
+            };
+            L.control.layers(baseLayers, overlayLayers, { collapsed: false }).addTo(map);
 
             // Compute altitude range for color
             var altitudes = points.map(function(p) { return p[2]; });
