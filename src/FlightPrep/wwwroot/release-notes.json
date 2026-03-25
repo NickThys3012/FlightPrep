@@ -1,6 +1,17 @@
 {
-  "currentVersion": "5.0.1",
+  "currentVersion": "5.0.2",
   "entries": [
+    {
+      "pr": 8,
+      "version": "5.0.2",
+      "title": "fix: gebruik PAT voor push zodat ci-cd.yml triggert na release notes",
+      "description": "Met deze update is het nu mogelijk om de ci-cd.yml workflow te triggeren na het pushen van release notes door gebruik te maken van een persoonlijke toegangstoken (PAT) in plaats van het standaard GITHUB_TOKEN. Dit verbetert de automatisering van het releaseproces, wat zorgt voor een efficiëntere en betrouwbaardere implementatie voor piloten en gebruikers. Indien het PAT niet is ingesteld, valt de workflow terug op het GITHUB_TOKEN, maar zonder triggerfunctionaliteit.",
+      "author": "NickThys3012",
+      "labels": [
+        "bug"
+      ],
+      "date": "2026-03-25T10:33:36Z"
+    },
     {
       "pr": 7,
       "version": "5.0.1",
