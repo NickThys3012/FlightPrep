@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: write
+  models: read      # GitHub Models API (GPT-4o-mini)
+  pull-requests: read
 
 jobs:
   release-notes:
@@ -19,66 +21,134 @@ jobs:
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Get changed files
+        id: files
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          FILES=$(gh pr view ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --json files \
+            --jq '[.files[].path] | join(", ")' \
+          | head -c 800)
+          echo "list=$FILES" >> $GITHUB_OUTPUT
+
+      - name: Generate AI release note description
+        id: ai
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_TITLE:   ${{ github.event.pull_request.title }}
+          PR_BODY:    ${{ github.event.pull_request.body }}
+          PR_LABELS:  ${{ toJson(github.event.pull_request.labels.*.name) }}
+          CHANGED_FILES: ${{ steps.files.outputs.list }}
+        run: |
+          node --input-type=module << 'EOF'
+          const title  = process.env.PR_TITLE  || '';
+          const body   = process.env.PR_BODY   || '';
+          const labels = process.env.PR_LABELS || '[]';
+          const files  = process.env.CHANGED_FILES || '';
+          const token  = process.env.GITHUB_TOKEN;
+
+          const prompt = `Je bent technisch schrijver voor FlightPrep, een Blazor-webapplicatie voor voorbereiding van ballonvluchten.
+
+Genereer een beknopte release note in het Nederlands (max 3 zinnen) voor onderstaande pull request.
+Wees concreet: noem wat er nieuw/gewijzigd is en wat het voordeel is voor de piloot/gebruiker.
+Schrijf ALLEEN de release note tekst, zonder titels, bullet points of opmaak.
+
+PR Titel: ${title}
+PR Beschrijving: ${body.trim() || '(geen)'}
+Labels: ${labels}
+Gewijzigde bestanden: ${files || '(onbekend)'}`;
+
+          let description = body.trim() || title; // fallback
+
+          try {
+            const res = await fetch('https://models.inference.ai.azure.com/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [{ role: 'user', content: prompt }],
+                max_tokens: 250,
+                temperature: 0.6
+              })
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              description = data.choices?.[0]?.message?.content?.trim() || description;
+              console.error(`AI generated: ${description}`);
+            } else {
+              const err = await res.text();
+              console.error(`AI API ${res.status}: ${err} — using PR body as fallback`);
+            }
+          } catch (e) {
+            console.error(`AI call failed: ${e.message} — using PR body as fallback`);
+          }
+
+          // Write to file (avoids shell escaping issues)
+          const fs = await import('fs');
+          fs.writeFileSync('/tmp/ai_description.txt', description);
+          EOF
+          echo "Description written."
+
       - name: Update release-notes.json
         env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_BODY: ${{ github.event.pull_request.body }}
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          PR_NUMBER:  ${{ github.event.pull_request.number }}
+          PR_TITLE:   ${{ github.event.pull_request.title }}
+          PR_AUTHOR:  ${{ github.event.pull_request.user.login }}
+          PR_LABELS:  ${{ toJson(github.event.pull_request.labels.*.name) }}
           MERGE_DATE: ${{ github.event.pull_request.merged_at }}
         run: |
-          node -e "
-          const fs = require('fs');
+          node --input-type=module << 'EOF'
+          const fs = await import('fs');
           const path = 'src/FlightPrep/wwwroot/release-notes.json';
-          const data = JSON.parse(fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : '{\"currentVersion\":\"0.0.0\",\"entries\":[]}');
+          const data = JSON.parse(fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : '{"currentVersion":"0.0.0","entries":[]}');
 
-          const labels = JSON.parse(process.env.PR_LABELS || '[]');
-          const title = process.env.PR_TITLE || '';
+          const labels   = JSON.parse(process.env.PR_LABELS || '[]');
+          const title    = process.env.PR_TITLE || '';
           const labelStr = labels.join(' ').toLowerCase();
-          const titleLower = title.toLowerCase();
+          const aiDesc   = fs.readFileSync('/tmp/ai_description.txt', 'utf8').trim();
 
-          // Determine bump type: [feature] -> major, [refactor] -> minor, [BUG] -> patch
+          // Version bump: [feature] → major, [refactor] → minor, [BUG]/[fix] → patch
           let bumpType = 'patch';
-          if (/\[feature\]/i.test(title) || labelStr.includes('feature') || labelStr.includes('enhancement')) {
+          if (/\[feature\]/i.test(title) || labelStr.includes('feature') || labelStr.includes('enhancement'))
             bumpType = 'major';
-          } else if (/\[refactor\]/i.test(title) || labelStr.includes('refactor')) {
+          else if (/\[refactor\]/i.test(title) || labelStr.includes('refactor'))
             bumpType = 'minor';
-          } else if (/\[bug\]/i.test(title) || /\[fix\]/i.test(title) || labelStr.includes('bug') || labelStr.includes('fix')) {
+          else if (/\[bug\]/i.test(title) || /\[fix\]/i.test(title) || labelStr.includes('bug') || labelStr.includes('fix'))
             bumpType = 'patch';
-          }
 
-          function bumpVersion(v, type) {
-            const [maj, min, pat] = v.split('.').map(Number);
-            if (type === 'major') return (maj + 1) + '.0.0';
-            if (type === 'minor') return maj + '.' + (min + 1) + '.0';
-            return maj + '.' + min + '.' + (pat + 1);
-          }
-
-          const newVersion = bumpVersion(data.currentVersion || '0.0.0', bumpType);
+          const [maj, min, pat] = (data.currentVersion || '0.0.0').split('.').map(Number);
+          const newVersion =
+            bumpType === 'major' ? `${maj+1}.0.0` :
+            bumpType === 'minor' ? `${maj}.${min+1}.0` :
+                                   `${maj}.${min}.${pat+1}`;
 
           const entry = {
-            pr: parseInt(process.env.PR_NUMBER),
-            version: newVersion,
-            title: title,
-            description: (process.env.PR_BODY || '').trim(),
-            author: process.env.PR_AUTHOR || '',
-            labels: labels,
-            date: process.env.MERGE_DATE || new Date().toISOString()
+            pr:          parseInt(process.env.PR_NUMBER),
+            version:     newVersion,
+            title,
+            description: aiDesc,
+            author:      process.env.PR_AUTHOR || '',
+            labels,
+            date:        process.env.MERGE_DATE || new Date().toISOString()
           };
 
           data.currentVersion = newVersion;
           data.entries = [entry, ...(data.entries || [])];
-
           fs.writeFileSync(path, JSON.stringify(data, null, 2) + '\n');
-          console.log('Version bumped (' + bumpType + '): ' + newVersion + ' — PR #' + entry.pr + ': ' + title);
-          "
+          console.log(`v${newVersion} (${bumpType}) — PR #${entry.pr}: ${title}`);
+          EOF
 
       - name: Commit release notes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add src/FlightPrep/wwwroot/release-notes.json
-          git diff --cached --quiet && echo "No changes" && exit 0
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
           git commit -m "docs: release notes voor PR #${{ github.event.pull_request.number }} [skip ci]"
           git push
