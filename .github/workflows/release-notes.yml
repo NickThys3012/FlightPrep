@@ -19,7 +19,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # PAT needed: GITHUB_TOKEN pushes don't trigger other workflows (GitHub security)
+          # Create a PAT (classic, scopes: repo + workflow) and add as RELEASE_NOTES_PAT secret
+          token: ${{ secrets.RELEASE_NOTES_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Get changed files
         id: files
@@ -52,10 +54,13 @@ jobs:
         run: node --input-type=module < .github/scripts/update-release-notes.mjs
 
       - name: Commit release notes
+        env:
+          # Use PAT so the push triggers the ci-cd.yml deploy workflow
+          GIT_TOKEN: ${{ secrets.RELEASE_NOTES_PAT || secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add src/FlightPrep/wwwroot/release-notes.json
           git diff --cached --quiet && echo "No changes to commit" && exit 0
           git commit -m "docs: release notes voor PR #${{ github.event.pull_request.number }} [skip e2e]"
-          git push
+          git push https://x-access-token:${GIT_TOKEN}@github.com/${{ github.repository }}.git HEAD:main
