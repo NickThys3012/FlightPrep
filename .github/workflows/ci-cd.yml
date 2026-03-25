@@ -9,6 +9,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write        # git push release-notes.json
+      models: read           # GitHub Models API (gpt-4o-mini)
+      pull-requests: read    # gh api .../pulls/...
     steps:
       - uses: actions/checkout@v4
 
