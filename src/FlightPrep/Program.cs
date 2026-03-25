@@ -43,12 +43,6 @@ builder.Services.AddHttpClient("openmeteo", c =>
     c.BaseAddress = new Uri("https://api.open-meteo.com/");
     c.Timeout = TimeSpan.FromSeconds(10);
 });
-builder.Services.AddHttpClient("githubraw", c =>
-{
-    c.BaseAddress = new Uri("https://raw.githubusercontent.com/");
-    c.Timeout = TimeSpan.FromSeconds(8);
-    c.DefaultRequestHeaders.UserAgent.ParseAdd("FlightPrep/1.0");
-});
 builder.Services.AddScoped<WeatherFetchService>();
 builder.Services.AddSingleton<ReleaseNotesService>();
 

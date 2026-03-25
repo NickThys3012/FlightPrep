@@ -150,5 +150,5 @@ Gewijzigde bestanden: ${files || '(onbekend)'}`;
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add src/FlightPrep/wwwroot/release-notes.json
           git diff --cached --quiet && echo "No changes to commit" && exit 0
-          git commit -m "docs: release notes voor PR #${{ github.event.pull_request.number }} [skip ci]"
+          git commit -m "docs: release notes voor PR #${{ github.event.pull_request.number }} [skip e2e]"
           git push
