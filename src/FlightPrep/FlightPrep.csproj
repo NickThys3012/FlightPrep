@@ -19,4 +19,37 @@
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\..\.github\.DS_Store">
+      <Link>.github\.DS_Store</Link>
+    </Content>
+    <Content Include="..\..\.github\agents\implementation.agent.md">
+      <Link>.github\agents\implementation.agent.md</Link>
+    </Content>
+    <Content Include="..\..\.github\agents\Planning.agent.md">
+      <Link>.github\agents\Planning.agent.md</Link>
+    </Content>
+    <Content Include="..\..\.github\agents\review.agent.md">
+      <Link>.github\agents\review.agent.md</Link>
+    </Content>
+    <Content Include="..\..\.github\agents\testing.agent.md">
+      <Link>.github\agents\testing.agent.md</Link>
+    </Content>
+    <Content Include="..\..\.github\AI-DEV-CYCLE.md">
+      <Link>.github\AI-DEV-CYCLE.md</Link>
+    </Content>
+    <Content Include="..\..\.github\copilot-instructions.md">
+      <Link>.github\copilot-instructions.md</Link>
+    </Content>
+    <Content Include="..\..\.github\scripts\generate-ai-description.mjs">
+      <Link>.github\scripts\generate-ai-description.mjs</Link>
+    </Content>
+    <Content Include="..\..\.github\scripts\update-release-notes.mjs">
+      <Link>.github\scripts\update-release-notes.mjs</Link>
+    </Content>
+    <Content Include="..\..\.github\workflows\ci-cd.yml">
+      <Link>.github\workflows\ci-cd.yml</Link>
+    </Content>
+  </ItemGroup>
+
 </Project>
