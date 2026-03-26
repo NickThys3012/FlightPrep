@@ -123,17 +123,53 @@ public void AddPassenger_NonPositiveWeight_Throws(double weight)
 
 ```bash
 # All tests
-dotnet test tests/BalloonPrep.Tests
+dotnet test src/FlightPrep.Tests/FlightPrep.Tests.csproj
 
 # Verbose (show each test name)
-dotnet test tests/BalloonPrep.Tests --logger "console;verbosity=normal"
+dotnet test src/FlightPrep.Tests/FlightPrep.Tests.csproj --logger "console;verbosity=normal"
 
 # Failures only
-dotnet test tests/BalloonPrep.Tests --logger "console;verbosity=minimal"
+dotnet test src/FlightPrep.Tests/FlightPrep.Tests.csproj --logger "console;verbosity=minimal"
 
 # Single test class
-dotnet test tests/BalloonPrep.Tests --filter "FullyQualifiedName~FlightPreparationTests"
+dotnet test src/FlightPrep.Tests/FlightPrep.Tests.csproj --filter "FullyQualifiedName~FlightPreparationTests"
+
+# With coverage report (local check)
+dotnet test src/FlightPrep.Tests/FlightPrep.Tests.csproj \
+  /p:CollectCoverage=true \
+  /p:CoverletOutputFormat=cobertura \
+  /p:CoverletOutput=./coverage/ \
+  "/p:ExcludeByFile=**/Migrations/**,**/Program.cs"
 ```
+
+---
+
+## Coverage requirement — minimum 85% line coverage
+
+The CI/CD pipeline enforces **85% line coverage** on every push and PR.
+The build **fails** if coverage drops below this threshold.
+
+### What counts
+- All code in `src/FlightPrep/` except:
+  - `**/Migrations/**` (auto-generated EF Core migrations)
+  - `**/Program.cs` (top-level startup, covered by E2E)
+
+### How to verify locally before pushing
+```bash
+dotnet test src/FlightPrep.Tests/FlightPrep.Tests.csproj \
+  /p:CollectCoverage=true \
+  /p:CoverletOutputFormat=cobertura \
+  /p:CoverletOutput=./coverage/ \
+  /p:Threshold=85 \
+  /p:ThresholdType=line \
+  /p:ThresholdStat=total \
+  "/p:ExcludeByFile=**/Migrations/**,**/Program.cs"
+```
+A non-zero exit code means coverage is below 85% — add tests before pushing.
+
+### When adding new code
+Every new public method you receive from the implementation agent **must** be covered.
+If adding tests for a method would push a file above the threshold on its own, still write the tests — the threshold applies to the **total** project coverage.
 
 ---
 
@@ -148,10 +184,10 @@ dotnet test tests/BalloonPrep.Tests --filter "FullyQualifiedName~FlightPreparati
 
 ## Done?
 
-After tests pass:
+After tests pass **and coverage is ≥ 85%**:
 ```bash
-git add tests/
+git add src/FlightPrep.Tests/
 git commit -m "test: add coverage for <feature/fix> (#<issue>)"
 ```
 
-Then: **"All tests green ✅ — ready to open a PR? Run `/pr` or `/delegate` from the repo root."**
+Then: **"All tests green ✅ coverage ≥ 85% — ready to open a PR? Run `/pr` or `/delegate` from the repo root."**
