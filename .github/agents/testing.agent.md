@@ -153,6 +153,9 @@ The build **fails** if coverage drops below this threshold.
 - All code in `src/FlightPrep/` except:
   - `**/Migrations/**` (auto-generated EF Core migrations)
   - `**/Program.cs` (top-level startup, covered by E2E)
+  - `**/*.razor` (Blazor components, covered by Playwright E2E tests)
+  - `**/PdfService.cs` (QuestPDF rendering pipeline, covered by E2E)
+  - `**/AppDbContext.cs` (EF Core model config, covered by E2E)
 
 ### How to verify locally before pushing
 ```bash
@@ -163,7 +166,7 @@ dotnet test src/FlightPrep.Tests/FlightPrep.Tests.csproj \
   /p:Threshold=85 \
   /p:ThresholdType=line \
   /p:ThresholdStat=total \
-  "/p:ExcludeByFile=**/Migrations/**,**/Program.cs"
+  "/p:ExcludeByFile=**/Migrations/**,**/Program.cs,**/*.razor,**/PdfService.cs,**/AppDbContext.cs"
 ```
 A non-zero exit code means coverage is below 85% — add tests before pushing.
 

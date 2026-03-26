@@ -41,7 +41,7 @@ jobs:
           /p:Threshold=85
           /p:ThresholdType=line
           /p:ThresholdStat=total
-          "/p:ExcludeByFile=**/Migrations/**,**/Program.cs"
+          "/p:ExcludeByFile=**/Migrations/**,**/Program.cs,**/*.razor,**/PdfService.cs,**/AppDbContext.cs"
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4

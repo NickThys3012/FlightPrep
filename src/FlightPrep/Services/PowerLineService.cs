@@ -15,7 +15,7 @@ public class PowerLineService(IHttpClientFactory httpClientFactory, IMemoryCache
         var n = Math.Round(north, 2);
         var e = Math.Round(east, 2);
 
-        var cacheKey = $"powerlines:{s}:{w}:{n}:{e}";
+        var cacheKey = FormattableString.Invariant($"powerlines:{s}:{w}:{n}:{e}");
 
         if (cache.TryGetValue(cacheKey, out string? cached))
             return cached;
