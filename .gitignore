@@ -53,3 +53,5 @@ appsettings.Local.json
 
 # Publish
 publish/
+
+.idea/.idea.flightPrep.dir/.idea/
