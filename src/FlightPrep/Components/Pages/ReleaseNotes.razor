@@ -75,7 +75,7 @@
                     @if (!string.IsNullOrWhiteSpace(entry.Description))
                     {
                         <div class="card-body py-3">
-                            <p class="mb-0" style="white-space:pre-line">@entry.Description</p>
+                            @((MarkupString)RenderDescription(entry.Description))
                         </div>
                     }
                     <div class="card-footer d-flex align-items-center gap-2 py-2"
@@ -111,6 +111,34 @@
         var doc = await ReleaseNotesSvc.GetAsync();
         entries = doc.Entries;
         currentVersion = doc.CurrentVersion;
+    }
+
+    // Converts markdown-style description (intro line + "- bullet" lines) to HTML.
+    private static string RenderDescription(string text)
+    {
+        var lines = text.Replace("\r\n", "\n").Split('\n');
+        var html = new System.Text.StringBuilder();
+        bool inList = false;
+
+        foreach (var raw in lines)
+        {
+            var line = raw.Trim();
+            if (string.IsNullOrEmpty(line)) continue;
+
+            if (line.StartsWith("- ") || line.StartsWith("* "))
+            {
+                if (!inList) { html.Append("<ul class=\"mb-0 ps-3\">"); inList = true; }
+                html.Append($"<li>{System.Net.WebUtility.HtmlEncode(line[2..])}</li>");
+            }
+            else
+            {
+                if (inList) { html.Append("</ul>"); inList = false; }
+                html.Append($"<p class=\"mb-2\">{System.Net.WebUtility.HtmlEncode(line)}</p>");
+            }
+        }
+
+        if (inList) html.Append("</ul>");
+        return html.ToString();
     }
 
     private static string GetLabelClass(string label) => label.ToLower() switch
