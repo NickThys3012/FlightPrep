@@ -85,7 +85,8 @@ infra/
 | `GoNoGoService` | Scoped | Reads/writes `GoNoGoSettings` (singleton row, id=1) |
 | `PdfService` | Scoped | Uses QuestPDF Community license |
 | `KmlService` | Singleton | Stateless XML parser — safe as singleton |
-| `SunriseService` | Singleton | Pure math, no I/O |
+| `WeatherService` | Transient (HttpClient) | Registered via `AddHttpClient<WeatherService>()` — fetches METAR/TAF via aviationweather.gov |
+| `SunriseService` | Singleton | NOAA solar algorithm, pure math, no I/O |
 | `ReleaseNotesService` | Singleton | Reads `wwwroot/release-notes.json`, 5-min in-memory cache |
 
 ### JavaScript interop
@@ -130,3 +131,9 @@ The `build` job needs these `permissions`: `contents: write`, `models: read`, `p
 ### Local Postgres
 Connection string: `Host=db;Port=5432;Database=flightprep;Username=fpuser;Password=fppass`  
 For local `dotnet run` (outside Docker), use `Host=localhost` instead.
+
+### PWA
+The app is installable as a PWA. `wwwroot/service-worker.js` handles offline caching. `wwwroot/manifest.json` + icons in `wwwroot/icons/`. The service worker is registered in `App.razor` and served with `Cache-Control: no-cache` via custom `StaticFileOptions` in `Program.cs`.
+
+### SignalR message size
+The default SignalR 32 KB limit is raised to 5 MB in `Program.cs` to support map PNG capture (KML track screenshots). If you add features that send large payloads over the Blazor circuit, this limit may need revisiting.
