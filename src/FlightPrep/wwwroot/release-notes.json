@@ -5,89 +5,74 @@
       "pr": 10,
       "version": "5.0.3",
       "title": "fix: voeg permissions toe aan build job in ci-cd.yml",
-      "description": "In deze release zijn de permissies voor de build job in ci-cd.yml bijgewerkt, waardoor de applicatie nu correct de release-notes.json naar de hoofdbranch kan pushen en toegang heeft tot de GitHub Models API voor verbeterde AI-gegenereerde beschrijvingen van pull requests. Dit zorgt voor een efficiënter releaseproces en een betere gebruikerservaring voor piloten. De verbeterde integratie met de GitHub API stelt ons in staat om actuele informatie over pull requests te tonen, wat de transparantie verhoogt.",
+      "description": "De CI/CD pipeline heeft nu de juiste permissies om release notes te pushen en de AI-beschrijving te genereren.\n- `contents: write` toegevoegd zodat de build job naar main kan pushen\n- `models: read` toegevoegd voor toegang tot de GitHub Models API (gpt-4o-mini)\n- `pull-requests: read` toegevoegd om PR-details op te halen via de GitHub API",
       "author": "NickThys3012",
-      "labels": [
-        "bug"
-      ],
+      "labels": ["bug"],
       "date": "2026-03-25T10:54:32Z"
     },
     {
       "pr": 8,
       "version": "5.0.2",
       "title": "fix: gebruik PAT voor push zodat ci-cd.yml triggert na release notes",
-      "description": "Met deze update is het nu mogelijk om de ci-cd.yml workflow te triggeren na het pushen van release notes door gebruik te maken van een persoonlijke toegangstoken (PAT) in plaats van het standaard GITHUB_TOKEN. Dit verbetert de automatisering van het releaseproces, wat zorgt voor een efficiëntere en betrouwbaardere implementatie voor piloten en gebruikers. Indien het PAT niet is ingesteld, valt de workflow terug op het GITHUB_TOKEN, maar zonder triggerfunctionaliteit.",
+      "description": "Release notes triggeren nu correct een nieuwe CI/CD-run na het pushen naar main.\n- PAT (`RELEASE_NOTES_PAT`) gebruikt als alternatief voor `GITHUB_TOKEN` bij de git push\n- Fallback naar `GITHUB_TOKEN` als PAT niet geconfigureerd is\n- Race condition opgelost: release notes worden gegenereerd vóór `dotnet publish`",
       "author": "NickThys3012",
-      "labels": [
-        "bug"
-      ],
+      "labels": ["bug"],
       "date": "2026-03-25T10:33:36Z"
     },
     {
       "pr": 7,
       "version": "5.0.1",
       "title": "fix: YAML syntax error in release-notes.yml",
-      "description": "Er is een YAML-syntaxisfout opgelost in de release-notes.yml door de JavaScript-logica te verplaatsen naar aparte scriptbestanden. Dit voorkomt problemen met het vroegtijdig afsluiten van het run-blok en verbetert de stabiliteit van de release-notes-generatie. Piloten profiteren van een soepelere en foutloze ervaring bij het genereren van release-informatie.",
+      "description": "De CI-workflow crashte niet meer door een YAML-syntaxisfout bij multiline JavaScript.\n- JavaScript-logica verplaatst naar losse bestanden in `.github/scripts/`\n- `generate-ai-description.mjs` verzorgt de GitHub Models API-aanroep\n- `update-release-notes.mjs` doet de versie-bump en JSON-update",
       "author": "NickThys3012",
-      "labels": [
-        "bug"
-      ],
+      "labels": ["bug"],
       "date": "2026-03-25T10:18:01Z"
     },
     {
       "pr": 5,
       "version": "5.0.0",
       "title": "Feature/release notes",
-      "description": "",
+      "description": "Automatische release notes bij elke PR-merge, inclusief AI-gegenereerde beschrijvingen en semantische versiebeheer.\n- Release notes-pagina toegevoegd op `/release-notes` met tijdlijn per PR\n- Versienummer automatisch gebumpt: `[feature]` → major, `[refactor]` → minor, `[BUG]` → patch\n- AI-beschrijving gegenereerd via GitHub Models API (gpt-4o-mini)\n- `release-notes.json` gecommit naar main als onderdeel van de CI/CD-run",
       "author": "NickThys3012",
-      "labels": [
-        "Feature"
-      ],
+      "labels": ["Feature"],
       "date": "2026-03-25T09:45:46Z"
     },
     {
       "pr": 4,
       "version": "4.0.0",
       "title": "Logboek dashboard met statistieken en grafieken",
-      "description": "Toegevoegd: een logboek-dashboard met vliegstatistieken, grafieken (uren per maand, vluchten per locatie) en een overzicht van alle voorbije vaarten.",
+      "description": "Nieuw logboek-dashboard met een overzicht van alle vluchten en visuele statistieken.\n- Grafiek met aantal vluchten per maand\n- Grafiek met meest bezochte opstijglocaties\n- Totaaloverzicht van uren en vaarten",
       "author": "NickThys3012",
-      "labels": [
-        "feature"
-      ],
+      "labels": ["feature"],
       "date": "2026-03-24T09:21:37Z"
     },
     {
       "pr": 3,
       "version": "3.0.0",
       "title": "PWA-ondersteuning (installeerbaar, offline fallback)",
-      "description": "FlightPrep is nu installeerbaar als Progressive Web App op desktop en mobiel. Offline-fallbackpagina toegevoegd zodat de app ook zonder verbinding bruikbaar blijft.",
+      "description": "FlightPrep is nu installeerbaar als Progressive Web App op desktop en mobiel.\n- App is installeerbaar via de browser op zowel desktop als mobiel\n- Offline-fallbackpagina zodat de app bruikbaar blijft zonder verbinding\n- App-iconen en manifest toegevoegd voor native look-and-feel",
       "author": "NickThys3012",
-      "labels": [
-        "feature"
-      ],
+      "labels": ["feature"],
       "date": "2026-03-24T09:08:14Z"
     },
     {
       "pr": 2,
       "version": "2.0.0",
       "title": "KML vluchttracks importeren en visualiseren",
-      "description": "KML-bestanden kunnen nu geüpload worden per vaart. De vluchttrack wordt gevisualiseerd op een interactieve Leaflet-kaart met hoogtestatistieken (max/min hoogte, afstand).",
+      "description": "KML-bestanden van GPS-loggers kunnen nu per vaart geüpload en bekeken worden.\n- KML-upload per vaart met parsen van GPS-coördinaten\n- Interactieve Leaflet-kaart met kleurgecodeerde vluchttrack (blauw laag → rood hoog)\n- Hoogteprofiel-grafiek met afstand (km) en hoogte (ft)\n- Statistieken: maximale hoogte, minimale hoogte en totale afstand",
       "author": "NickThys3012",
-      "labels": [
-        "feature"
-      ],
+      "labels": ["feature"],
       "date": "2026-03-24T09:00:51Z"
     },
     {
       "pr": 1,
       "version": "1.0.0",
       "title": "Operationele informatie & Go/No-Go indicator",
-      "description": "Sectie voor operationele gegevens toegevoegd: wind, zichtbaarheid, CAPE-waarde. Automatische Go/No-Go berekening op basis van configureerbare drempelwaarden (groen/geel/rood).",
+      "description": "Eerste release van FlightPrep met ondersteuning voor vluchtvoorbereiding en Go/No-Go berekening.\n- Secties voor wind, zichtbaarheid en CAPE-waarde\n- Automatische Go/No-Go indicator op basis van configureerbare drempelwaarden (groen/geel/rood)\n- METAR en TAF automatisch ophalen via ICAO-code van de locatie",
       "author": "NickThys3012",
-      "labels": [
-        "feature"
-      ],
+      "labels": ["feature"],
       "date": "2026-03-24T09:12:40Z"
     }
   ]
 }
+
