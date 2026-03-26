@@ -21,7 +21,8 @@ public class PowerLineService(IHttpClientFactory httpClientFactory, IMemoryCache
             return cached;
 
         const string voltageFilter = "way[power=line][voltage~\"^([12][0-9]{5}|[3-9][0-9]{5})$\"];";
-        var query = $"[out:json][timeout:25][bbox:{s},{w},{n},{e}];" + voltageFilter + "out geom;";
+        var query = FormattableString.Invariant($"[out:json][timeout:25][bbox:{s},{w},{n},{e}];")
+                    + voltageFilter + "out geom;";
 
         try
         {
