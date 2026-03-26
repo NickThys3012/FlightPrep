@@ -11,9 +11,15 @@ const token  = process.env.GITHUB_TOKEN    || '';
 const prompt = [
   'Je bent technisch schrijver voor FlightPrep, een Blazor-webapplicatie voor voorbereiding van ballonvluchten.',
   '',
-  'Genereer een beknopte release note in het Nederlands (max 3 zinnen) voor onderstaande pull request.',
+  'Genereer een release note in het Nederlands voor onderstaande pull request.',
+  'Gebruik een korte intro-zin gevolgd door 2-4 concrete bullet points (markdown "-" formaat).',
   'Wees concreet: noem wat er nieuw/gewijzigd is en wat het voordeel is voor de piloot/gebruiker.',
-  'Schrijf ALLEEN de release note tekst, zonder titels, bullet points of opmaak.',
+  'Schrijf ALLEEN de release note tekst in dit formaat (geen titels, geen extra opmaak):',
+  '',
+  'Korte samenvattende zin.',
+  '- Eerste wijziging of toevoeging',
+  '- Tweede wijziging of toevoeging',
+  '- Eventuele derde wijziging',
   '',
   `PR Titel: ${title}`,
   `PR Beschrijving: ${body || '(geen)'}`,
@@ -33,7 +39,7 @@ try {
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 250,
+      max_tokens: 400,
       temperature: 0.6,
     }),
   });
