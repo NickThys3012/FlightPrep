@@ -87,7 +87,7 @@
             });
 
             var _powerDebounceTimer = null;
-            var _powerCache = new Map();
+            var _powerCache = []; // [{s, w, n, e, data}]
 
             function loadPowerLines(bounds) {
                 if (map.getZoom() < 10) return;
@@ -96,11 +96,17 @@
                 var n = parseFloat(bounds.getNorth().toFixed(2));
                 var w = parseFloat(bounds.getWest().toFixed(2));
                 var e = parseFloat(bounds.getEast().toFixed(2));
-                var key = s + ',' + w + ',' + n + ',' + e;
 
-                if (_powerCache.has(key)) {
+                // Check if requested bbox is fully contained within any cached bbox
+                var cached = null;
+                for (var i = 0; i < _powerCache.length; i++) {
+                    var c = _powerCache[i];
+                    if (s >= c.s && n <= c.n && w >= c.w && e <= c.e) { cached = c; break; }
+                }
+
+                if (cached) {
                     powerGeoJson.clearLayers();
-                    powerGeoJson.addData(_powerCache.get(key));
+                    powerGeoJson.addData(cached.data);
                     return;
                 }
 
@@ -110,7 +116,8 @@
                         return r.json();
                     })
                     .then(function(data) {
-                        _powerCache.set(key, data);
+                        if (_powerCache.length >= 20) _powerCache.shift(); // max 20 entries
+                        _powerCache.push({ s: s, w: w, n: n, e: e, data: data });
                         powerGeoJson.clearLayers();
                         powerGeoJson.addData(data);
                     })
