@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <ExcludeByFile>**/Migrations/**,**/Program.cs,**/*.razor,**/PdfService.cs,**/AppDbContext.cs</ExcludeByFile>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
