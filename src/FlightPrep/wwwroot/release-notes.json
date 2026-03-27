@@ -1,6 +1,15 @@
 {
-  "currentVersion": "6.0.0",
+  "currentVersion": "6.0.1",
   "entries": [
+    {
+      "pr": 14,
+      "version": "6.0.1",
+      "title": "feat: verbeter laadperformantie hoogspanningslijnen (#13)",
+      "description": "De laadperformantie van hoogspanningslijnen is verbeterd voor een efficiëntere gebruikerservaring.  \n- Optimalisatie van de laadtijd van gegevens met betrekking tot hoogspanningslijnen, waardoor piloten sneller toegang hebben tot essentiële informatie.  \n- Verbeterde tests voor de PowerLineService, wat zorgt voor een hogere betrouwbaarheid en nauwkeurigheid van de weergegeven gegevens.  \n- Aanpassingen in de CI/CD workflow voor een soepelere implementatie van toekomstige updates.",
+      "author": "NickThys3012",
+      "labels": [],
+      "date": "2026-03-27T08:24:07Z"
+    },
     {
       "pr": 12,
       "version": "6.0.0",
