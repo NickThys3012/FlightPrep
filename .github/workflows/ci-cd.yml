@@ -30,8 +30,24 @@ jobs:
       - name: Build unit tests
         run: dotnet build src/FlightPrep.Tests/FlightPrep.Tests.csproj -c Release
 
-      - name: Run unit tests
-        run: dotnet test src/FlightPrep.Tests/FlightPrep.Tests.csproj --no-build -c Release --logger "trx;LogFileName=unit-results.trx"
+      - name: Run unit tests with coverage
+        run: |
+          dotnet test src/FlightPrep.Tests/FlightPrep.Tests.csproj \
+            --no-build -c Release \
+            --logger "trx;LogFileName=unit-results.trx" \
+            /p:CollectCoverage=true \
+            /p:CoverletOutputFormat=cobertura \
+            /p:CoverletOutput=${{ github.workspace }}/coverage/ \
+            /p:Threshold=85 \
+            /p:ThresholdType=line \
+            /p:ThresholdStat=total
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: ${{ github.workspace }}/coverage/
 
       - name: Update release notes (only on push to main)
         id: rn

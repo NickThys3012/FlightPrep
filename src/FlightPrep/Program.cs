@@ -43,7 +43,13 @@ builder.Services.AddHttpClient("openmeteo", c =>
     c.BaseAddress = new Uri("https://api.open-meteo.com/");
     c.Timeout = TimeSpan.FromSeconds(10);
 });
+builder.Services.AddHttpClient("overpass", c =>
+{
+    c.Timeout = TimeSpan.FromSeconds(30);
+});
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<WeatherFetchService>();
+builder.Services.AddScoped<PowerLineService>();
 builder.Services.AddSingleton<ReleaseNotesService>();
 
 builder.Services.AddRazorComponents()
@@ -79,6 +85,17 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 app.MapStaticAssets();
+app.MapGet("/api/powerlines", async (double south, double west, double north, double east, PowerLineService powerLineService) =>
+{
+    if (south >= north || west >= east ||
+        south < -90 || north > 90 || west < -180 || east > 180)
+        return Results.BadRequest("Ongeldige bbox");
+
+    var geoJson = await powerLineService.GetGeoJsonAsync(south, west, north, east);
+    return geoJson is null
+        ? Results.StatusCode(502)
+        : Results.Content(geoJson, "application/json");
+});
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

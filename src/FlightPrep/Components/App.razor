@@ -86,34 +86,42 @@
                 }
             });
 
+            var _powerDebounceTimer = null;
+            var _powerCache = []; // [{s, w, n, e, data}]
+
             function loadPowerLines(bounds) {
-                var s = bounds.getSouth(), n = bounds.getNorth(),
-                    w = bounds.getWest(),  e = bounds.getEast();
-                var query = '[out:json][timeout:10][bbox:' + s + ',' + w + ',' + n + ',' + e + '];' +
-                            'way[power=line][voltage~"^([12][0-9]{5}|[3-9][0-9]{5})$"];' +
-                            'out geom;';
-                fetch('https://overpass-api.de/api/interpreter', {
-                    method: 'POST',
-                    body: 'data=' + encodeURIComponent(query)
-                })
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
+                if (map.getZoom() < 10) return;
+                // Round to 2 decimals (~1 km) — matches server cache key
+                var s = parseFloat(bounds.getSouth().toFixed(2));
+                var n = parseFloat(bounds.getNorth().toFixed(2));
+                var w = parseFloat(bounds.getWest().toFixed(2));
+                var e = parseFloat(bounds.getEast().toFixed(2));
+
+                // Check if requested bbox is fully contained within any cached bbox
+                var cached = null;
+                for (var i = 0; i < _powerCache.length; i++) {
+                    var c = _powerCache[i];
+                    if (s >= c.s && n <= c.n && w >= c.w && e <= c.e) { cached = c; break; }
+                }
+
+                if (cached) {
                     powerGeoJson.clearLayers();
-                    var features = data.elements
-                        .filter(function(el) { return el.type === 'way' && el.geometry; })
-                        .map(function(el) {
-                            return {
-                                type: 'Feature',
-                                properties: el.tags || {},
-                                geometry: {
-                                    type: 'LineString',
-                                    coordinates: el.geometry.map(function(n) { return [n.lon, n.lat]; })
-                                }
-                            };
-                        });
-                    powerGeoJson.addData({ type: 'FeatureCollection', features: features });
-                })
-                .catch(function(err) { console.warn('Overpass fout:', err); });
+                    powerGeoJson.addData(cached.data);
+                    return;
+                }
+
+                fetch('/api/powerlines?south=' + s + '&west=' + w + '&north=' + n + '&east=' + e)
+                    .then(function(r) {
+                        if (!r.ok) throw new Error('Powerlines API returned ' + r.status);
+                        return r.json();
+                    })
+                    .then(function(data) {
+                        if (_powerCache.length >= 20) _powerCache.shift(); // max 20 entries
+                        _powerCache.push({ s: s, w: w, n: n, e: e, data: data });
+                        powerGeoJson.clearLayers();
+                        powerGeoJson.addData(data);
+                    })
+                    .catch(function(err) { console.error('Hoogspanning laden mislukt:', err); });
             }
 
             // Start met OSM + luchtruim standaard aan
@@ -127,7 +135,9 @@
                 if (e.name === '⚡ Hoogspanning') loadPowerLines(map.getBounds());
             });
             map.on('moveend', function() {
-                if (map.hasLayer(powerGeoJson)) loadPowerLines(map.getBounds());
+                if (!map.hasLayer(powerGeoJson)) return;
+                clearTimeout(_powerDebounceTimer);
+                _powerDebounceTimer = setTimeout(function() { loadPowerLines(map.getBounds()); }, 500);
             });
 
             // Layer control
