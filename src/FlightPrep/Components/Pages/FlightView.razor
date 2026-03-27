@@ -223,7 +223,7 @@ else
                 <div class="card">
                     <div class="card-header bg-primary text-white">8. Traject</div>
                     <div class="card-body">
-                        @if (savedTrajectories != null && fp?.Location?.Latitude != null)
+                        @if (savedTrajectories != null && savedTrajectories.Count > 0 && fp?.Location?.Latitude != null)
                         {
                             <div class="mb-3">
                                 <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
@@ -474,7 +474,8 @@ else
             await JS.InvokeVoidAsync("initFlightMap", "flight-track-map", pts);
             await JS.InvokeVoidAsync("initAltitudeChart", "altitude-chart", pts);
         }
-        if (savedTrajectories != null && !savedTrajMapRendered)
+        if (savedTrajectories != null && !savedTrajMapRendered
+            && fp?.Location?.Latitude != null && fp.Location.Longitude != null)
         {
             savedTrajMapRendered = true;
             await JS.InvokeVoidAsync("initTrajectoryMap",

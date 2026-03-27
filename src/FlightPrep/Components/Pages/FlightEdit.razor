@@ -852,7 +852,8 @@
         if (simulatedTrajectories == null || fp == null) return;
         fp.TrajectorySimulationJson = System.Text.Json.JsonSerializer.Serialize(simulatedTrajectories);
         await using var db = await DbFactory.CreateDbContextAsync();
-        db.Update(fp);
+        db.Attach(fp);
+        db.Entry(fp).Property(x => x.TrajectorySimulationJson).IsModified = true;
         await db.SaveChangesAsync();
     }
 
