@@ -7,7 +7,9 @@
 @inject PdfService PdfSvc
 @inject SunriseService SunriseSvc
 @inject IJSRuntime JS
+@inject ITrajectoryService TrajectorySvc
 @using Microsoft.AspNetCore.Components.Forms
+@using FlightPrep.Models.Trajectory
 
 <PageTitle>@(Id.HasValue ? "Vaart Bewerken" : "Nieuwe Vaart") – FlightPrep</PageTitle>
 
@@ -234,6 +236,18 @@
                                         checked="@showWindProfile"
                                         @onchange="OnWindProfileToggleChanged" />
                                     <label class="form-check-label" for="windProfileToggle">Windprofiel per hoogte invullen</label>
+                                </div>
+                                <div class="mt-2 d-flex align-items-center gap-2">
+                                    <button class="btn btn-sm btn-outline-info"
+                                            @onclick="FetchWindProfile"
+                                            disabled="@fetchingWindProfile">
+                                        <span class="@(fetchingWindProfile ? "spinner-border spinner-border-sm" : "bi bi-cloud-download")"></span>
+                                        @(fetchingWindProfile ? "Ophalen..." : "Windprofiel ophalen (open-meteo)")
+                                    </button>
+                                    @if (windProfileError != null)
+                                    {
+                                        <span class="text-danger small">@windProfileError</span>
+                                    }
                                 </div>
                             </div>
 
@@ -534,6 +548,51 @@
                 <div id="sec8" class="accordion-collapse collapse">
                     <div class="accordion-body">
                         <div class="mb-3">
+                            <label class="form-label">Trajectsimulatie</label>
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <div>
+                                    <label class="form-label mb-0 small">Simulatieduur (min)</label>
+                                    <input type="number" class="form-control form-control-sm"
+                                           style="width:90px"
+                                           min="15" max="120" step="5"
+                                           @bind="simulationDurationMinutes" />
+                                </div>
+                                <div class="mt-3">
+                                    <button class="btn btn-sm btn-primary" @onclick="SimuleerTraject">
+                                        <span class="bi bi-geo-alt"></span> Simuleer trajecten
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-1"
+                                            disabled title="HYSPLIT-integratie komt in een volgende versie.">
+                                        HYSPLIT (binnenkort)
+                                    </button>
+                                </div>
+                            </div>
+
+                            @if (trajectoryError != null)
+                            {
+                                <div class="alert alert-warning py-1 small">@trajectoryError</div>
+                            }
+
+                            @if (simulatedTrajectories != null)
+                            {
+                                <div class="mb-2 d-flex flex-wrap gap-2 align-items-center">
+                                    @foreach (var t in simulatedTrajectories)
+                                    {
+                                        <span class="badge" style="background-color:@t.Color">@t.AltitudeFt ft</span>
+                                    }
+                                    <span class="text-muted small ms-2">@simulatedTrajectories[0].DataSource</span>
+                                    <button class="btn btn-sm btn-success ms-auto" @onclick="OpslaanSimulatie">
+                                        <span class="bi bi-save"></span> Simulatie opslaan
+                                    </button>
+                                </div>
+                                <div id="trajectory-map" style="height:400px;border-radius:8px;overflow:hidden;" class="mb-2"></div>
+                                <p class="text-muted small mb-0">
+                                    ⚠️ Indicatief traject op basis van dead-reckoning. Geen gecertificeerde vliegweg.
+                                </p>
+                            }
+                        </div>
+
+                        <div class="mb-3">
                             <label class="form-label">Trajectnotities / waypoints</label>
                             <textarea class="form-control" rows="4" placeholder="Trajectnotities / waypoints..."
                                 @bind="fp.Traject"></textarea>
@@ -636,6 +695,13 @@
     private string? saveMessage;
     private bool saveError;
 
+    private int simulationDurationMinutes = 60;
+    private List<SimulatedTrajectory>? simulatedTrajectories;
+    private string? trajectoryError;
+    private bool trajectoryMapRendered = false;
+    private bool fetchingWindProfile = false;
+    private string? windProfileError;
+
     private bool _showWindProfile;
     private bool showWindProfile
     {
@@ -731,6 +797,102 @@
 
         UpdateSunriseSunset();
         UpdateCurrentLocation();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        if (simulatedTrajectories != null && !trajectoryMapRendered && firstRender == false)
+        {
+            trajectoryMapRendered = true;
+            await JS.InvokeVoidAsync("initTrajectoryMap",
+                "trajectory-map",
+                fp!.Location!.Latitude,
+                fp.Location.Longitude,
+                simulatedTrajectories.Select(t => new
+                {
+                    altitudeFt  = t.AltitudeFt,
+                    color       = t.Color,
+                    label       = $"{t.AltitudeFt} ft",
+                    durationMin = t.DurationMinutes,
+                    points      = t.Points.Select(p => new[] { p.Lat, p.Lon }).ToArray()
+                }).ToArray());
+        }
+    }
+
+    private async Task SimuleerTraject()
+    {
+        trajectoryError = null;
+        simulatedTrajectories = null;
+        trajectoryMapRendered = false;
+
+        if (fp?.Location?.Latitude is null || fp.Location.Longitude is null)
+        {
+            trajectoryError = "Locatie heeft geen coördinaten. Voeg lat/lon toe via Instellingen > Locaties.";
+            return;
+        }
+        var valid = fp.WindLevels
+            .Where(w => w.DirectionDeg.HasValue && w.SpeedKt is > 0)
+            .OrderBy(w => w.AltitudeFt)
+            .ToList();
+        if (!valid.Any())
+        {
+            trajectoryError = "Geen geldige windniveaus. Vul minstens één hoogte in met richting en snelheid.";
+            return;
+        }
+        simulatedTrajectories = TrajectorySvc.Compute(
+            fp.Location.Latitude.Value,
+            fp.Location.Longitude.Value,
+            valid,
+            simulationDurationMinutes);
+    }
+
+    private async Task OpslaanSimulatie()
+    {
+        if (simulatedTrajectories == null || fp == null) return;
+        fp.TrajectorySimulationJson = System.Text.Json.JsonSerializer.Serialize(simulatedTrajectories);
+        await using var db = await DbFactory.CreateDbContextAsync();
+        db.Update(fp);
+        await db.SaveChangesAsync();
+    }
+
+    private async Task FetchWindProfile()
+    {
+        windProfileError = null;
+        fetchingWindProfile = true;
+        StateHasChanged();
+        try
+        {
+            if (fp?.Location?.Latitude is null || fp.Location.Longitude is null)
+            {
+                windProfileError = "Locatie heeft geen coördinaten.";
+                return;
+            }
+            var flightDt = fp.Datum.ToDateTime(fp.Tijdstip);
+            var levels = await WeatherFetchSvc.FetchWindProfileAsync(
+                fp.Location.Latitude.Value, fp.Location.Longitude.Value, flightDt);
+            if (!levels.Any())
+            {
+                windProfileError = "Windprofiel ophalen mislukt. Probeer opnieuw.";
+                return;
+            }
+            // Clear and replace WindLevels — keep FKs intact
+            fp.WindLevels.Clear();
+            foreach (var lvl in levels)
+            {
+                lvl.FlightPreparationId = fp.Id;
+                fp.WindLevels.Add(lvl);
+            }
+            showWindProfile = true;
+        }
+        catch
+        {
+            windProfileError = "Windprofiel ophalen mislukt. Probeer opnieuw.";
+        }
+        finally
+        {
+            fetchingWindProfile = false;
+        }
     }
 
     private void OnBalloonChanged()

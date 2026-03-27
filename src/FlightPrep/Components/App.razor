@@ -354,6 +354,146 @@
                     .catch(function(err) { console.log('SW registration failed:', err); });
             });
         }
+
+        window.initTrajectoryMap = function(mapId, launchLat, launchLon, trajectories) {
+            if (!trajectories || trajectories.length === 0) return;
+
+            // ── Base layers ──────────────────────────────────────────────────
+            var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+                maxZoom: 18
+            });
+            var topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                attribution: '© <a href="https://opentopomap.org">OpenTopoMap</a>, © OpenStreetMap',
+                maxZoom: 17
+            });
+
+            // ── AIP overlays ─────────────────────────────────────────────────
+            var airspaceLayer = L.tileLayer(
+                'https://nwy-tiles-api.prod.newaydata.com/tiles/{z}/{x}/{y}.png?path=latest/aero/latest',
+                {
+                    attribution: '© <a href="https://open.flightmaps.org">openflightmaps</a>',
+                    opacity: 0.7,
+                    maxZoom: 14,
+                    minZoom: 5
+                }
+            );
+
+            var powerGeoJson = L.geoJSON(null, {
+                style: function(feature) {
+                    var v = parseInt(feature.properties.voltage) || 0;
+                    var color = v >= 380000 ? '#e74c3c' : v >= 220000 ? '#e67e22' : '#f1c40f';
+                    return { color: color, weight: 2.5, opacity: 0.9 };
+                },
+                onEachFeature: function(feature, layer) {
+                    var p = feature.properties;
+                    var kv = p.voltage ? Math.round(parseInt(p.voltage) / 1000) + ' kV' : 'onbekend';
+                    layer.bindPopup('⚡ Hoogspanning<br>' + kv + (p.name ? '<br>' + p.name : ''));
+                }
+            });
+
+            var _powerDebounceTimer = null;
+            var _powerCache = [];
+
+            function loadPowerLines(bounds) {
+                if (map.getZoom() < 10) return;
+                var s = parseFloat(bounds.getSouth().toFixed(2));
+                var n = parseFloat(bounds.getNorth().toFixed(2));
+                var w = parseFloat(bounds.getWest().toFixed(2));
+                var e = parseFloat(bounds.getEast().toFixed(2));
+
+                var cached = null;
+                for (var i = 0; i < _powerCache.length; i++) {
+                    var c = _powerCache[i];
+                    if (s >= c.s && n <= c.n && w >= c.w && e <= c.e) { cached = c; break; }
+                }
+
+                if (cached) {
+                    powerGeoJson.clearLayers();
+                    powerGeoJson.addData(cached.data);
+                    return;
+                }
+
+                fetch('/api/powerlines?south=' + s + '&west=' + w + '&north=' + n + '&east=' + e)
+                    .then(function(r) {
+                        if (!r.ok) throw new Error('Powerlines API returned ' + r.status);
+                        return r.json();
+                    })
+                    .then(function(data) {
+                        if (_powerCache.length >= 20) _powerCache.shift();
+                        _powerCache.push({ s: s, w: w, n: n, e: e, data: data });
+                        powerGeoJson.clearLayers();
+                        powerGeoJson.addData(data);
+                    })
+                    .catch(function(err) { console.error('Hoogspanning laden mislukt:', err); });
+            }
+
+            // Start met OSM + luchtruim standaard aan
+            var map = L.map(mapId, { layers: [osmLayer, airspaceLayer] })
+                       .setView([launchLat, launchLon], 11);
+
+            map.on('overlayadd', function(e) {
+                if (e.name === '⚡ Hoogspanning') loadPowerLines(map.getBounds());
+            });
+            map.on('moveend', function() {
+                if (!map.hasLayer(powerGeoJson)) return;
+                clearTimeout(_powerDebounceTimer);
+                _powerDebounceTimer = setTimeout(function() { loadPowerLines(map.getBounds()); }, 500);
+            });
+
+            var baseLayers = {
+                '🗺 Kaart': osmLayer,
+                '⛰ Topografisch': topoLayer
+            };
+            var overlayLayers = {
+                '✈ Luchtruim (OFM)': airspaceLayer,
+                '⚡ Hoogspanning': powerGeoJson
+            };
+            L.control.layers(baseLayers, overlayLayers, { collapsed: false }).addTo(map);
+
+            // Launch marker
+            L.marker([launchLat, launchLon], {
+                icon: L.divIcon({
+                    className: '',
+                    html: '<div style="background:#2ecc71;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,.5)"></div>',
+                    iconAnchor: [7, 7]
+                })
+            }).bindPopup('Opstijgplaats').addTo(map);
+
+            // All points for fitting bounds
+            var allLatLngs = [[launchLat, launchLon]];
+
+            // Draw each trajectory
+            trajectories.forEach(function(traj) {
+                if (!traj.points || traj.points.length === 0) return;
+
+                var latlngs = [[launchLat, launchLon]].concat(
+                    traj.points.map(function(p) { return [p[0], p[1]]; })
+                );
+
+                L.polyline(latlngs, {
+                    color: traj.color,
+                    weight: 3,
+                    opacity: 0.85
+                }).addTo(map);
+
+                var endpoint = traj.points[traj.points.length - 1];
+                L.circleMarker([endpoint[0], endpoint[1]], {
+                    radius: 7,
+                    color: '#fff',
+                    fillColor: traj.color,
+                    fillOpacity: 1,
+                    weight: 2
+                }).bindPopup(traj.label + ' – ' + traj.durationMin + ' min').addTo(map);
+
+                latlngs.forEach(function(ll) { allLatLngs.push(ll); });
+            });
+
+            // Fit bounds to all points
+            if (allLatLngs.length > 1) {
+                map.fitBounds(allLatLngs, { padding: [30, 30] });
+            }
+        };
     </script>
 </body>
 

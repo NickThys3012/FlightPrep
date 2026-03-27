@@ -61,6 +61,7 @@ public class FlightPreparation
 
     // Section 8 - Traject
     public string? Traject { get; set; }
+    public string? TrajectorySimulationJson { get; set; }
 
     // Mark as flown
     public bool IsFlown { get; set; }
