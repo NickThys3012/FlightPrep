@@ -31,17 +31,19 @@ jobs:
         run: dotnet build src/FlightPrep.Tests/FlightPrep.Tests.csproj -c Release
 
       - name: Run unit tests with coverage
-        run: >
-          dotnet test src/FlightPrep.Tests/FlightPrep.Tests.csproj
-          --no-build -c Release
-          --logger "trx;LogFileName=unit-results.trx"
-          /p:CollectCoverage=true
-          /p:CoverletOutputFormat=cobertura
-          /p:CoverletOutput=./coverage/
-          /p:Threshold=85
-          /p:ThresholdType=line
-          /p:ThresholdStat=total
-          "/p:ExcludeByFile=**/Migrations/**,**/Program.cs,**/*.razor,**/PdfService.cs,**/AppDbContext.cs"
+        env:
+          COVERLET_EXCLUDE: "**/Migrations/**,**/Program.cs,**/*.razor,**/PdfService.cs,**/AppDbContext.cs"
+        run: |
+          dotnet test src/FlightPrep.Tests/FlightPrep.Tests.csproj \
+            --no-build -c Release \
+            --logger "trx;LogFileName=unit-results.trx" \
+            /p:CollectCoverage=true \
+            /p:CoverletOutputFormat=cobertura \
+            /p:CoverletOutput=./coverage/ \
+            /p:Threshold=85 \
+            /p:ThresholdType=line \
+            /p:ThresholdStat=total \
+            "/p:ExcludeByFile=$COVERLET_EXCLUDE"
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
