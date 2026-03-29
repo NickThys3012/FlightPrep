@@ -49,7 +49,7 @@ jobs:
           name: coverage-report
           path: ${{ github.workspace }}/coverage/
 
-      - name: Post coverage summary on PR
+      - name: Generate coverage summary
         uses: irongut/CodeCoverageSummary@v1.3.0
         if: github.event_name == 'pull_request'
         with:
@@ -60,6 +60,13 @@ jobs:
           indicators: true
           output: both
           thresholds: '85 90'
+
+      - name: Post coverage comment on PR
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: github.event_name == 'pull_request'
+        with:
+          recreate: true
+          path: code-coverage-results.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
