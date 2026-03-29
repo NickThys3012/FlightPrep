@@ -12,7 +12,7 @@ jobs:
     permissions:
       contents: write        # git push release-notes.json
       models: read           # GitHub Models API (gpt-4o-mini)
-      pull-requests: read    # gh api .../pulls/...
+      pull-requests: write   # post coverage comment on PR
     steps:
       - uses: actions/checkout@v4
 
@@ -48,6 +48,27 @@ jobs:
         with:
           name: coverage-report
           path: ${{ github.workspace }}/coverage/
+
+      - name: Generate coverage summary
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        if: github.event_name == 'pull_request'
+        with:
+          filename: "**/coverage.cobertura.xml"
+          badge: true
+          fail_below_min: false
+          format: markdown
+          indicators: true
+          output: both
+          thresholds: '85 90'
+
+      - name: Post coverage comment on PR
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: github.event_name == 'pull_request'
+        with:
+          recreate: true
+          path: code-coverage-results.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update release notes (only on push to main)
         id: rn

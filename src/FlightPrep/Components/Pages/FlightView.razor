@@ -5,6 +5,8 @@
 @inject SunriseService SunriseSvc
 @inject IJSRuntime JS
 @inject KmlService KmlSvc
+@inject ILogger<FlightView> Logger
+@using FlightPrep.Models.Trajectory
 
 <PageTitle>Vaart Bekijken – FlightPrep</PageTitle>
 
@@ -222,6 +224,23 @@ else
                 <div class="card">
                     <div class="card-header bg-primary text-white">8. Traject</div>
                     <div class="card-body">
+                        @if (savedTrajectories != null && savedTrajectories.Count > 0 && fp?.Location?.Latitude != null)
+                        {
+                            <div class="mb-3">
+                                <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                                    @foreach (var t in savedTrajectories)
+                                    {
+                                        <span class="badge" style="background-color:@t.Color">@t.AltitudeFt ft</span>
+                                    }
+                                    <span class="text-muted small ms-2">
+                                        @savedTrajectories[0].DataSource —
+                                        @savedTrajectories[0].DurationMinutes min —
+                                        @savedTrajectories[0].SimulatedAt.ToString("dd/MM/yyyy HH:mm")
+                                    </span>
+                                </div>
+                                <div id="saved-trajectory-map" style="height:350px;border-radius:8px;overflow:hidden;"></div>
+                            </div>
+                        }
                         @if (!string.IsNullOrWhiteSpace(fp.Traject))
                         {
                             <pre class="mb-3">@fp.Traject</pre>
@@ -396,6 +415,9 @@ else
     private string? kmlUploadError;
     private bool mapInitialized = false;
 
+    private List<SimulatedTrajectory>? savedTrajectories;
+    private bool savedTrajMapRendered = false;
+
     private void OpenLightbox(FlightImage img) => lightboxImg = img;
     private void CloseLightbox() => lightboxImg = null;
 
@@ -430,6 +452,20 @@ else
                 sunriseSunset = SunriseSvc.Calculate(fp.Datum, loc.Latitude!.Value, loc.Longitude!.Value);
 
             LoadExistingTrack();
+
+            if (!string.IsNullOrWhiteSpace(fp?.TrajectorySimulationJson))
+            {
+                try
+                {
+                    savedTrajectories = System.Text.Json.JsonSerializer.Deserialize<List<SimulatedTrajectory>>(
+                        fp.TrajectorySimulationJson);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to deserialize TrajectorySimulationJson for flight {Id}", fp?.Id);
+                    savedTrajectories = null;
+                }
+            }
         }
     }
 
@@ -442,6 +478,23 @@ else
             var pts = trackPoints.Select(p => new double[] { p.Lat, p.Lon, p.AltM }).ToArray();
             await JS.InvokeVoidAsync("initFlightMap", "flight-track-map", pts);
             await JS.InvokeVoidAsync("initAltitudeChart", "altitude-chart", pts);
+        }
+        if (savedTrajectories != null && !savedTrajMapRendered
+            && fp?.Location?.Latitude != null && fp.Location.Longitude != null)
+        {
+            savedTrajMapRendered = true;
+            await JS.InvokeVoidAsync("initTrajectoryMap",
+                "saved-trajectory-map",
+                fp!.Location!.Latitude,
+                fp.Location.Longitude,
+                savedTrajectories.Select(t => new
+                {
+                    altitudeFt  = t.AltitudeFt,
+                    color       = t.Color,
+                    label       = $"{t.AltitudeFt} ft",
+                    durationMin = t.DurationMinutes,
+                    points      = t.Points.Select(p => new[] { p.Lat, p.Lon }).ToArray()
+                }).ToArray());
         }
     }
 

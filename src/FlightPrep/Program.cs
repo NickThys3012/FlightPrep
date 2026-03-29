@@ -31,6 +31,7 @@ builder.Services.AddScoped<GoNoGoService>();
 if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
     builder.Services.AddApplicationInsightsTelemetry();
 builder.Services.AddSingleton<KmlService>();
+builder.Services.AddSingleton<ITrajectoryService, TrajectoryService>();
 
 builder.Services.AddHttpClient("aviationweather", c =>
 {
