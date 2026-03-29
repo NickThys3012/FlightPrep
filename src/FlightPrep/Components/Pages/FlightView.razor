@@ -224,6 +224,20 @@ else
                 <div class="card">
                     <div class="card-header bg-primary text-white">8. Traject</div>
                     <div class="card-body">
+                        @if (savedEnhancedTrajectory != null && savedEnhancedTrajectory.Points.Count > 0 && fp?.Location?.Latitude != null)
+                        {
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <span class="badge bg-danger">@savedEnhancedTrajectory.AltitudeFt ft kruishoogte</span>
+                                    <span class="text-muted small">
+                                        @savedEnhancedTrajectory.DataSource —
+                                        @savedEnhancedTrajectory.DurationMinutes min —
+                                        @savedEnhancedTrajectory.SimulatedAt.ToString("dd/MM/yyyy HH:mm")
+                                    </span>
+                                </div>
+                                <div id="saved-enhanced-map" style="height:350px;border-radius:8px;overflow:hidden;"></div>
+                            </div>
+                        }
                         @if (savedTrajectories != null && savedTrajectories.Count > 0 && fp?.Location?.Latitude != null)
                         {
                             <div class="mb-3">
@@ -417,6 +431,8 @@ else
 
     private List<SimulatedTrajectory>? savedTrajectories;
     private bool savedTrajMapRendered = false;
+    private SimulatedTrajectory? savedEnhancedTrajectory;
+    private bool savedEnhancedMapRendered = false;
 
     private void OpenLightbox(FlightImage img) => lightboxImg = img;
     private void CloseLightbox() => lightboxImg = null;
@@ -457,8 +473,13 @@ else
             {
                 try
                 {
-                    savedTrajectories = System.Text.Json.JsonSerializer.Deserialize<List<SimulatedTrajectory>>(
-                        fp.TrajectorySimulationJson);
+                    var all = System.Text.Json.JsonSerializer.Deserialize<List<SimulatedTrajectory>>(fp.TrajectorySimulationJson);
+                    if (all != null && all.Count > 0)
+                    {
+                        savedTrajectories = all.Where(t => t.DataSource != TrajectoryDataSource.Hysplit).ToList();
+                        savedEnhancedTrajectory = all.FirstOrDefault(t => t.DataSource == TrajectoryDataSource.Hysplit);
+                        if (savedTrajectories.Count == 0) savedTrajectories = null;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -495,6 +516,18 @@ else
                     durationMin = t.DurationMinutes,
                     points      = t.Points.Select(p => new[] { p.Lat, p.Lon }).ToArray()
                 }).ToArray());
+        }
+        if (savedEnhancedTrajectory != null && !savedEnhancedMapRendered
+            && savedEnhancedTrajectory.Points.Count > 0
+            && fp?.Location?.Latitude != null && fp.Location.Longitude != null)
+        {
+            savedEnhancedMapRendered = true;
+            await JS.InvokeVoidAsync("initEnhancedTrajectoryMap",
+                "saved-enhanced-map",
+                fp!.Location!.Latitude,
+                fp.Location.Longitude,
+                savedEnhancedTrajectory.Points.Select(p => new[] { p.Lat, p.Lon, p.AltitudeFt ?? 0 }).ToArray(),
+                savedEnhancedTrajectory.DurationMinutes);
         }
     }
 

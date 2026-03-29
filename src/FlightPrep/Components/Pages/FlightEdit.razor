@@ -9,6 +9,7 @@
 @inject IJSRuntime JS
 @inject ITrajectoryService TrajectorySvc
 @inject ILogger<FlightEdit> Logger
+@inject IEnhancedTrajectoryService EnhancedTrajectorySvc
 @using Microsoft.AspNetCore.Components.Forms
 @using FlightPrep.Models.Trajectory
 
@@ -563,8 +564,8 @@
                                         <span class="bi bi-geo-alt"></span> Simuleer trajecten
                                     </button>
                                     <button class="btn btn-sm btn-secondary ms-1"
-                                            disabled title="HYSPLIT-integratie komt in een volgende versie.">
-                                        HYSPLIT (binnenkort)
+                                            @onclick="() => showEnhancedPanel = !showEnhancedPanel">
+                                        <span class="bi bi-wind"></span> Geavanceerd (3D)
                                     </button>
                                 </div>
                             </div>
@@ -592,6 +593,74 @@
                                 </p>
                             }
                         </div>
+
+@if (showEnhancedPanel)
+{
+    <div class="card border-secondary mt-3">
+        <div class="card-header py-2">
+            <strong>Geavanceerde 3D-simulatie</strong>
+            <span class="text-muted small ms-2">(Open-Meteo uurlijkse winddata per druklaag)</span>
+        </div>
+        <div class="card-body">
+            <div class="row g-2 mb-3">
+                <div class="col-6 col-md-3">
+                    <label class="form-label small mb-1">Klimsnelheid (m/s)</label>
+                    <input type="number" class="form-control form-control-sm"
+                           min="0.5" max="10" step="0.5"
+                           @bind="enhAscentRateMs" />
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small mb-1">Kruishoogte (ft)</label>
+                    <input type="number" class="form-control form-control-sm"
+                           min="500" max="20000" step="500"
+                           @bind="enhCruiseAltFt" />
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small mb-1">Daalsnelheid (m/s)</label>
+                    <input type="number" class="form-control form-control-sm"
+                           min="0.5" max="10" step="0.5"
+                           @bind="enhDescentRateMs" />
+                </div>
+                <div class="col-6 col-md-3 d-flex align-items-end">
+                    <button class="btn btn-sm btn-primary w-100"
+                            @onclick="BerekEnhancedTraject"
+                            disabled="@computingEnhanced">
+                        @if (computingEnhanced)
+                        {
+                            <span class="spinner-border spinner-border-sm"></span>
+                            <span> Berekenen...</span>
+                        }
+                        else
+                        {
+                            <span class="bi bi-calculator"></span>
+                            <span> Bereken 3D-traject</span>
+                        }
+                    </button>
+                </div>
+            </div>
+
+            @if (enhancedError != null)
+            {
+                <div class="alert alert-warning py-1 small">@enhancedError</div>
+            }
+
+            @if (enhancedTrajectory != null && enhancedTrajectory.Points.Count > 0)
+            {
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-danger">@enhancedTrajectory.AltitudeFt ft kruishoogte</span>
+                    <span class="text-muted small">@enhancedTrajectory.DataSource · @enhancedTrajectory.DurationMinutes min</span>
+                    <button class="btn btn-sm btn-success ms-auto" @onclick="OpslaanSimulatie">
+                        <span class="bi bi-save"></span> Simulatie opslaan
+                    </button>
+                </div>
+                <div id="enhanced-trajectory-map" style="height:400px;border-radius:8px;overflow:hidden;" class="mb-2"></div>
+                <p class="text-muted small mb-0">
+                    ⚠️ Indicatief traject op basis van Open-Meteo uurlijkse druklaagwind. Geen gecertificeerde vliegweg.
+                </p>
+            }
+        </div>
+    </div>
+}
 
                         <div class="mb-3">
                             <label class="form-label">Trajectnotities / waypoints</label>
@@ -702,6 +771,15 @@
     private bool trajectoryMapRendered = false;
     private bool fetchingWindProfile = false;
     private string? windProfileError;
+
+    private double enhAscentRateMs   = 3.0;
+    private int    enhCruiseAltFt    = 3000;
+    private double enhDescentRateMs  = 2.0;
+    private SimulatedTrajectory? enhancedTrajectory;
+    private bool   showEnhancedPanel  = false;
+    private bool   enhancedMapRendered = false;
+    private string? enhancedError;
+    private bool   computingEnhanced  = false;
 
     private bool _showWindProfile;
     private bool showWindProfile
@@ -819,6 +897,16 @@
                     points      = t.Points.Select(p => new[] { p.Lat, p.Lon }).ToArray()
                 }).ToArray());
         }
+        if (enhancedTrajectory != null && !enhancedMapRendered && enhancedTrajectory.Points.Count > 0)
+        {
+            enhancedMapRendered = true;
+            await JS.InvokeVoidAsync("initEnhancedTrajectoryMap",
+                "enhanced-trajectory-map",
+                fp!.Location!.Latitude,
+                fp.Location.Longitude,
+                enhancedTrajectory.Points.Select(p => new[] { p.Lat, p.Lon, p.AltitudeFt ?? 0 }).ToArray(),
+                enhancedTrajectory.DurationMinutes);
+        }
     }
 
     private async Task SimuleerTraject()
@@ -855,12 +943,62 @@
 
     private async Task OpslaanSimulatie()
     {
-        if (simulatedTrajectories == null || fp == null) return;
-        fp.TrajectorySimulationJson = System.Text.Json.JsonSerializer.Serialize(simulatedTrajectories);
+        if (fp == null) return;
+        if (simulatedTrajectories == null && enhancedTrajectory == null) return;
+
+        var allTrajectories = new List<SimulatedTrajectory>(simulatedTrajectories ?? new());
+        if (enhancedTrajectory != null)
+            allTrajectories.Add(enhancedTrajectory);
+
+        fp.TrajectorySimulationJson = System.Text.Json.JsonSerializer.Serialize(allTrajectories);
         await using var db = await DbFactory.CreateDbContextAsync();
         db.Attach(fp);
         db.Entry(fp).Property(x => x.TrajectorySimulationJson).IsModified = true;
         await db.SaveChangesAsync();
+    }
+
+    private async Task BerekEnhancedTraject()
+    {
+        enhancedError   = null;
+        enhancedTrajectory = null;
+        enhancedMapRendered = false;
+
+        if (fp?.Location?.Latitude is null || fp.Location.Longitude is null)
+        {
+            enhancedError = "Locatie heeft geen coördinaten. Voeg lat/lon toe via Instellingen > Locaties.";
+            return;
+        }
+        if (enhAscentRateMs  is <= 0 or > 10) { enhancedError = "Klimsnelheid moet tussen 0.5 en 10 m/s liggen."; return; }
+        if (enhCruiseAltFt   is <= 0 or > 20000) { enhancedError = "Kruishoogte moet tussen 500 en 20000 ft liggen."; return; }
+        if (enhDescentRateMs is <= 0 or > 10) { enhancedError = "Daalsnelheid moet tussen 0.5 en 10 m/s liggen."; return; }
+        if (simulationDurationMinutes is <= 0 or > 360) { enhancedError = "Vluchtduur moet tussen 1 en 360 minuten liggen."; return; }
+
+        computingEnhanced = true;
+        StateHasChanged();
+        try
+        {
+            var launchUtc = DateTime.SpecifyKind(fp.Datum.ToDateTime(fp.Tijdstip), DateTimeKind.Utc);
+            enhancedTrajectory = await EnhancedTrajectorySvc.ComputeAsync(
+                fp.Location.Latitude.Value,
+                fp.Location.Longitude.Value,
+                launchUtc,
+                enhAscentRateMs,
+                enhCruiseAltFt,
+                enhDescentRateMs,
+                simulationDurationMinutes);
+
+            if (enhancedTrajectory.Points.Count == 0)
+                enhancedError = "Geen winddata beschikbaar voor dit tijdstip. Probeer een andere vliegdatum of gebruik dead-reckoning.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "BerekEnhancedTraject failed for flight {Id}", fp?.Id);
+            enhancedError = "Berekening mislukt. Probeer opnieuw.";
+        }
+        finally
+        {
+            computingEnhanced = false;
+        }
     }
 
     private async Task FetchWindProfile()

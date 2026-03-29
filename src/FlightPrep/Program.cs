@@ -32,6 +32,7 @@ if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_
     builder.Services.AddApplicationInsightsTelemetry();
 builder.Services.AddSingleton<KmlService>();
 builder.Services.AddSingleton<ITrajectoryService, TrajectoryService>();
+builder.Services.AddScoped<IEnhancedTrajectoryService, EnhancedTrajectoryService>();
 
 builder.Services.AddHttpClient("aviationweather", c =>
 {
