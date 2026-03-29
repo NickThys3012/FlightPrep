@@ -584,7 +584,14 @@ else
     private async Task DownloadPdf()
     {
         if (fp == null) return;
-        var pdfBytes = await PdfSvc.GenerateAsync(fp);
+        // Capture the trajectory map from the browser before generating the PDF
+        byte[]? mapPng = null;
+        if (savedCombinedMapRendered)
+        {
+            var b64 = await JS.InvokeAsync<string?>("captureMapPng", "saved-combined-map");
+            if (b64 is not null) mapPng = Convert.FromBase64String(b64);
+        }
+        var pdfBytes = await PdfSvc.GenerateAsync(fp, mapPng);
         var fileName = $"vaartvoorbereiding_{fp.Datum:yyyy-MM-dd}_{fp.Id}.pdf";
         await JS.InvokeVoidAsync("downloadFileFromBytes", fileName, "application/pdf",
             Convert.ToBase64String(pdfBytes));

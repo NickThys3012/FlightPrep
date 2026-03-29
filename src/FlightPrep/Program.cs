@@ -51,10 +51,9 @@ builder.Services.AddHttpClient("overpass", c =>
 });
 builder.Services.AddHttpClient("staticmap", c =>
 {
-    c.DefaultRequestHeaders.UserAgent.ParseAdd("FlightPrep/1.0");
+    c.DefaultRequestHeaders.UserAgent.ParseAdd("FlightPrep/1.0 (+https://github.com/NickThys3012/FlightPrep)");
     c.Timeout = TimeSpan.FromSeconds(10);
 });
-builder.Services.AddScoped<StaticMapService>();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<WeatherFetchService>();
 builder.Services.AddScoped<PowerLineService>();
@@ -103,6 +102,21 @@ app.MapGet("/api/powerlines", async (double south, double west, double north, do
     return geoJson is null
         ? Results.StatusCode(502)
         : Results.Content(geoJson, "application/json");
+});
+
+// Tile proxy — serves OSM tiles same-origin so html2canvas can capture maps for PDF
+app.MapGet("/tiles/{z}/{x}/{y}", async (int z, int x, int y, IHttpClientFactory httpFactory, HttpContext ctx) =>
+{
+    if (z is < 0 or > 19 || x < 0 || y < 0) return Results.BadRequest();
+    var client = httpFactory.CreateClient("staticmap");
+    try
+    {
+        var bytes = await client.GetByteArrayAsync(
+            $"https://tile.openstreetmap.org/{z}/{x}/{y}.png");
+        ctx.Response.Headers.CacheControl = "public, max-age=86400";
+        return Results.Bytes(bytes, "image/png");
+    }
+    catch { return Results.StatusCode(502); }
 });
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

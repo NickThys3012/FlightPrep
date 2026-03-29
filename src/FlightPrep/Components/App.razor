@@ -25,6 +25,7 @@
     <ImportMap />
     <link rel="icon" type="image/png" href="favicon.png" />
     <HeadOutlet />
+    <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 
 <body>
@@ -51,7 +52,7 @@
             if (!points || points.length === 0) return;
 
             // ── Base layers ──────────────────────────────────────────────────
-            var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            var osmLayer = L.tileLayer('/tiles/{z}/{x}/{y}', {
                 attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
                 maxZoom: 18
             });
@@ -359,7 +360,7 @@
             if (!trajectories || trajectories.length === 0) return;
 
             // ── Base layers ──────────────────────────────────────────────────
-            var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            var osmLayer = L.tileLayer('/tiles/{z}/{x}/{y}', {
                 attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
                 maxZoom: 18
             });
@@ -499,7 +500,7 @@
             // trajectories: [{color, label, durationMin, points: [[lat, lon, altFt], ...]}]
             if (!trajectories || trajectories.length === 0) return;
 
-            var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            var osmLayer = L.tileLayer('/tiles/{z}/{x}/{y}', {
                 attribution: '© OpenStreetMap', maxZoom: 18
             });
             var topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
@@ -631,7 +632,7 @@
                 delete window._cmaps[mapId];
             }
 
-            var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            var osmLayer = L.tileLayer('/tiles/{z}/{x}/{y}', {
                 attribution: '© OpenStreetMap', maxZoom: 18
             });
             var topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
@@ -755,6 +756,28 @@
             map.fitBounds(allLatLons, { padding: [30, 30] });
             // Auto-load power lines after initial fit
             map.once('moveend', function() { loadPowerLines(map.getBounds()); });
+        };
+
+        // Capture a Leaflet map div as a PNG and return base64 string.
+        // Uses html2canvas; tiles must be same-origin (served via /tiles/{z}/{x}/{y}).
+        window.captureMapPng = async function(mapId) {
+            var el = document.getElementById(mapId);
+            if (!el || typeof html2canvas === 'undefined') return null;
+            try {
+                // Wait briefly so any pending tile redraws finish
+                await new Promise(function(r) { setTimeout(r, 400); });
+                var canvas = await html2canvas(el, {
+                    useCORS: true,
+                    allowTaint: false,
+                    logging: false,
+                    scale: 1.5
+                });
+                var dataUrl = canvas.toDataURL('image/png');
+                return dataUrl.split(',')[1]; // base64 only, no prefix
+            } catch(e) {
+                console.warn('captureMapPng failed:', e);
+                return null;
+            }
         };
     </script>
 </body>

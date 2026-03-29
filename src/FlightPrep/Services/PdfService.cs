@@ -9,12 +9,12 @@ using QuestPDF.Infrastructure;
 
 namespace FlightPrep.Services;
 
-public class PdfService(SunriseService sunriseSvc, StaticMapService mapSvc)
+public class PdfService(SunriseService sunriseSvc)
 {
     private static readonly string PrimaryColor = "#1a3a5c";
     private static readonly string LightBg = "#f0f4f8";
 
-    public async Task<byte[]> GenerateAsync(FlightPreparation fp, CancellationToken ct = default)
+    public async Task<byte[]> GenerateAsync(FlightPreparation fp, byte[]? mapPng = null, CancellationToken ct = default)
     {
         Settings.License = LicenseType.Community;
 
@@ -25,31 +25,6 @@ public class PdfService(SunriseService sunriseSvc, StaticMapService mapSvc)
             sunriseSunset = sunriseSvc.Calculate(fp.Datum, loc.Latitude!.Value, loc.Longitude!.Value);
 
         var gng = fp.GoNoGo;
-
-        // Pre-fetch the trajectory map PNG (async, before the sync QuestPDF lambda)
-        byte[]? mapPng = null;
-        try
-        {
-            var allTrajsForMap = string.IsNullOrWhiteSpace(fp.TrajectorySimulationJson)
-                ? null
-                : JsonSerializer.Deserialize<List<SimulatedTrajectory>>(fp.TrajectorySimulationJson);
-            if (allTrajsForMap != null && allTrajsForMap.Count > 0 &&
-                fp.Location?.Latitude != null && fp.Location.Longitude != null)
-            {
-                var polylines = allTrajsForMap
-                    .Where(t => t.Points.Count >= 2)
-                    .Select(t => new TrajectoryPolyline(
-                        t.Color,
-                        t.Points.Select(p => (p.Lat, p.Lon)).ToList()))
-                    .ToList();
-                mapPng = await mapSvc.GenerateAsync(
-                    fp.Location.Latitude.Value,
-                    fp.Location.Longitude.Value,
-                    polylines,
-                    ct: ct);
-            }
-        }
-        catch { /* skip map on any error */ }
 
         return Document.Create(container =>
         {
