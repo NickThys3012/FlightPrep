@@ -1,6 +1,17 @@
 {
-  "currentVersion": "6.0.2",
+  "currentVersion": "7.0.0",
   "entries": [
+    {
+      "pr": 18,
+      "version": "7.0.0",
+      "title": "Feat/issue 17 enhanced trajectory",
+      "description": "Deze release bevat verbeteringen aan de simulatie en visualisatie van trajecten, wat de gebruikservaring voor piloten aanzienlijk verbetert.  \n- Nieuwe interactieve kaarten voor het visualiseren van meerdere trajecten met hoogte-gebaseerde kleurgradaties en markeringen voor lancering en landing.  \n- Een geüpdatete gebruikersinterface in de FlightEdit-pagina met een knop voor een geavanceerde (3D) trajectsimulatie, waardoor piloten betere inzichten krijgen in hun vluchtplanning.  \n- Uitgebreide test suites voor traject- en weerservices, wat zorgt voor robuuste en betrouwbare geospatiale berekeningen en dat de gegevens nauwkeurig worden verwerkt.",
+      "author": "NickThys3012",
+      "labels": [
+        "Feature"
+      ],
+      "date": "2026-03-29T18:35:14Z"
+    },
     {
       "pr": 16,
       "version": "6.0.2",
