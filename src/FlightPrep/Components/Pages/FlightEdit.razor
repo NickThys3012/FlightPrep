@@ -1010,7 +1010,7 @@
             enhancedError = "Voer minstens één kruishoogte in.";
             return;
         }
-        if (enhCruiseAltsFt.Any(a => a is <= 0 or > 20000))
+        if (enhCruiseAltsFt.Any(a => a < 500 || a > 20000))
         {
             enhancedError = "Kruishoogte(s) moeten tussen 500 en 20000 ft liggen.";
             return;

@@ -92,7 +92,8 @@ public class EnhancedTrajectoryService(
                 break;
 
             // Interpolate wind: altitude interpolation between two pressure levels
-            var (speedKt, dirDeg) = InterpolateWind(snapshot1, snapshot2, timeFraction, currentAltFt);
+            // snapshot2 is always non-null when snapshot1 is non-null (see InterpolateSnapshots)
+            var (speedKt, dirDeg) = InterpolateWind(snapshot1, snapshot2!, timeFraction, currentAltFt);
 
             // Move
             if (speedKt > 0)
