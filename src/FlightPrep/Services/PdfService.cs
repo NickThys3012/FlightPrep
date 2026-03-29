@@ -1,5 +1,7 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using FlightPrep.Models;
+using FlightPrep.Models.Trajectory;
 using QuestPDF;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -203,6 +205,41 @@ public class PdfService(SunriseService sunriseSvc)
                     {
                         ("Trajectnotities", fp.Traject ?? "–"),
                     });
+
+                    // Simulated trajectories summary
+                    if (!string.IsNullOrWhiteSpace(fp.TrajectorySimulationJson))
+                    {
+                        try
+                        {
+                            var allTrajs = JsonSerializer.Deserialize<List<SimulatedTrajectory>>(fp.TrajectorySimulationJson);
+                            if (allTrajs != null && allTrajs.Count > 0)
+                            {
+                                col.Item().PaddingTop(4)
+                                    .Text("Trajectsimulaties").Bold().FontSize(8.5f).FontColor(PrimaryColor);
+
+                                bool alt2 = false;
+                                foreach (var t in allTrajs.Where(t => t.Points.Count > 0))
+                                {
+                                    var last  = t.Points[^1];
+                                    var src   = t.DataSource == TrajectoryDataSource.Hysplit
+                                                    ? "Open-Meteo 3D"
+                                                    : t.DataSource == TrajectoryDataSource.OpenMeteo
+                                                        ? "Open-Meteo"
+                                                        : "Dead-reckoning";
+                                    var landing = $"{last.Lat:F4}°N  {last.Lon:F4}°E";
+                                    var altRow  = $"{t.AltitudeFt} ft  |  {src}  |  {t.DurationMinutes} min  |  berekend {t.SimulatedAt:dd/MM/yyyy HH:mm}  |  landing ≈ {landing}";
+
+                                    col.Item()
+                                       .Background(alt2 ? LightBg : Colors.White)
+                                       .Padding(2)
+                                       .Text(altRow)
+                                       .FontSize(8);
+                                    alt2 = !alt2;
+                                }
+                            }
+                        }
+                        catch { /* malformed JSON — skip silently */ }
+                    }
 
                     // Traject images
                     var trajImgs = fp.Images.Where(i => i.Section == "Traject").ToList();
