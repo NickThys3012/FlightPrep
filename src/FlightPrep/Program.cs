@@ -54,6 +54,11 @@ builder.Services.AddHttpClient("staticmap", c =>
     c.DefaultRequestHeaders.UserAgent.ParseAdd("FlightPrep/1.0 (+https://github.com/NickThys3012/FlightPrep)");
     c.Timeout = TimeSpan.FromSeconds(10);
 });
+builder.Services.AddHttpClient<TrajectoryMapService>(c =>
+{
+    c.DefaultRequestHeaders.UserAgent.ParseAdd("FlightPrep/1.0 (+https://github.com/NickThys3012/FlightPrep)");
+    c.Timeout = TimeSpan.FromSeconds(15);
+});
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<WeatherFetchService>();
 builder.Services.AddScoped<PowerLineService>();

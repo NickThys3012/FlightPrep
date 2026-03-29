@@ -9,13 +9,16 @@ using QuestPDF.Infrastructure;
 
 namespace FlightPrep.Services;
 
-public class PdfService(SunriseService sunriseSvc)
+public class PdfService(SunriseService sunriseSvc, TrajectoryMapService mapSvc)
 {
     private static readonly string PrimaryColor = "#1a3a5c";
     private static readonly string LightBg = "#f0f4f8";
 
     public async Task<byte[]> GenerateAsync(FlightPreparation fp, byte[]? mapPng = null, CancellationToken ct = default)
     {
+        // Generate trajectory map server-side if the caller didn't provide a pre-rendered one
+        mapPng ??= await mapSvc.RenderAsync(fp.TrajectorySimulationJson);
+
         Settings.License = LicenseType.Community;
 
         // Compute sunrise/sunset if location has coords

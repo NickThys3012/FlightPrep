@@ -1374,14 +1374,7 @@
         if (saved == null) return;
         try
         {
-            // Capture the trajectory map from the browser before generating the PDF
-            byte[]? mapPng = null;
-            if (combinedMapRendered)
-            {
-                var b64 = await JS.InvokeAsync<string?>("captureMapPng", "combined-trajectory-map");
-                if (b64 is not null) mapPng = Convert.FromBase64String(b64);
-            }
-            var pdfBytes = await PdfSvc.GenerateAsync(saved, mapPng);
+            var pdfBytes = await PdfSvc.GenerateAsync(saved);
             await JS.InvokeVoidAsync("downloadFileFromBytes",
                 $"vaartvoorbereiding_{saved.Datum:yyyy-MM-dd}_{saved.Id}.pdf",
                 "application/pdf", Convert.ToBase64String(pdfBytes));
