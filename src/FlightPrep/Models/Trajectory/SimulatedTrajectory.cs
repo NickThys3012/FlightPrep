@@ -8,5 +8,6 @@ public record SimulatedTrajectory(
     List<TrajectoryPoint> Points,
     TrajectoryDataSource DataSource,
     DateTime SimulatedAt,
-    int DurationMinutes
-);
+    int DurationMinutes,
+    double? AscentRateMs = null,
+    double? DescentRateMs = null);

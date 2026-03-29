@@ -242,4 +242,123 @@ public class WeatherFetchServiceTests
         // Assert – first level (1000 hPa) has windspeed_1000hPa = 18.52 km/h → 10 kt
         Assert.Equal(10, result[0].SpeedKt);
     }
+
+    // ── FetchWindTimeSeriesAsync ──────────────────────────────────────────────
+
+    // Past date (2024-01-15) forces the archive code path in FetchWindTimeSeriesAsync.
+    private static readonly DateTime PastWindowStart =
+        new DateTime(2024, 1, 15, 6, 0, 0, DateTimeKind.Utc);
+
+    // Minimal time-series JSON with hourly snapshots for 2024-01-15 05:00–08:00.
+    // Wind: 18.52 km/h FROM 270° at all levels → ≈10 kt.
+    private const string ValidTimeSeriesJson = """
+        {
+          "hourly": {
+            "time": ["2024-01-15T05:00","2024-01-15T06:00","2024-01-15T07:00","2024-01-15T08:00"],
+            "windspeed_1000hPa":     [18.52,18.52,18.52,18.52],
+            "winddirection_1000hPa": [270.0,270.0,270.0,270.0],
+            "windspeed_975hPa":      [18.52,18.52,18.52,18.52],
+            "winddirection_975hPa":  [270.0,270.0,270.0,270.0],
+            "windspeed_950hPa":      [18.52,18.52,18.52,18.52],
+            "winddirection_950hPa":  [270.0,270.0,270.0,270.0],
+            "windspeed_925hPa":      [18.52,18.52,18.52,18.52],
+            "winddirection_925hPa":  [270.0,270.0,270.0,270.0],
+            "windspeed_900hPa":      [18.52,18.52,18.52,18.52],
+            "winddirection_900hPa":  [270.0,270.0,270.0,270.0],
+            "windspeed_850hPa":      [18.52,18.52,18.52,18.52],
+            "winddirection_850hPa":  [270.0,270.0,270.0,270.0],
+            "windspeed_800hPa":      [18.52,18.52,18.52,18.52],
+            "winddirection_800hPa":  [270.0,270.0,270.0,270.0],
+            "windspeed_700hPa":      [18.52,18.52,18.52,18.52],
+            "winddirection_700hPa":  [270.0,270.0,270.0,270.0]
+          }
+        }
+        """;
+
+    [Fact]
+    public async Task FetchWindTimeSeriesAsync_FutureBeyond3Days_ReturnsEmpty()
+    {
+        // No HTTP call is made; the early guard returns before touching the client
+        var svc = BuildSvc("openmeteo",
+            CreateMockClient("https://api.open-meteo.com/", "{}"));
+
+        var far = DateTime.UtcNow.AddDays(5);
+        var result = await svc.FetchWindTimeSeriesAsync(51.0, 3.5, far, far.AddHours(2));
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task FetchWindTimeSeriesAsync_HttpThrows_ReturnsEmpty()
+    {
+        var svc = BuildSvc("openmeteo",
+            CreateThrowingClient("https://api.open-meteo.com/"));
+
+        var result = await svc.FetchWindTimeSeriesAsync(
+            51.0, 3.5, PastWindowStart, PastWindowStart.AddHours(2));
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task FetchWindTimeSeriesAsync_MalformedJson_ReturnsEmpty()
+    {
+        var svc = BuildSvc("openmeteo",
+            CreateMockClient("https://api.open-meteo.com/", "not-json"));
+
+        var result = await svc.FetchWindTimeSeriesAsync(
+            51.0, 3.5, PastWindowStart, PastWindowStart.AddHours(2));
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task FetchWindTimeSeriesAsync_ValidJson_ReturnsSnapshotsWithinWindow()
+    {
+        var svc = BuildSvc("openmeteo",
+            CreateMockClient("https://api.open-meteo.com/", ValidTimeSeriesJson));
+
+        var result = await svc.FetchWindTimeSeriesAsync(
+            51.0, 3.5, PastWindowStart, PastWindowStart.AddHours(2));
+
+        Assert.NotEmpty(result);
+    }
+
+    [Fact]
+    public async Task FetchWindTimeSeriesAsync_ValidJson_EachSnapshotHasEightLevels()
+    {
+        var svc = BuildSvc("openmeteo",
+            CreateMockClient("https://api.open-meteo.com/", ValidTimeSeriesJson));
+
+        var result = await svc.FetchWindTimeSeriesAsync(
+            51.0, 3.5, PastWindowStart, PastWindowStart.AddHours(2));
+
+        Assert.All(result, s => Assert.Equal(8, s.Levels.Count));
+    }
+
+    [Fact]
+    public async Task FetchWindTimeSeriesAsync_ValidJson_SpeedConvertedFromKmhToKnots()
+    {
+        // 18.52 km/h ÷ 1.852 = 10.0 kt (rounds to 10)
+        var svc = BuildSvc("openmeteo",
+            CreateMockClient("https://api.open-meteo.com/", ValidTimeSeriesJson));
+
+        var result = await svc.FetchWindTimeSeriesAsync(
+            51.0, 3.5, PastWindowStart, PastWindowStart.AddHours(2));
+
+        Assert.All(result, s =>
+            Assert.All(s.Levels, l => Assert.Equal(10, l.SpeedKt)));
+    }
+
+    [Fact]
+    public async Task FetchWindTimeSeriesAsync_ValidJson_SnapshotTimesAreUtc()
+    {
+        var svc = BuildSvc("openmeteo",
+            CreateMockClient("https://api.open-meteo.com/", ValidTimeSeriesJson));
+
+        var result = await svc.FetchWindTimeSeriesAsync(
+            51.0, 3.5, PastWindowStart, PastWindowStart.AddHours(2));
+
+        Assert.All(result, s => Assert.Equal(DateTimeKind.Utc, s.TimeUtc.Kind));
+    }
 }

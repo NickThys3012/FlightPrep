@@ -25,6 +25,7 @@
     <ImportMap />
     <link rel="icon" type="image/png" href="favicon.png" />
     <HeadOutlet />
+    <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 
 <body>
@@ -51,7 +52,7 @@
             if (!points || points.length === 0) return;
 
             // ── Base layers ──────────────────────────────────────────────────
-            var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            var osmLayer = L.tileLayer('/tiles/{z}/{x}/{y}', {
                 attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
                 maxZoom: 18
             });
@@ -87,7 +88,7 @@
             });
 
             var _powerDebounceTimer = null;
-            var _powerCache = []; // [{s, w, n, e, data}]
+            window._powerLineCache = window._powerLineCache || [];
 
             function loadPowerLines(bounds) {
                 if (map.getZoom() < 10) return;
@@ -99,8 +100,8 @@
 
                 // Check if requested bbox is fully contained within any cached bbox
                 var cached = null;
-                for (var i = 0; i < _powerCache.length; i++) {
-                    var c = _powerCache[i];
+                for (var i = 0; i < window._powerLineCache.length; i++) {
+                    var c = window._powerLineCache[i];
                     if (s >= c.s && n <= c.n && w >= c.w && e <= c.e) { cached = c; break; }
                 }
 
@@ -116,8 +117,8 @@
                         return r.json();
                     })
                     .then(function(data) {
-                        if (_powerCache.length >= 20) _powerCache.shift(); // max 20 entries
-                        _powerCache.push({ s: s, w: w, n: n, e: e, data: data });
+                        if (window._powerLineCache.length >= 20) window._powerLineCache.shift(); // max 20 entries
+                        window._powerLineCache.push({ s: s, w: w, n: n, e: e, data: data });
                         powerGeoJson.clearLayers();
                         powerGeoJson.addData(data);
                     })
@@ -359,7 +360,7 @@
             if (!trajectories || trajectories.length === 0) return;
 
             // ── Base layers ──────────────────────────────────────────────────
-            var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            var osmLayer = L.tileLayer('/tiles/{z}/{x}/{y}', {
                 attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
                 maxZoom: 18
             });
@@ -393,7 +394,7 @@
             });
 
             var _powerDebounceTimer = null;
-            var _powerCache = [];
+            window._powerLineCache = window._powerLineCache || [];
 
             function loadPowerLines(bounds) {
                 if (map.getZoom() < 10) return;
@@ -403,8 +404,8 @@
                 var e = parseFloat(bounds.getEast().toFixed(2));
 
                 var cached = null;
-                for (var i = 0; i < _powerCache.length; i++) {
-                    var c = _powerCache[i];
+                for (var i = 0; i < window._powerLineCache.length; i++) {
+                    var c = window._powerLineCache[i];
                     if (s >= c.s && n <= c.n && w >= c.w && e <= c.e) { cached = c; break; }
                 }
 
@@ -420,8 +421,8 @@
                         return r.json();
                     })
                     .then(function(data) {
-                        if (_powerCache.length >= 20) _powerCache.shift();
-                        _powerCache.push({ s: s, w: w, n: n, e: e, data: data });
+                        if (window._powerLineCache.length >= 20) window._powerLineCache.shift();
+                        window._powerLineCache.push({ s: s, w: w, n: n, e: e, data: data });
                         powerGeoJson.clearLayers();
                         powerGeoJson.addData(data);
                     })
@@ -492,6 +493,290 @@
             // Fit bounds to all points
             if (allLatLngs.length > 1) {
                 map.fitBounds(allLatLngs, { padding: [30, 30] });
+            }
+        };
+
+        window.initEnhancedTrajectoryMap = function(mapId, launchLat, launchLon, trajectories) {
+            // trajectories: [{color, label, durationMin, points: [[lat, lon, altFt], ...]}]
+            if (!trajectories || trajectories.length === 0) return;
+
+            var osmLayer = L.tileLayer('/tiles/{z}/{x}/{y}', {
+                attribution: '© OpenStreetMap', maxZoom: 18
+            });
+            var topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenTopoMap', maxZoom: 17
+            });
+            var airspaceLayer = L.tileLayer(
+                'https://nwy-tiles-api.prod.newaydata.com/tiles/{z}/{x}/{y}.png?path=latest/aero/latest',
+                { opacity: 0.7, maxZoom: 14, minZoom: 5, attribution: '© openflightmaps' }
+            );
+            var powerGeoJson = L.geoJSON(null, {
+                style: function(f) {
+                    var v = parseInt(f.properties.voltage) || 0;
+                    var c = v >= 380000 ? '#e74c3c' : v >= 220000 ? '#e67e22' : '#f1c40f';
+                    return { color: c, weight: 2.5, opacity: 0.9 };
+                },
+                onEachFeature: function(f, layer) {
+                    var kv = f.properties.voltage ? Math.round(parseInt(f.properties.voltage)/1000) + ' kV' : '?';
+                    layer.bindPopup('Hoogspanning - ' + kv);
+                }
+            });
+            var _powerDebounceTimer = null;
+            window._powerLineCache = window._powerLineCache || [];
+            function loadPowerLines(bounds) {
+                if (map.getZoom() < 10) return;
+                var s = parseFloat(bounds.getSouth().toFixed(2));
+                var n = parseFloat(bounds.getNorth().toFixed(2));
+                var w = parseFloat(bounds.getWest().toFixed(2));
+                var e = parseFloat(bounds.getEast().toFixed(2));
+                for (var i = 0; i < window._powerLineCache.length; i++) {
+                    var c = window._powerLineCache[i];
+                    if (s >= c.s && n <= c.n && w >= c.w && e <= c.e) {
+                        powerGeoJson.clearLayers(); powerGeoJson.addData(c.data); return;
+                    }
+                }
+                fetch('/api/powerlines?south='+s+'&west='+w+'&north='+n+'&east='+e)
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (window._powerLineCache.length >= 20) window._powerLineCache.shift();
+                        window._powerLineCache.push({s:s,w:w,n:n,e:e,data:data});
+                        powerGeoJson.clearLayers(); powerGeoJson.addData(data);
+                    })
+                    .catch(function(err) { console.error('Hoogspanning laden mislukt:', err); });
+            }
+
+            var map = L.map(mapId, { layers: [osmLayer, airspaceLayer] })
+                       .setView([launchLat, launchLon], 11);
+
+            map.on('overlayadd', function(e) {
+                if (e.name === 'Hoogspanning') loadPowerLines(map.getBounds());
+            });
+            map.on('moveend', function() {
+                if (!map.hasLayer(powerGeoJson)) return;
+                clearTimeout(_powerDebounceTimer);
+                _powerDebounceTimer = setTimeout(function() { loadPowerLines(map.getBounds()); }, 500);
+            });
+
+            // Altitude → colour gradient per trajectory: green (low) → yellow → orange → red (high)
+            function altColorForTraj(alt, minAlt, maxAlt) {
+                if (maxAlt === minAlt) return '#e74c3c';
+                var t = (alt - minAlt) / (maxAlt - minAlt);
+                if (t < 0.33) {
+                    var r = Math.round(46  + (241 - 46)  * (t / 0.33));
+                    var g = Math.round(204 + (196 - 204) * (t / 0.33));
+                    var b = Math.round(113 + (15  - 113) * (t / 0.33));
+                    return 'rgb(' + r + ',' + g + ',' + b + ')';
+                } else if (t < 0.66) {
+                    var f = (t - 0.33) / 0.33;
+                    var r2 = Math.round(241 + (230 - 241) * f);
+                    var g2 = Math.round(196 + (126 - 196) * f);
+                    var b2 = Math.round(15  + (34  - 15)  * f);
+                    return 'rgb(' + r2 + ',' + g2 + ',' + b2 + ')';
+                } else {
+                    var f2 = (t - 0.66) / 0.34;
+                    var r3 = Math.round(230 + (231 - 230) * f2);
+                    var g3 = Math.round(126 + (76  - 126) * f2);
+                    var b3 = Math.round(34  + (60  - 34)  * f2);
+                    return 'rgb(' + r3 + ',' + g3 + ',' + b3 + ')';
+                }
+            }
+
+            // Launch marker
+            L.marker([launchLat, launchLon], {
+                icon: L.divIcon({ className: '', html: '<div style="width:14px;height:14px;background:#2ecc71;border-radius:50%;border:2px solid #fff;"></div>', iconAnchor: [7,7] })
+            }).bindPopup('Opstijgplaats').addTo(map);
+
+            var allLatLons = [[launchLat, launchLon]];
+
+            // Draw each trajectory
+            trajectories.forEach(function(traj) {
+                if (!traj.points || traj.points.length === 0) return;
+                var alts = traj.points.map(function(p) { return p[2] || 0; });
+                var minAlt = Math.min.apply(null, alts);
+                var maxAlt = Math.max.apply(null, alts);
+
+                var prevPt = [launchLat, launchLon];
+                for (var i = 0; i < traj.points.length; i++) {
+                    var p = [traj.points[i][0], traj.points[i][1]];
+                    var alt = traj.points[i][2] || 0;
+                    L.polyline([prevPt, p], { color: altColorForTraj(alt, minAlt, maxAlt), weight: 4, opacity: 0.85 }).addTo(map);
+                    allLatLons.push(p);
+                    prevPt = p;
+                }
+
+                // Landing marker per trajectory
+                var last = traj.points[traj.points.length - 1];
+                L.circleMarker([last[0], last[1]], {
+                    radius: 8, color: '#fff', fillColor: traj.color,
+                    fillOpacity: 1, weight: 2
+                }).bindPopup(traj.label + ' — landing na ' + traj.durationMin + ' min').addTo(map);
+            });
+
+            L.control.layers(
+                { 'Kaart': osmLayer, 'Topografisch': topoLayer },
+                { 'Luchtruim (OFM)': airspaceLayer, 'Hoogspanning': powerGeoJson },
+                { collapsed: false }
+            ).addTo(map);
+
+            map.fitBounds(allLatLons, { padding: [30, 30] });
+        };
+
+        // ── Combined trajectory map (dead-reckoning + enhanced 3D on one map) ──
+        // trajectories: [{color, label, durationMin, hasAltitude, points: [[lat,lon] or [lat,lon,altFt]]}]
+        window.initCombinedTrajectoryMap = function(mapId, launchLat, launchLon, trajectories) {
+            if (!trajectories || trajectories.length === 0) return;
+
+            // Destroy any existing map on this element to allow re-init
+            if (window._cmaps && window._cmaps[mapId]) {
+                window._cmaps[mapId].remove();
+                delete window._cmaps[mapId];
+            }
+
+            var osmLayer = L.tileLayer('/tiles/{z}/{x}/{y}', {
+                attribution: '© OpenStreetMap', maxZoom: 18
+            });
+            var topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenTopoMap', maxZoom: 17
+            });
+            var airspaceLayer = L.tileLayer(
+                'https://nwy-tiles-api.prod.newaydata.com/tiles/{z}/{x}/{y}.png?path=latest/aero/latest',
+                { opacity: 0.7, maxZoom: 14, minZoom: 5, attribution: '© openflightmaps' }
+            );
+            var powerGeoJson = L.geoJSON(null, {
+                style: function(f) {
+                    var v = parseInt(f.properties.voltage) || 0;
+                    var c = v >= 380000 ? '#e74c3c' : v >= 220000 ? '#e67e22' : '#f1c40f';
+                    return { color: c, weight: 2.5, opacity: 0.9 };
+                },
+                onEachFeature: function(f, layer) {
+                    var kv = f.properties.voltage ? Math.round(parseInt(f.properties.voltage)/1000) + ' kV' : '?';
+                    layer.bindPopup('Hoogspanning - ' + kv);
+                }
+            });
+            var _powerDebounceTimer = null;
+            window._powerLineCache = window._powerLineCache || [];
+            function loadPowerLines(bounds) {
+                if (map.getZoom() < 10) return;
+                var s = parseFloat(bounds.getSouth().toFixed(2));
+                var n = parseFloat(bounds.getNorth().toFixed(2));
+                var w = parseFloat(bounds.getWest().toFixed(2));
+                var e = parseFloat(bounds.getEast().toFixed(2));
+                for (var i = 0; i < window._powerLineCache.length; i++) {
+                    var c = window._powerLineCache[i];
+                    if (s >= c.s && n <= c.n && w >= c.w && e <= c.e) {
+                        powerGeoJson.clearLayers(); powerGeoJson.addData(c.data); return;
+                    }
+                }
+                fetch('/api/powerlines?south='+s+'&west='+w+'&north='+n+'&east='+e)
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (window._powerLineCache.length >= 20) window._powerLineCache.shift();
+                        window._powerLineCache.push({s:s,w:w,n:n,e:e,data:data});
+                        powerGeoJson.clearLayers(); powerGeoJson.addData(data);
+                    })
+                    .catch(function(err) { console.error('Hoogspanning laden mislukt:', err); });
+            }
+
+            // Airspace on by default; power lines shown and auto-loaded
+            var map = L.map(mapId, { layers: [osmLayer, airspaceLayer, powerGeoJson] })
+                       .setView([launchLat, launchLon], 11);
+            window._cmaps = window._cmaps || {};
+            window._cmaps[mapId] = map;
+
+            map.on('overlayadd', function(e) {
+                if (e.name === '⚡ Hoogspanning') loadPowerLines(map.getBounds());
+            });
+            map.on('moveend', function() {
+                if (!map.hasLayer(powerGeoJson)) return;
+                clearTimeout(_powerDebounceTimer);
+                _powerDebounceTimer = setTimeout(function() { loadPowerLines(map.getBounds()); }, 500);
+            });
+
+            // Altitude → colour gradient (used for enhanced 3D trajectories)
+            function altGrad(alt, minAlt, maxAlt) {
+                if (maxAlt === minAlt) return '#e74c3c';
+                var t = (alt - minAlt) / (maxAlt - minAlt);
+                if (t < 0.33) {
+                    return 'rgb(' + Math.round(46+(241-46)*(t/0.33)) + ','
+                                  + Math.round(204+(196-204)*(t/0.33)) + ','
+                                  + Math.round(113+(15-113)*(t/0.33)) + ')';
+                } else if (t < 0.66) {
+                    var f = (t-0.33)/0.33;
+                    return 'rgb('+Math.round(241+(230-241)*f)+','+Math.round(196+(126-196)*f)+','+Math.round(15+(34-15)*f)+')';
+                } else {
+                    var f2 = (t-0.66)/0.34;
+                    return 'rgb('+Math.round(230+(231-230)*f2)+','+Math.round(126+(76-126)*f2)+','+Math.round(34+(60-34)*f2)+')';
+                }
+            }
+
+            // Launch marker
+            L.marker([launchLat, launchLon], {
+                icon: L.divIcon({ className: '', html: '<div style="width:14px;height:14px;background:#2ecc71;border-radius:50%;border:2px solid #fff;box-shadow:0 0 3px rgba(0,0,0,.5)"></div>', iconAnchor: [7,7] })
+            }).bindPopup('Opstijgplaats').addTo(map);
+
+            var allLatLons = [[launchLat, launchLon]];
+
+            trajectories.forEach(function(traj) {
+                if (!traj.points || traj.points.length === 0) return;
+
+                if (!traj.hasAltitude) {
+                    // Dead-reckoning: single solid-colour polyline
+                    var latlngs = [[launchLat, launchLon]].concat(traj.points.map(function(p) { return [p[0], p[1]]; }));
+                    L.polyline(latlngs, { color: traj.color, weight: 4, opacity: 0.85,
+                        dashArray: '8,4' }) // dashed to visually distinguish from 3D arcs
+                        .bindTooltip(traj.label, { sticky: true }).addTo(map);
+                    traj.points.forEach(function(p) { allLatLons.push([p[0], p[1]]); });
+                } else {
+                    // Enhanced 3D: per-segment altitude gradient
+                    var alts = traj.points.map(function(p) { return p[2] || 0; });
+                    var minAlt = Math.min.apply(null, alts);
+                    var maxAlt = Math.max.apply(null, alts);
+                    var prevPt = [launchLat, launchLon];
+                    for (var i = 0; i < traj.points.length; i++) {
+                        var p = [traj.points[i][0], traj.points[i][1]];
+                        L.polyline([prevPt, p], { color: altGrad(traj.points[i][2]||0, minAlt, maxAlt), weight: 4, opacity: 0.85 }).addTo(map);
+                        allLatLons.push(p);
+                        prevPt = p;
+                    }
+                }
+
+                // Landing marker
+                var last = traj.points[traj.points.length - 1];
+                L.circleMarker([last[0], last[1]], {
+                    radius: 8, color: '#fff', fillColor: traj.color, fillOpacity: 1, weight: 2
+                }).bindPopup(traj.label + ' — landing na ' + traj.durationMin + ' min').addTo(map);
+            });
+
+            L.control.layers(
+                { 'Kaart': osmLayer, 'Topografisch': topoLayer },
+                { '✈ Luchtruim (OFM)': airspaceLayer, '⚡ Hoogspanning': powerGeoJson },
+                { collapsed: false }
+            ).addTo(map);
+
+            map.fitBounds(allLatLons, { padding: [30, 30] });
+            // Auto-load power lines after initial fit
+            map.once('moveend', function() { loadPowerLines(map.getBounds()); });
+        };
+
+        // Capture a Leaflet map div as a PNG and return base64 string.
+        // Uses html2canvas; tiles must be same-origin (served via /tiles/{z}/{x}/{y}).
+        window.captureMapPng = async function(mapId) {
+            var el = document.getElementById(mapId);
+            if (!el || typeof html2canvas === 'undefined') return null;
+            try {
+                // Wait briefly so any pending tile redraws finish
+                await new Promise(function(r) { setTimeout(r, 400); });
+                var canvas = await html2canvas(el, {
+                    useCORS: true,
+                    allowTaint: false,
+                    logging: false,
+                    scale: 1.5
+                });
+                var dataUrl = canvas.toDataURL('image/png');
+                return dataUrl.split(',')[1]; // base64 only, no prefix
+            } catch(e) {
+                console.warn('captureMapPng failed:', e);
+                return null;
             }
         };
     </script>

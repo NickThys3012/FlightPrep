@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Caching.Memory;
+using System.Net;
 using System.Text.Json;
 
 namespace FlightPrep.Services;
@@ -6,6 +7,10 @@ namespace FlightPrep.Services;
 public class PowerLineService(IHttpClientFactory httpClientFactory, IMemoryCache cache, ILogger<PowerLineService> logger)
 {
     private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(24);
+
+    // Serialize all Overpass requests: prevents burst 429s when multiple maps load simultaneously.
+    // Combined with the in-cache re-check after acquiring, only one HTTP call is made per unique bbox.
+    private static readonly SemaphoreSlim _semaphore = new(1, 1);
 
     public async Task<string?> GetGeoJsonAsync(double south, double west, double north, double east)
     {
@@ -20,28 +25,64 @@ public class PowerLineService(IHttpClientFactory httpClientFactory, IMemoryCache
         if (cache.TryGetValue(cacheKey, out string? cached))
             return cached;
 
+        await _semaphore.WaitAsync();
+        try
+        {
+            // Re-check after acquiring — another request may have fetched this bbox while we waited
+            if (cache.TryGetValue(cacheKey, out cached))
+                return cached;
+
+            return await FetchWithRetryAsync(cacheKey, s, w, n, e);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
+    private async Task<string?> FetchWithRetryAsync(string cacheKey, double s, double w, double n, double e)
+    {
         const string voltageFilter = "way[power=line][voltage~\"^([12][0-9]{5}|[3-9][0-9]{5})$\"];";
         var query = FormattableString.Invariant($"[out:json][timeout:25][bbox:{s},{w},{n},{e}];")
                     + voltageFilter + "out geom;";
 
-        try
+        for (int attempt = 1; attempt <= 2; attempt++)
         {
-            var client = httpClientFactory.CreateClient("overpass");
-            using var content = new FormUrlEncodedContent([new KeyValuePair<string, string>("data", query)]);
-            using var response = await client.PostAsync("https://overpass-api.de/api/interpreter", content);
-            response.EnsureSuccessStatusCode();
+            try
+            {
+                var client = httpClientFactory.CreateClient("overpass");
+                using var content = new FormUrlEncodedContent([new KeyValuePair<string, string>("data", query)]);
+                using var response = await client.PostAsync("https://overpass-api.de/api/interpreter", content);
 
-            var json = await response.Content.ReadAsStringAsync();
-            var geoJson = ConvertToGeoJson(json);
+                if (response.StatusCode == HttpStatusCode.TooManyRequests)
+                {
+                    if (attempt < 2)
+                    {
+                        logger.LogWarning("Overpass API 429 rate-limited, waiting 3 s before retry");
+                        await Task.Delay(3000);
+                        continue;
+                    }
+                    logger.LogWarning("Overpass API 429 after retry, skipping power-line fetch");
+                    return null;
+                }
 
-            cache.Set(cacheKey, geoJson, CacheTtl);
-            return geoJson;
+                response.EnsureSuccessStatusCode();
+                var json = await response.Content.ReadAsStringAsync();
+                var geoJson = ConvertToGeoJson(json);
+                cache.Set(cacheKey, geoJson, CacheTtl);
+                return geoJson;
+            }
+            catch (Exception ex) when (attempt < 2)
+            {
+                logger.LogWarning(ex, "Overpass API request failed (attempt {A}), retrying after 2 s", attempt);
+                await Task.Delay(2000);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Overpass API request failed for bbox {S},{W},{N},{E}", s, w, n, e);
+            }
         }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Overpass API request failed for bbox {S},{W},{N},{E}", s, w, n, e);
-            return null;
-        }
+        return null;
     }
 
     private static string ConvertToGeoJson(string overpassJson)
