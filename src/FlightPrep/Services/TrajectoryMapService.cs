@@ -74,17 +74,20 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
 
             // Fetch OFM airspace tiles in parallel
             var airTiles = new SKBitmap?[txCount, tyCount];
+            int airFetchedCount = 0;
             await Parallel.ForEachAsync(
                 Enumerable.Range(0, txCount * tyCount),
                 new ParallelOptions { MaxDegreeOfParallelism = 6 },
                 async (idx, _) =>
                 {
                     int col = idx % txCount, row = idx / txCount;
-                    airTiles[col, row] = await FetchAirspaceTileAsync(zoom, txMin + col, tyMin + row);
+                    var bmp = await FetchAirspaceTileAsync(zoom, txMin + col, tyMin + row);
+                    airTiles[col, row] = bmp;
+                    if (bmp != null) Interlocked.Increment(ref airFetchedCount);
                 });
 
-            logger.LogInformation("Trajectory map: {Ok}/{Total} OSM tiles at zoom {Z}",
-                fetchedCount, txCount * tyCount, zoom);
+            logger.LogInformation("Trajectory map: OSM {OsmOk}/{Total}, OFM {OFMOk}/{Total} tiles at zoom {Z}",
+                fetchedCount, txCount * tyCount, airFetchedCount, txCount * tyCount, zoom);
 
             // Stitch tiles
             var info = new SKImageInfo(imgW, imgH);
@@ -101,15 +104,17 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
                         bmp.Dispose();
                     }
 
-            // Layer 2: OFM airspace overlay at 65% opacity
-            using var airPaint = new SKPaint { Color = SKColors.White.WithAlpha(166) }; // ~65%
+            // Layer 2: OFM airspace overlay at 65% opacity via SaveLayer compositing
+            using var layerPaint = new SKPaint { Color = new SKColor(255, 255, 255, 166) };
+            canvas.SaveLayer(layerPaint);
             for (int col = 0; col < txCount; col++)
                 for (int row = 0; row < tyCount; row++)
                     if (airTiles[col, row] is { } bmp)
                     {
-                        canvas.DrawBitmap(bmp, col * TileSize, row * TileSize, airPaint);
+                        canvas.DrawBitmap(bmp, col * TileSize, row * TileSize);
                         bmp.Dispose();
                     }
+            canvas.Restore();
 
             // Coordinate → pixel helpers (capture zoom/offset in closure)
             float ToX(double lon) => (float)((LonToFrac(lon, zoom) - txMin) * TileSize);
