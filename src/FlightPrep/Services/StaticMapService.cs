@@ -93,12 +93,17 @@ public class StaticMapService(IHttpClientFactory httpFactory)
         }
 
         // Draw trajectory polylines + landing markers
+        // Scale pen/marker sizes relative to the stitched image so they survive the final crop/resize
+        float scale = imgW / (float)widthPx;
+        float penW  = Math.Max(3f, 4f * scale);
+        float mrkR  = Math.Max(6f, 8f * scale);
+
         image.Mutate(ctx =>
         {
             foreach (var line in lines)
             {
                 var color = ParseHexColor(line.HexColor);
-                var pen   = Pens.Solid(color, 3f);
+                var pen   = Pens.Solid(color, penW);
 
                 for (int i = 0; i + 1 < line.Points.Count; i++)
                 {
@@ -110,21 +115,22 @@ public class StaticMapService(IHttpClientFactory httpFactory)
                 // Landing: filled circle with white border
                 var last     = line.Points[^1];
                 var (lx, ly) = LatLonToPixel(last.Lat, last.Lon, zoom, minTX, minTY);
-                ctx.Fill(Brushes.Solid(color),              new EllipsePolygon((float)lx, (float)ly, 6));
-                ctx.Draw(Pens.Solid(Color.White, 1.5f),     new EllipsePolygon((float)lx, (float)ly, 6));
+                ctx.Fill(Brushes.Solid(color),                         new EllipsePolygon((float)lx, (float)ly, mrkR));
+                ctx.Draw(Pens.Solid(Color.White, penW * 0.5f),         new EllipsePolygon((float)lx, (float)ly, mrkR));
             }
 
-            // Launch marker: white circle with dark border
+            // Launch marker: white filled circle with dark border
             var (sx, sy) = LatLonToPixel(startLat, startLon, zoom, minTX, minTY);
-            ctx.Fill(Brushes.Solid(Color.White),                                  new EllipsePolygon((float)sx, (float)sy, 8));
-            ctx.Draw(Pens.Solid(Color.ParseHex("1a3a5c"), 2.5f), new EllipsePolygon((float)sx, (float)sy, 8));
+            ctx.Fill(Brushes.Solid(Color.White),                                       new EllipsePolygon((float)sx, (float)sy, mrkR * 1.3f));
+            ctx.Draw(Pens.Solid(Color.ParseHex("1a3a5c"), penW * 0.6f), new EllipsePolygon((float)sx, (float)sy, mrkR * 1.3f));
         });
 
-        // Resize to target dimensions
+        // Crop + resize: maintain aspect ratio, centre-crop to exact output dimensions
         image.Mutate(ctx => ctx.Resize(new ResizeOptions
         {
             Size = new Size(widthPx, heightPx),
-            Mode = ResizeMode.Stretch
+            Mode = ResizeMode.Crop,
+            Position = AnchorPositionMode.Center
         }));
 
         using var ms = new MemoryStream();

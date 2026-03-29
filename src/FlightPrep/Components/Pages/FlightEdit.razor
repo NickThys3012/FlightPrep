@@ -629,9 +629,19 @@
                     }
                     @if (enhCruiseAltsFt.Count < 5)
                     {
-                        <button class="btn btn-outline-secondary btn-sm mt-1" @onclick="AddCruiseAlt" type="button">
-                            <span class="bi bi-plus"></span> Hoogte toevoegen
-                        </button>
+                        <div class="d-flex flex-wrap gap-1 mt-1 mb-1">
+                            @foreach (var preset in new[] { 500, 1000, 1500, 2000, 3000, 5000 })
+                            {
+                                var p = preset;
+                                @if (!enhCruiseAltsFt.Contains(p))
+                                {
+                                    <button class="btn btn-outline-secondary btn-sm py-0 px-2"
+                                            style="font-size:0.75rem"
+                                            @onclick="() => { if (enhCruiseAltsFt.Count < 5) enhCruiseAltsFt.Add(p); }"
+                                            type="button">@p</button>
+                                }
+                            }
+                        </div>
                     }
                 </div>
                 <div class="col-6 col-md-3">
