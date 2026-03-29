@@ -619,6 +619,143 @@
 
             map.fitBounds(allLatLons, { padding: [30, 30] });
         };
+
+        // ── Combined trajectory map (dead-reckoning + enhanced 3D on one map) ──
+        // trajectories: [{color, label, durationMin, hasAltitude, points: [[lat,lon] or [lat,lon,altFt]]}]
+        window.initCombinedTrajectoryMap = function(mapId, launchLat, launchLon, trajectories) {
+            if (!trajectories || trajectories.length === 0) return;
+
+            // Destroy any existing map on this element to allow re-init
+            if (window._cmaps && window._cmaps[mapId]) {
+                window._cmaps[mapId].remove();
+                delete window._cmaps[mapId];
+            }
+
+            var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap', maxZoom: 18
+            });
+            var topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenTopoMap', maxZoom: 17
+            });
+            var airspaceLayer = L.tileLayer(
+                'https://nwy-tiles-api.prod.newaydata.com/tiles/{z}/{x}/{y}.png?path=latest/aero/latest',
+                { opacity: 0.7, maxZoom: 14, minZoom: 5, attribution: '© openflightmaps' }
+            );
+            var powerGeoJson = L.geoJSON(null, {
+                style: function(f) {
+                    var v = parseInt(f.properties.voltage) || 0;
+                    var c = v >= 380000 ? '#e74c3c' : v >= 220000 ? '#e67e22' : '#f1c40f';
+                    return { color: c, weight: 2.5, opacity: 0.9 };
+                },
+                onEachFeature: function(f, layer) {
+                    var kv = f.properties.voltage ? Math.round(parseInt(f.properties.voltage)/1000) + ' kV' : '?';
+                    layer.bindPopup('Hoogspanning - ' + kv);
+                }
+            });
+            var _powerDebounceTimer = null;
+            var _powerCache = [];
+            function loadPowerLines(bounds) {
+                if (map.getZoom() < 10) return;
+                var s = parseFloat(bounds.getSouth().toFixed(2));
+                var n = parseFloat(bounds.getNorth().toFixed(2));
+                var w = parseFloat(bounds.getWest().toFixed(2));
+                var e = parseFloat(bounds.getEast().toFixed(2));
+                for (var i = 0; i < _powerCache.length; i++) {
+                    var c = _powerCache[i];
+                    if (s >= c.s && n <= c.n && w >= c.w && e <= c.e) {
+                        powerGeoJson.clearLayers(); powerGeoJson.addData(c.data); return;
+                    }
+                }
+                fetch('/api/powerlines?south='+s+'&west='+w+'&north='+n+'&east='+e)
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (_powerCache.length >= 20) _powerCache.shift();
+                        _powerCache.push({s:s,w:w,n:n,e:e,data:data});
+                        powerGeoJson.clearLayers(); powerGeoJson.addData(data);
+                    })
+                    .catch(function(err) { console.error('Hoogspanning laden mislukt:', err); });
+            }
+
+            // Airspace on by default; power lines shown and auto-loaded
+            var map = L.map(mapId, { layers: [osmLayer, airspaceLayer, powerGeoJson] })
+                       .setView([launchLat, launchLon], 11);
+            window._cmaps = window._cmaps || {};
+            window._cmaps[mapId] = map;
+
+            map.on('overlayadd', function(e) {
+                if (e.name === '⚡ Hoogspanning') loadPowerLines(map.getBounds());
+            });
+            map.on('moveend', function() {
+                if (!map.hasLayer(powerGeoJson)) return;
+                clearTimeout(_powerDebounceTimer);
+                _powerDebounceTimer = setTimeout(function() { loadPowerLines(map.getBounds()); }, 500);
+            });
+
+            // Altitude → colour gradient (used for enhanced 3D trajectories)
+            function altGrad(alt, minAlt, maxAlt) {
+                if (maxAlt === minAlt) return '#e74c3c';
+                var t = (alt - minAlt) / (maxAlt - minAlt);
+                if (t < 0.33) {
+                    return 'rgb(' + Math.round(46+(241-46)*(t/0.33)) + ','
+                                  + Math.round(204+(196-204)*(t/0.33)) + ','
+                                  + Math.round(113+(15-113)*(t/0.33)) + ')';
+                } else if (t < 0.66) {
+                    var f = (t-0.33)/0.33;
+                    return 'rgb('+Math.round(241+(230-241)*f)+','+Math.round(196+(126-196)*f)+','+Math.round(15+(34-15)*f)+')';
+                } else {
+                    var f2 = (t-0.66)/0.34;
+                    return 'rgb('+Math.round(230+(231-230)*f2)+','+Math.round(126+(76-126)*f2)+','+Math.round(34+(60-34)*f2)+')';
+                }
+            }
+
+            // Launch marker
+            L.marker([launchLat, launchLon], {
+                icon: L.divIcon({ className: '', html: '<div style="width:14px;height:14px;background:#2ecc71;border-radius:50%;border:2px solid #fff;box-shadow:0 0 3px rgba(0,0,0,.5)"></div>', iconAnchor: [7,7] })
+            }).bindPopup('Opstijgplaats').addTo(map);
+
+            var allLatLons = [[launchLat, launchLon]];
+
+            trajectories.forEach(function(traj) {
+                if (!traj.points || traj.points.length === 0) return;
+
+                if (!traj.hasAltitude) {
+                    // Dead-reckoning: single solid-colour polyline
+                    var latlngs = [[launchLat, launchLon]].concat(traj.points.map(function(p) { return [p[0], p[1]]; }));
+                    L.polyline(latlngs, { color: traj.color, weight: 4, opacity: 0.85,
+                        dashArray: '8,4' }) // dashed to visually distinguish from 3D arcs
+                        .bindTooltip(traj.label, { sticky: true }).addTo(map);
+                    traj.points.forEach(function(p) { allLatLons.push([p[0], p[1]]); });
+                } else {
+                    // Enhanced 3D: per-segment altitude gradient
+                    var alts = traj.points.map(function(p) { return p[2] || 0; });
+                    var minAlt = Math.min.apply(null, alts);
+                    var maxAlt = Math.max.apply(null, alts);
+                    var prevPt = [launchLat, launchLon];
+                    for (var i = 0; i < traj.points.length; i++) {
+                        var p = [traj.points[i][0], traj.points[i][1]];
+                        L.polyline([prevPt, p], { color: altGrad(traj.points[i][2]||0, minAlt, maxAlt), weight: 4, opacity: 0.85 }).addTo(map);
+                        allLatLons.push(p);
+                        prevPt = p;
+                    }
+                }
+
+                // Landing marker
+                var last = traj.points[traj.points.length - 1];
+                L.circleMarker([last[0], last[1]], {
+                    radius: 8, color: '#fff', fillColor: traj.color, fillOpacity: 1, weight: 2
+                }).bindPopup(traj.label + ' — landing na ' + traj.durationMin + ' min').addTo(map);
+            });
+
+            L.control.layers(
+                { 'Kaart': osmLayer, 'Topografisch': topoLayer },
+                { '✈ Luchtruim (OFM)': airspaceLayer, '⚡ Hoogspanning': powerGeoJson },
+                { collapsed: false }
+            ).addTo(map);
+
+            map.fitBounds(allLatLons, { padding: [30, 30] });
+            // Auto-load power lines after initial fit
+            map.once('moveend', function() { loadPowerLines(map.getBounds()); });
+        };
     </script>
 </body>
 

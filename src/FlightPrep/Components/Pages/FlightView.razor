@@ -224,38 +224,35 @@ else
                 <div class="card">
                     <div class="card-header bg-primary text-white">8. Traject</div>
                     <div class="card-body">
-                        @if (savedEnhancedTrajectories != null && savedEnhancedTrajectories.Any(t => t.Points.Count > 0) && fp?.Location?.Latitude != null)
-                        {
-                            <div class="mb-3">
-                                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                                    @foreach (var t in savedEnhancedTrajectories.Where(t => t.Points.Count > 0))
-                                    {
-                                        <span class="badge" style="background-color:@t.Color">@t.AltitudeFt ft</span>
-                                    }
-                                    <span class="text-muted small ms-2">
-                                        @savedEnhancedTrajectories[0].DataSource —
-                                        @savedEnhancedTrajectories[0].DurationMinutes min —
-                                        @savedEnhancedTrajectories[0].SimulatedAt.ToString("dd/MM/yyyy HH:mm")
-                                    </span>
-                                </div>
-                                <div id="saved-enhanced-map" style="height:350px;border-radius:8px;overflow:hidden;"></div>
-                            </div>
+                        @{
+                            var hasSavedEnh = savedEnhancedTrajectories != null && savedEnhancedTrajectories.Any(t => t.Points.Count > 0);
+                            var hasSavedDr  = savedTrajectories != null && savedTrajectories.Count > 0;
                         }
-                        @if (savedTrajectories != null && savedTrajectories.Count > 0 && fp?.Location?.Latitude != null)
+                        @if ((hasSavedEnh || hasSavedDr) && fp?.Location?.Latitude != null)
                         {
                             <div class="mb-3">
-                                <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-                                    @foreach (var t in savedTrajectories)
+                                <div class="d-flex flex-wrap gap-1 align-items-center mb-2">
+                                    @foreach (var t in (savedEnhancedTrajectories ?? new()).Where(t => t.Points.Count > 0))
                                     {
-                                        <span class="badge" style="background-color:@t.Color">@t.AltitudeFt ft</span>
+                                        <span class="badge" style="background-color:@t.Color">@t.AltitudeFt ft (3D)</span>
                                     }
-                                    <span class="text-muted small ms-2">
-                                        @savedTrajectories[0].DataSource —
-                                        @savedTrajectories[0].DurationMinutes min —
-                                        @savedTrajectories[0].SimulatedAt.ToString("dd/MM/yyyy HH:mm")
-                                    </span>
+                                    @foreach (var t in (savedTrajectories ?? new()))
+                                    {
+                                        <span class="badge" style="background-color:@t.Color">@t.AltitudeFt ft (DR)</span>
+                                    }
+                                    @{
+                                        var refTraj = (savedEnhancedTrajectories ?? new()).FirstOrDefault(t => t.Points.Count > 0)
+                                                   ?? savedTrajectories?.FirstOrDefault();
+                                    }
+                                    @if (refTraj != null)
+                                    {
+                                        <span class="text-muted small ms-2">
+                                            @refTraj.DurationMinutes min —
+                                            @refTraj.SimulatedAt.ToString("dd/MM/yyyy HH:mm")
+                                        </span>
+                                    }
                                 </div>
-                                <div id="saved-trajectory-map" style="height:350px;border-radius:8px;overflow:hidden;"></div>
+                                <div id="saved-combined-map" style="height:400px;border-radius:8px;overflow:hidden;"></div>
                             </div>
                         }
                         @if (!string.IsNullOrWhiteSpace(fp.Traject))
@@ -433,9 +430,8 @@ else
     private bool mapInitialized = false;
 
     private List<SimulatedTrajectory>? savedTrajectories;
-    private bool savedTrajMapRendered = false;
     private List<SimulatedTrajectory>? savedEnhancedTrajectories;
-    private bool savedEnhancedMapRendered = false;
+    private bool savedCombinedMapRendered = false;
 
     private void OpenLightbox(FlightImage img) => lightboxImg = img;
     private void CloseLightbox() => lightboxImg = null;
@@ -504,41 +500,36 @@ else
             await JS.InvokeVoidAsync("initFlightMap", "flight-track-map", pts);
             await JS.InvokeVoidAsync("initAltitudeChart", "altitude-chart", pts);
         }
-        if (savedTrajectories != null && !savedTrajMapRendered
+        var hasSavedAny = ((savedTrajectories?.Count ?? 0) > 0)
+                       || (savedEnhancedTrajectories?.Any(t => t.Points.Count > 0) == true);
+        if (hasSavedAny && !savedCombinedMapRendered
             && fp?.Location?.Latitude != null && fp.Location.Longitude != null)
         {
-            savedTrajMapRendered = true;
-            await JS.InvokeVoidAsync("initTrajectoryMap",
-                "saved-trajectory-map",
-                fp!.Location!.Latitude,
-                fp.Location.Longitude,
-                savedTrajectories.Select(t => new
+            savedCombinedMapRendered = true;
+            var drJs = (savedTrajectories ?? new())
+                .Select(t => new
                 {
-                    altitudeFt  = t.AltitudeFt,
                     color       = t.Color,
-                    label       = $"{t.AltitudeFt} ft",
+                    label       = $"{t.AltitudeFt} ft (DR)",
                     durationMin = t.DurationMinutes,
+                    hasAltitude = false,
                     points      = t.Points.Select(p => new[] { p.Lat, p.Lon }).ToArray()
-                }).ToArray());
-        }
-        if (savedEnhancedTrajectories != null && !savedEnhancedMapRendered
-            && savedEnhancedTrajectories.Any(t => t.Points.Count > 0)
-            && fp?.Location?.Latitude != null && fp.Location.Longitude != null)
-        {
-            savedEnhancedMapRendered = true;
-            await JS.InvokeVoidAsync("initEnhancedTrajectoryMap",
-                "saved-enhanced-map",
+                });
+            var enhJs = (savedEnhancedTrajectories ?? new())
+                .Where(t => t.Points.Count > 0)
+                .Select(t => new
+                {
+                    color       = t.Color,
+                    label       = $"{t.AltitudeFt} ft (3D)",
+                    durationMin = t.DurationMinutes,
+                    hasAltitude = true,
+                    points      = t.Points.Select(p => new[] { p.Lat, p.Lon, p.AltitudeFt ?? 0 }).ToArray()
+                });
+            await JS.InvokeVoidAsync("initCombinedTrajectoryMap",
+                "saved-combined-map",
                 fp!.Location!.Latitude,
                 fp.Location.Longitude,
-                savedEnhancedTrajectories
-                    .Where(t => t.Points.Count > 0)
-                    .Select(t => new
-                    {
-                        color       = t.Color,
-                        label       = $"{t.AltitudeFt} ft",
-                        durationMin = t.DurationMinutes,
-                        points      = t.Points.Select(p => new[] { p.Lat, p.Lon, p.AltitudeFt ?? 0 }).ToArray()
-                    }).ToArray());
+                drJs.Concat<object>(enhJs).ToArray());
         }
     }
 

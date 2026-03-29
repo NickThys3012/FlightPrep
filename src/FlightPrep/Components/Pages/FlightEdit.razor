@@ -587,7 +587,7 @@
                                         <span class="bi bi-save"></span> Simulatie opslaan
                                     </button>
                                 </div>
-                                <div id="trajectory-map" style="height:400px;border-radius:8px;overflow:hidden;" class="mb-2"></div>
+                                <div id="trajectory-map" style="display:none"></div>
                                 <p class="text-muted small mb-0">
                                     ⚠️ Indicatief traject op basis van dead-reckoning. Geen gecertificeerde vliegweg.
                                 </p>
@@ -675,7 +675,7 @@
                         <span class="bi bi-save"></span> Simulatie opslaan
                     </button>
                 </div>
-                <div id="enhanced-trajectory-map" style="height:400px;border-radius:8px;overflow:hidden;" class="mb-2"></div>
+                <div id="enhanced-trajectory-map" style="display:none"></div>
                 <p class="text-muted small mb-0">
                     ⚠️ Indicatief traject op basis van Open-Meteo uurlijkse druklaagwind. Geen gecertificeerde vliegweg.
                 </p>
@@ -684,7 +684,30 @@
     </div>
 }
 
-                        <div class="mb-3">
+                        @{
+                            var anyTrajectories =
+                                (simulatedTrajectories != null && simulatedTrajectories.Count > 0) ||
+                                (enhancedTrajectories  != null && enhancedTrajectories.Any(t => t.Points.Count > 0));
+                        }
+                        @if (anyTrajectories && fp?.Location?.Latitude != null)
+                        {
+                            <div class="mt-3">
+                                <div class="d-flex flex-wrap gap-1 align-items-center mb-1">
+                                    @foreach (var t in (simulatedTrajectories ?? new List<SimulatedTrajectory>()).Concat(enhancedTrajectories?.Where(t => t.Points.Count > 0) ?? new List<SimulatedTrajectory>()))
+                                    {
+                                        <span class="badge" style="background-color:@t.Color">
+                                            @t.AltitudeFt ft @(t.AscentRateMs.HasValue ? "3D" : "DR")
+                                        </span>
+                                    }
+                                    <span class="text-muted small ms-1">
+                                        ⚡ Hoogspanning en ✈ luchtruim worden automatisch geladen
+                                    </span>
+                                </div>
+                                <div id="combined-trajectory-map" style="height:450px;border-radius:8px;overflow:hidden;"></div>
+                            </div>
+                        }
+
+                        <div class="mb-3 mt-3">
                             <label class="form-label">Trajectnotities / waypoints</label>
                             <textarea class="form-control" rows="4" placeholder="Trajectnotities / waypoints..."
                                 @bind="fp.Traject"></textarea>
@@ -790,7 +813,6 @@
     private int simulationDurationMinutes = 60;
     private List<SimulatedTrajectory>? simulatedTrajectories;
     private string? trajectoryError;
-    private bool trajectoryMapRendered = false;
     private bool fetchingWindProfile = false;
     private string? windProfileError;
 
@@ -799,7 +821,7 @@
     private double enhDescentRateMs  = 2.0;
     private List<SimulatedTrajectory>? enhancedTrajectories;
     private bool   showEnhancedPanel  = false;
-    private bool   enhancedMapRendered = false;
+    private bool   combinedMapRendered = false;
     private string? enhancedError;
     private bool   computingEnhanced  = false;
 
@@ -909,40 +931,38 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
-        if (simulatedTrajectories != null && !trajectoryMapRendered && firstRender == false)
+        // Combined trajectory map: render once whenever either DR or 3D trajectories are available
+        var hasDr       = simulatedTrajectories != null && simulatedTrajectories.Count > 0;
+        var hasEnh      = enhancedTrajectories  != null && enhancedTrajectories.Any(t => t.Points.Count > 0);
+        var hasLocation = fp?.Location?.Latitude != null && fp.Location.Longitude != null;
+
+        if ((hasDr || hasEnh) && !combinedMapRendered && hasLocation)
         {
-            trajectoryMapRendered = true;
-            await JS.InvokeVoidAsync("initTrajectoryMap",
-                "trajectory-map",
-                fp!.Location!.Latitude,
-                fp.Location.Longitude,
-                simulatedTrajectories.Select(t => new
+            combinedMapRendered = true;
+            var drTrajsJs = (simulatedTrajectories ?? new())
+                .Select(t => new
                 {
-                    altitudeFt  = t.AltitudeFt,
                     color       = t.Color,
-                    label       = $"{t.AltitudeFt} ft",
+                    label       = $"{t.AltitudeFt} ft (DR)",
                     durationMin = t.DurationMinutes,
+                    hasAltitude = false,
                     points      = t.Points.Select(p => new[] { p.Lat, p.Lon }).ToArray()
-                }).ToArray());
-        }
-        if (enhancedTrajectories != null && !enhancedMapRendered
-            && enhancedTrajectories.Any(t => t.Points.Count > 0)
-            && fp?.Location?.Latitude != null && fp.Location.Longitude != null)
-        {
-            enhancedMapRendered = true;
-            await JS.InvokeVoidAsync("initEnhancedTrajectoryMap",
-                "enhanced-trajectory-map",
+                });
+            var enhTrajsJs = (enhancedTrajectories ?? new())
+                .Where(t => t.Points.Count > 0)
+                .Select(t => new
+                {
+                    color       = t.Color,
+                    label       = $"{t.AltitudeFt} ft (3D)",
+                    durationMin = t.DurationMinutes,
+                    hasAltitude = true,
+                    points      = t.Points.Select(p => new[] { p.Lat, p.Lon, p.AltitudeFt ?? 0 }).ToArray()
+                });
+            await JS.InvokeVoidAsync("initCombinedTrajectoryMap",
+                "combined-trajectory-map",
                 fp!.Location!.Latitude,
                 fp.Location.Longitude,
-                enhancedTrajectories
-                    .Where(t => t.Points.Count > 0)
-                    .Select(t => new
-                    {
-                        color      = t.Color,
-                        label      = $"{t.AltitudeFt} ft",
-                        durationMin = t.DurationMinutes,
-                        points     = t.Points.Select(p => new[] { p.Lat, p.Lon, p.AltitudeFt ?? 0 }).ToArray()
-                    }).ToArray());
+                drTrajsJs.Concat<object>(enhTrajsJs).ToArray());
         }
     }
 
@@ -950,7 +970,7 @@
     {
         trajectoryError = null;
         simulatedTrajectories = null;
-        trajectoryMapRendered = false;
+        combinedMapRendered = false;
 
         if (fp?.Location?.Latitude is null || fp.Location.Longitude is null)
         {
@@ -998,7 +1018,7 @@
     {
         enhancedError        = null;
         enhancedTrajectories = null;
-        enhancedMapRendered  = false;
+        combinedMapRendered  = false;
 
         if (fp?.Location?.Latitude is null || fp.Location.Longitude is null)
         {
