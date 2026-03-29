@@ -583,9 +583,14 @@
                                         <span class="badge" style="background-color:@t.Color">@t.AltitudeFt ft</span>
                                     }
                                     <span class="text-muted small ms-2">@simulatedTrajectories[0].DataSource</span>
-                                    <button class="btn btn-sm btn-success ms-auto" @onclick="OpslaanSimulatie">
-                                        <span class="bi bi-save"></span> Simulatie opslaan
-                                    </button>
+                                    @if (fp?.Id > 0)
+                                    {
+                                        <span class="text-success small ms-auto"><span class="bi bi-check-circle"></span> Automatisch opgeslagen</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-warning small ms-auto"><span class="bi bi-exclamation-circle"></span> Wordt opgeslagen bij "Opslaan"</span>
+                                    }
                                 </div>
                                 <div id="trajectory-map" style="display:none"></div>
                                 <p class="text-muted small mb-0">
@@ -681,9 +686,14 @@
                         <span class="badge" style="background-color:@t.Color">@t.AltitudeFt ft</span>
                     }
                     <span class="text-muted small">@enhancedTrajectories[0].DataSource · @enhancedTrajectories[0].DurationMinutes min</span>
-                    <button class="btn btn-sm btn-success ms-auto" @onclick="OpslaanSimulatie">
-                        <span class="bi bi-save"></span> Simulatie opslaan
-                    </button>
+                    @if (fp?.Id > 0)
+                    {
+                        <span class="text-success small ms-auto"><span class="bi bi-check-circle"></span> Automatisch opgeslagen</span>
+                    }
+                    else
+                    {
+                        <span class="text-warning small ms-auto"><span class="bi bi-exclamation-circle"></span> Wordt opgeslagen bij "Opslaan"</span>
+                    }
                 </div>
                 <div id="enhanced-trajectory-map" style="display:none"></div>
                 <p class="text-muted small mb-0">
@@ -1006,18 +1016,24 @@
             fp.Location.Longitude.Value,
             valid,
             simulationDurationMinutes);
+
+        await AutoSaveSimulationAsync();
     }
 
-    private async Task OpslaanSimulatie()
+    private void MergeSimulationsToFp()
     {
-        if (fp == null) return;
-        if (simulatedTrajectories == null && (enhancedTrajectories == null || enhancedTrajectories.Count == 0)) return;
-
-        var allTrajectories = new List<SimulatedTrajectory>(simulatedTrajectories ?? new());
+        if (fp is null) return;
+        var all = new List<SimulatedTrajectory>(simulatedTrajectories ?? new());
         if (enhancedTrajectories != null)
-            allTrajectories.AddRange(enhancedTrajectories);
+            all.AddRange(enhancedTrajectories.Where(t => t.Points.Count > 0));
+        if (all.Count > 0)
+            fp.TrajectorySimulationJson = System.Text.Json.JsonSerializer.Serialize(all);
+    }
 
-        fp.TrajectorySimulationJson = System.Text.Json.JsonSerializer.Serialize(allTrajectories);
+    private async Task AutoSaveSimulationAsync()
+    {
+        MergeSimulationsToFp();
+        if (fp is null || fp.Id == 0) return; // new flight — will be saved when user saves the form
         await using var db = await DbFactory.CreateDbContextAsync();
         db.Attach(fp);
         db.Entry(fp).Property(x => x.TrajectorySimulationJson).IsModified = true;
@@ -1065,6 +1081,8 @@
 
             if (enhancedTrajectories.All(t => t.Points.Count == 0))
                 enhancedError = "Geen winddata beschikbaar voor dit tijdstip. Probeer een andere vliegdatum of gebruik dead-reckoning.";
+            else
+                await AutoSaveSimulationAsync();
         }
         catch (Exception ex)
         {
@@ -1250,6 +1268,7 @@
     private async Task<FlightPreparation?> SaveInternal()
     {
         if (fp == null) return null;
+        MergeSimulationsToFp(); // ensure any in-memory simulations are persisted with the record
         await ReadQuillContent(); // pull latest HTML from editor
         saving = true; saveMessage = null;
         try
