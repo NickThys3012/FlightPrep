@@ -5,6 +5,7 @@
 @inject SunriseService SunriseSvc
 @inject IJSRuntime JS
 @inject KmlService KmlSvc
+@inject ILogger<FlightView> Logger
 @using FlightPrep.Models.Trajectory
 
 <PageTitle>Vaart Bekijken – FlightPrep</PageTitle>
@@ -459,7 +460,11 @@ else
                     savedTrajectories = System.Text.Json.JsonSerializer.Deserialize<List<SimulatedTrajectory>>(
                         fp.TrajectorySimulationJson);
                 }
-                catch { savedTrajectories = null; }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to deserialize TrajectorySimulationJson for flight {Id}", fp?.Id);
+                    savedTrajectories = null;
+                }
             }
         }
     }

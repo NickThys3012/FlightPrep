@@ -8,6 +8,7 @@
 @inject SunriseService SunriseSvc
 @inject IJSRuntime JS
 @inject ITrajectoryService TrajectorySvc
+@inject ILogger<FlightEdit> Logger
 @using Microsoft.AspNetCore.Components.Forms
 @using FlightPrep.Models.Trajectory
 
@@ -573,7 +574,7 @@
                                 <div class="alert alert-warning py-1 small">@trajectoryError</div>
                             }
 
-                            @if (simulatedTrajectories != null)
+                            @if (simulatedTrajectories != null && simulatedTrajectories.Count > 0)
                             {
                                 <div class="mb-2 d-flex flex-wrap gap-2 align-items-center">
                                     @foreach (var t in simulatedTrajectories)
@@ -840,6 +841,11 @@
             trajectoryError = "Geen geldige windniveaus. Vul minstens één hoogte in met richting en snelheid.";
             return;
         }
+        if (simulationDurationMinutes is <= 0 or > 360)
+        {
+            trajectoryError = "Simulatieduur moet tussen 1 en 360 minuten liggen.";
+            return;
+        }
         simulatedTrajectories = TrajectorySvc.Compute(
             fp.Location.Latitude.Value,
             fp.Location.Longitude.Value,
@@ -886,8 +892,9 @@
             }
             showWindProfile = true;
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogWarning(ex, "FetchWindProfile failed for flight {Id}", fp?.Id);
             windProfileError = "Windprofiel ophalen mislukt. Probeer opnieuw.";
         }
         finally
