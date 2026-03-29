@@ -204,4 +204,33 @@ public class EnhancedTrajectoryService(
         double diff = ((b - a + 540) % 360) - 180;
         return (a + diff * t + 360) % 360;
     }
+
+    private static readonly string[] ColorPalette =
+        ["#2ecc71", "#3498db", "#9b59b6", "#f1c40f", "#e67e22", "#e74c3c", "#1abc9c"];
+
+    public async Task<List<SimulatedTrajectory>> ComputeMultipleAsync(
+        double launchLat,
+        double launchLon,
+        DateTime launchTimeUtc,
+        double ascentRateMs,
+        IEnumerable<int> cruiseAltitudesFt,
+        double descentRateMs,
+        int totalDurationMinutes,
+        int stepSeconds = 60,
+        CancellationToken cancellationToken = default)
+    {
+        var altitudes = cruiseAltitudesFt.Distinct().OrderBy(a => a).Take(5).ToList();
+        if (altitudes.Count == 0) return new();
+
+        var tasks = altitudes.Select(alt => ComputeAsync(
+            launchLat, launchLon, launchTimeUtc,
+            ascentRateMs, alt, descentRateMs,
+            totalDurationMinutes, stepSeconds, cancellationToken));
+
+        var results = await Task.WhenAll(tasks);
+
+        return results
+            .Select((traj, idx) => traj with { Color = ColorPalette[idx % ColorPalette.Length] })
+            .ToList();
+    }
 }

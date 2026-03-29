@@ -495,9 +495,9 @@
             }
         };
 
-        window.initEnhancedTrajectoryMap = function(mapId, launchLat, launchLon, points, durationMin) {
-            // points: [[lat, lon, altFt], ...]
-            if (!points || points.length === 0) return;
+        window.initEnhancedTrajectoryMap = function(mapId, launchLat, launchLon, trajectories) {
+            // trajectories: [{color, label, durationMin, points: [[lat, lon, altFt], ...]}]
+            if (!trajectories || trajectories.length === 0) return;
 
             var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap', maxZoom: 18
@@ -556,13 +556,8 @@
                 _powerDebounceTimer = setTimeout(function() { loadPowerLines(map.getBounds()); }, 500);
             });
 
-            // Find min/max altitude for color gradient
-            var alts = points.map(function(p) { return p[2] || 0; });
-            var minAlt = Math.min.apply(null, alts);
-            var maxAlt = Math.max.apply(null, alts);
-
-            // Altitude → colour: green (low) → yellow → orange → red (high)
-            function altColor(alt) {
+            // Altitude → colour gradient per trajectory: green (low) → yellow → orange → red (high)
+            function altColorForTraj(alt, minAlt, maxAlt) {
                 if (maxAlt === minAlt) return '#e74c3c';
                 var t = (alt - minAlt) / (maxAlt - minAlt);
                 if (t < 0.33) {
@@ -572,16 +567,16 @@
                     return 'rgb(' + r + ',' + g + ',' + b + ')';
                 } else if (t < 0.66) {
                     var f = (t - 0.33) / 0.33;
-                    var r = Math.round(241 + (230 - 241) * f);
-                    var g = Math.round(196 + (126 - 196) * f);
-                    var b = Math.round(15  + (34  - 15)  * f);
-                    return 'rgb(' + r + ',' + g + ',' + b + ')';
+                    var r2 = Math.round(241 + (230 - 241) * f);
+                    var g2 = Math.round(196 + (126 - 196) * f);
+                    var b2 = Math.round(15  + (34  - 15)  * f);
+                    return 'rgb(' + r2 + ',' + g2 + ',' + b2 + ')';
                 } else {
-                    var f = (t - 0.66) / 0.34;
-                    var r = Math.round(230 + (231 - 230) * f);
-                    var g = Math.round(126 + (76  - 126) * f);
-                    var b = Math.round(34  + (60  - 34)  * f);
-                    return 'rgb(' + r + ',' + g + ',' + b + ')';
+                    var f2 = (t - 0.66) / 0.34;
+                    var r3 = Math.round(230 + (231 - 230) * f2);
+                    var g3 = Math.round(126 + (76  - 126) * f2);
+                    var b3 = Math.round(34  + (60  - 34)  * f2);
+                    return 'rgb(' + r3 + ',' + g3 + ',' + b3 + ')';
                 }
             }
 
@@ -590,22 +585,31 @@
                 icon: L.divIcon({ className: '', html: '<div style="width:14px;height:14px;background:#2ecc71;border-radius:50%;border:2px solid #fff;"></div>', iconAnchor: [7,7] })
             }).bindPopup('Opstijgplaats').addTo(map);
 
-            // Draw per-segment coloured polyline
             var allLatLons = [[launchLat, launchLon]];
-            var prevPt = [launchLat, launchLon];
-            for (var i = 0; i < points.length; i++) {
-                var p = [points[i][0], points[i][1]];
-                var alt = points[i][2] || 0;
-                L.polyline([prevPt, p], { color: altColor(alt), weight: 4, opacity: 0.9 }).addTo(map);
-                allLatLons.push(p);
-                prevPt = p;
-            }
 
-            // Landing marker
-            var last = points[points.length - 1];
-            L.marker([last[0], last[1]], {
-                icon: L.divIcon({ className: '', html: '<div style="width:14px;height:14px;background:#e74c3c;border-radius:50%;border:2px solid #fff;"></div>', iconAnchor: [7,7] })
-            }).bindPopup('Verwacht landingspunt (na ' + durationMin + ' min)').addTo(map);
+            // Draw each trajectory
+            trajectories.forEach(function(traj) {
+                if (!traj.points || traj.points.length === 0) return;
+                var alts = traj.points.map(function(p) { return p[2] || 0; });
+                var minAlt = Math.min.apply(null, alts);
+                var maxAlt = Math.max.apply(null, alts);
+
+                var prevPt = [launchLat, launchLon];
+                for (var i = 0; i < traj.points.length; i++) {
+                    var p = [traj.points[i][0], traj.points[i][1]];
+                    var alt = traj.points[i][2] || 0;
+                    L.polyline([prevPt, p], { color: altColorForTraj(alt, minAlt, maxAlt), weight: 4, opacity: 0.85 }).addTo(map);
+                    allLatLons.push(p);
+                    prevPt = p;
+                }
+
+                // Landing marker per trajectory
+                var last = traj.points[traj.points.length - 1];
+                L.circleMarker([last[0], last[1]], {
+                    radius: 8, color: '#fff', fillColor: traj.color,
+                    fillOpacity: 1, weight: 2
+                }).bindPopup(traj.label + ' — landing na ' + traj.durationMin + ' min').addTo(map);
+            });
 
             L.control.layers(
                 { 'Kaart': osmLayer, 'Topografisch': topoLayer },

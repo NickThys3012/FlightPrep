@@ -609,11 +609,30 @@
                            min="0.5" max="10" step="0.5"
                            @bind="enhAscentRateMs" />
                 </div>
-                <div class="col-6 col-md-3">
-                    <label class="form-label small mb-1">Kruishoogte (ft)</label>
-                    <input type="number" class="form-control form-control-sm"
-                           min="500" max="20000" step="500"
-                           @bind="enhCruiseAltFt" />
+                <div class="col-md-3">
+                    <label class="form-label small mb-1">Kruishoogtes (ft) — max. 5</label>
+                    @for (int i = 0; i < enhCruiseAltsFt.Count; i++)
+                    {
+                        var idx = i;
+                        <div class="input-group input-group-sm mb-1">
+                            <input type="number" class="form-control"
+                                   min="500" max="20000" step="500"
+                                   value="@enhCruiseAltsFt[idx]"
+                                   @onchange="e => enhCruiseAltsFt[idx] = int.TryParse(e.Value?.ToString(), out var v) ? v : enhCruiseAltsFt[idx]" />
+                            @if (enhCruiseAltsFt.Count > 1)
+                            {
+                                <button class="btn btn-outline-danger" @onclick="() => enhCruiseAltsFt.RemoveAt(idx)" type="button">
+                                    <span class="bi bi-trash"></span>
+                                </button>
+                            }
+                        </div>
+                    }
+                    @if (enhCruiseAltsFt.Count < 5)
+                    {
+                        <button class="btn btn-outline-secondary btn-sm mt-1" @onclick="AddCruiseAlt" type="button">
+                            <span class="bi bi-plus"></span> Hoogte toevoegen
+                        </button>
+                    }
                 </div>
                 <div class="col-6 col-md-3">
                     <label class="form-label small mb-1">Daalsnelheid (m/s)</label>
@@ -644,11 +663,14 @@
                 <div class="alert alert-warning py-1 small">@enhancedError</div>
             }
 
-            @if (enhancedTrajectory != null && enhancedTrajectory.Points.Count > 0)
+            @if (enhancedTrajectories != null && enhancedTrajectories.Any(t => t.Points.Count > 0))
             {
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <span class="badge bg-danger">@enhancedTrajectory.AltitudeFt ft kruishoogte</span>
-                    <span class="text-muted small">@enhancedTrajectory.DataSource · @enhancedTrajectory.DurationMinutes min</span>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    @foreach (var t in enhancedTrajectories.Where(t => t.Points.Count > 0))
+                    {
+                        <span class="badge" style="background-color:@t.Color">@t.AltitudeFt ft</span>
+                    }
+                    <span class="text-muted small">@enhancedTrajectories[0].DataSource · @enhancedTrajectories[0].DurationMinutes min</span>
                     <button class="btn btn-sm btn-success ms-auto" @onclick="OpslaanSimulatie">
                         <span class="bi bi-save"></span> Simulatie opslaan
                     </button>
@@ -773,13 +795,19 @@
     private string? windProfileError;
 
     private double enhAscentRateMs   = 3.0;
-    private int    enhCruiseAltFt    = 3000;
+    private List<int> enhCruiseAltsFt = new() { 3000 };
     private double enhDescentRateMs  = 2.0;
-    private SimulatedTrajectory? enhancedTrajectory;
+    private List<SimulatedTrajectory>? enhancedTrajectories;
     private bool   showEnhancedPanel  = false;
     private bool   enhancedMapRendered = false;
     private string? enhancedError;
     private bool   computingEnhanced  = false;
+
+    private void AddCruiseAlt()
+    {
+        if (enhCruiseAltsFt.Count < 5)
+            enhCruiseAltsFt.Add((enhCruiseAltsFt.Count > 0 ? enhCruiseAltsFt[^1] : 2000) + 1000);
+    }
 
     private bool _showWindProfile;
     private bool showWindProfile
@@ -897,15 +925,24 @@
                     points      = t.Points.Select(p => new[] { p.Lat, p.Lon }).ToArray()
                 }).ToArray());
         }
-        if (enhancedTrajectory != null && !enhancedMapRendered && enhancedTrajectory.Points.Count > 0)
+        if (enhancedTrajectories != null && !enhancedMapRendered
+            && enhancedTrajectories.Any(t => t.Points.Count > 0)
+            && fp?.Location?.Latitude != null && fp.Location.Longitude != null)
         {
             enhancedMapRendered = true;
             await JS.InvokeVoidAsync("initEnhancedTrajectoryMap",
                 "enhanced-trajectory-map",
                 fp!.Location!.Latitude,
                 fp.Location.Longitude,
-                enhancedTrajectory.Points.Select(p => new[] { p.Lat, p.Lon, p.AltitudeFt ?? 0 }).ToArray(),
-                enhancedTrajectory.DurationMinutes);
+                enhancedTrajectories
+                    .Where(t => t.Points.Count > 0)
+                    .Select(t => new
+                    {
+                        color      = t.Color,
+                        label      = $"{t.AltitudeFt} ft",
+                        durationMin = t.DurationMinutes,
+                        points     = t.Points.Select(p => new[] { p.Lat, p.Lon, p.AltitudeFt ?? 0 }).ToArray()
+                    }).ToArray());
         }
     }
 
@@ -944,11 +981,11 @@
     private async Task OpslaanSimulatie()
     {
         if (fp == null) return;
-        if (simulatedTrajectories == null && enhancedTrajectory == null) return;
+        if (simulatedTrajectories == null && (enhancedTrajectories == null || enhancedTrajectories.Count == 0)) return;
 
         var allTrajectories = new List<SimulatedTrajectory>(simulatedTrajectories ?? new());
-        if (enhancedTrajectory != null)
-            allTrajectories.Add(enhancedTrajectory);
+        if (enhancedTrajectories != null)
+            allTrajectories.AddRange(enhancedTrajectories);
 
         fp.TrajectorySimulationJson = System.Text.Json.JsonSerializer.Serialize(allTrajectories);
         await using var db = await DbFactory.CreateDbContextAsync();
@@ -959,17 +996,26 @@
 
     private async Task BerekEnhancedTraject()
     {
-        enhancedError   = null;
-        enhancedTrajectory = null;
-        enhancedMapRendered = false;
+        enhancedError        = null;
+        enhancedTrajectories = null;
+        enhancedMapRendered  = false;
 
         if (fp?.Location?.Latitude is null || fp.Location.Longitude is null)
         {
             enhancedError = "Locatie heeft geen coördinaten. Voeg lat/lon toe via Instellingen > Locaties.";
             return;
         }
+        if (!enhCruiseAltsFt.Any())
+        {
+            enhancedError = "Voer minstens één kruishoogte in.";
+            return;
+        }
+        if (enhCruiseAltsFt.Any(a => a is <= 0 or > 20000))
+        {
+            enhancedError = "Kruishoogte(s) moeten tussen 500 en 20000 ft liggen.";
+            return;
+        }
         if (enhAscentRateMs  is <= 0 or > 10) { enhancedError = "Klimsnelheid moet tussen 0.5 en 10 m/s liggen."; return; }
-        if (enhCruiseAltFt   is <= 0 or > 20000) { enhancedError = "Kruishoogte moet tussen 500 en 20000 ft liggen."; return; }
         if (enhDescentRateMs is <= 0 or > 10) { enhancedError = "Daalsnelheid moet tussen 0.5 en 10 m/s liggen."; return; }
         if (simulationDurationMinutes is <= 0 or > 360) { enhancedError = "Vluchtduur moet tussen 1 en 360 minuten liggen."; return; }
 
@@ -978,16 +1024,16 @@
         try
         {
             var launchUtc = DateTime.SpecifyKind(fp.Datum.ToDateTime(fp.Tijdstip), DateTimeKind.Utc);
-            enhancedTrajectory = await EnhancedTrajectorySvc.ComputeAsync(
+            enhancedTrajectories = await EnhancedTrajectorySvc.ComputeMultipleAsync(
                 fp.Location.Latitude.Value,
                 fp.Location.Longitude.Value,
                 launchUtc,
                 enhAscentRateMs,
-                enhCruiseAltFt,
+                enhCruiseAltsFt,
                 enhDescentRateMs,
                 simulationDurationMinutes);
 
-            if (enhancedTrajectory.Points.Count == 0)
+            if (enhancedTrajectories.All(t => t.Points.Count == 0))
                 enhancedError = "Geen winddata beschikbaar voor dit tijdstip. Probeer een andere vliegdatum of gebruik dead-reckoning.";
         }
         catch (Exception ex)
