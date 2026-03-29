@@ -1345,7 +1345,7 @@
         if (saved == null) return;
         try
         {
-            var pdfBytes = PdfSvc.Generate(saved);
+            var pdfBytes = await PdfSvc.GenerateAsync(saved);
             await JS.InvokeVoidAsync("downloadFileFromBytes",
                 $"vaartvoorbereiding_{saved.Datum:yyyy-MM-dd}_{saved.Id}.pdf",
                 "application/pdf", Convert.ToBase64String(pdfBytes));

@@ -584,7 +584,7 @@ else
     private async Task DownloadPdf()
     {
         if (fp == null) return;
-        var pdfBytes = PdfSvc.Generate(fp);
+        var pdfBytes = await PdfSvc.GenerateAsync(fp);
         var fileName = $"vaartvoorbereiding_{fp.Datum:yyyy-MM-dd}_{fp.Id}.pdf";
         await JS.InvokeVoidAsync("downloadFileFromBytes", fileName, "application/pdf",
             Convert.ToBase64String(pdfBytes));

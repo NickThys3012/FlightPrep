@@ -49,6 +49,12 @@ builder.Services.AddHttpClient("overpass", c =>
 {
     c.Timeout = TimeSpan.FromSeconds(30);
 });
+builder.Services.AddHttpClient("staticmap", c =>
+{
+    c.DefaultRequestHeaders.UserAgent.ParseAdd("FlightPrep/1.0");
+    c.Timeout = TimeSpan.FromSeconds(10);
+});
+builder.Services.AddScoped<StaticMapService>();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<WeatherFetchService>();
 builder.Services.AddScoped<PowerLineService>();
