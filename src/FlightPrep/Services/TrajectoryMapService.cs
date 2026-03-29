@@ -58,7 +58,7 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
             int imgW = txCount * TileSize;
             int imgH = tyCount * TileSize;
 
-            // Fetch tiles in parallel (max 6 concurrent)
+            // Fetch OSM base tiles in parallel (max 6 concurrent)
             var tileImages = new SKBitmap?[txCount, tyCount];
             int fetchedCount = 0;
             await Parallel.ForEachAsync(
@@ -72,7 +72,18 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
                     if (bmp != null) Interlocked.Increment(ref fetchedCount);
                 });
 
-            logger.LogInformation("Trajectory map: {Ok}/{Total} tiles fetched at zoom {Z}",
+            // Fetch OFM airspace tiles in parallel
+            var airTiles = new SKBitmap?[txCount, tyCount];
+            await Parallel.ForEachAsync(
+                Enumerable.Range(0, txCount * tyCount),
+                new ParallelOptions { MaxDegreeOfParallelism = 6 },
+                async (idx, _) =>
+                {
+                    int col = idx % txCount, row = idx / txCount;
+                    airTiles[col, row] = await FetchAirspaceTileAsync(zoom, txMin + col, tyMin + row);
+                });
+
+            logger.LogInformation("Trajectory map: {Ok}/{Total} OSM tiles at zoom {Z}",
                 fetchedCount, txCount * tyCount, zoom);
 
             // Stitch tiles
@@ -81,11 +92,22 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
             var canvas = surface.Canvas;
             canvas.Clear(new SKColor(200, 220, 240)); // fallback ocean blue
 
+            // Layer 1: OSM base
             for (int col = 0; col < txCount; col++)
                 for (int row = 0; row < tyCount; row++)
                     if (tileImages[col, row] is { } bmp)
                     {
                         canvas.DrawBitmap(bmp, col * TileSize, row * TileSize);
+                        bmp.Dispose();
+                    }
+
+            // Layer 2: OFM airspace overlay at 65% opacity
+            using var airPaint = new SKPaint { Color = SKColors.White.WithAlpha(166) }; // ~65%
+            for (int col = 0; col < txCount; col++)
+                for (int row = 0; row < tyCount; row++)
+                    if (airTiles[col, row] is { } bmp)
+                    {
+                        canvas.DrawBitmap(bmp, col * TileSize, row * TileSize, airPaint);
                         bmp.Dispose();
                     }
 
@@ -145,6 +167,23 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
         catch (Exception ex)
         {
             logger.LogDebug(ex, "Tile fetch failed: {Url}", url);
+            return null;
+        }
+    }
+
+    private async Task<SKBitmap?> FetchAirspaceTileAsync(int zoom, int x, int y)
+    {
+        int n = 1 << zoom;
+        x = (x % n + n) % n;
+        var url = $"https://nwy-tiles-api.prod.newaydata.com/tiles/{zoom}/{x}/{y}.png?path=latest/aero/latest";
+        try
+        {
+            var bytes = await http.GetByteArrayAsync(url);
+            return SKBitmap.Decode(bytes);
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Airspace tile fetch failed: {Url}", url);
             return null;
         }
     }
