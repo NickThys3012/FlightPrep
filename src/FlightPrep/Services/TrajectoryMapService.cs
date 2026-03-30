@@ -9,7 +9,7 @@ namespace FlightPrep.Services;
 /// server-side and compositing coloured polylines on top with shadow, legend,
 /// and start/landing markers. Ported from BalloonPrep reference implementation.
 /// </summary>
-public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService> logger)
+public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService> logger) : ITrajectoryMapService
 {
     private const int TileSize = 256;
     private const int LegendPad = 6;

@@ -9,7 +9,7 @@ using QuestPDF.Infrastructure;
 
 namespace FlightPrep.Services;
 
-public class PdfService(SunriseService sunriseSvc, TrajectoryMapService mapSvc, GoNoGoService goNoGoSvc, FlightAssessmentService assessmentSvc)
+public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc, IGoNoGoService goNoGoSvc, IFlightAssessmentService assessmentSvc) : IPdfService
 {
     private static readonly string PrimaryColor = "#1a3a5c";
     private static readonly string LightBg = "#f0f4f8";

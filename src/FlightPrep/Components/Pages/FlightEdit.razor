@@ -1,15 +1,15 @@
 @page "/flights/new"
 @page "/flights/{Id:int}/edit"
 @rendermode InteractiveServer
-@inject FlightPreparationService FpSvc
+@inject IFlightPreparationService FpSvc
 @inject NavigationManager Nav
-@inject PdfService PdfSvc
-@inject SunriseService SunriseSvc
+@inject IPdfService PdfSvc
+@inject ISunriseService SunriseSvc
 @inject IJSRuntime JS
 @inject ITrajectoryService TrajectorySvc
 @inject ILogger<FlightEdit> Logger
 @inject IEnhancedTrajectoryService EnhancedTrajectorySvc
-@inject GoNoGoService GoNoGoSvc
+@inject IGoNoGoService GoNoGoSvc
 @using Microsoft.AspNetCore.Components.Forms
 @using FlightPrep.Models.Trajectory
 

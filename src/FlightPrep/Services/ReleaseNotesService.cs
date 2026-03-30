@@ -7,7 +7,7 @@ namespace FlightPrep.Services;
 
 public class ReleaseNotesService(
     IWebHostEnvironment env,
-    ILogger<ReleaseNotesService> logger)
+    ILogger<ReleaseNotesService> logger) : IReleaseNotesService
 {
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
 

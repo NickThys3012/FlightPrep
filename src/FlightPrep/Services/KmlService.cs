@@ -2,7 +2,7 @@ namespace FlightPrep.Services;
 
 public record TrackPoint(double Lat, double Lon, double AltM);
 
-public class KmlService
+public class KmlService : IKmlService
 {
     /// Parses a KML string and returns the first LineString's coordinates.
     /// Returns empty list on parse error.

@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace FlightPrep.Services;
 
-public class PowerLineService(IHttpClientFactory httpClientFactory, IMemoryCache cache, ILogger<PowerLineService> logger)
+public class PowerLineService(IHttpClientFactory httpClientFactory, IMemoryCache cache, ILogger<PowerLineService> logger) : IPowerLineService
 {
     private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(24);
 

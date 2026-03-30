@@ -19,7 +19,7 @@ public record FlightAssessment(
 /// Centralises the logic that was previously spread across entity computed properties
 /// and direct callers.
 /// </summary>
-public class FlightAssessmentService(GoNoGoService goNoGoSvc)
+public class FlightAssessmentService(IGoNoGoService goNoGoSvc) : IFlightAssessmentService
 {
     /// <summary>
     /// Computes the <see cref="FlightAssessment"/> for the given flight preparation.

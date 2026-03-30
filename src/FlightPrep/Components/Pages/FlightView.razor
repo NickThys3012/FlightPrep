@@ -1,13 +1,12 @@
 @page "/flights/{Id:int}"
 @rendermode InteractiveServer
-@inject FlightPreparationService FpSvc
-@inject FlightAssessmentService AssessmentSvc
-@inject PdfService PdfSvc
-@inject SunriseService SunriseSvc
+@inject IFlightPreparationService FpSvc
+@inject IFlightAssessmentService AssessmentSvc
+@inject IPdfService PdfSvc
+@inject ISunriseService SunriseSvc
 @inject IJSRuntime JS
-@inject KmlService KmlSvc
+@inject IKmlService KmlSvc
 @inject ILogger<FlightView> Logger
-@inject GoNoGoService GoNoGoSvc
 @using FlightPrep.Models.Trajectory
 
 <PageTitle>Vaart Bekijken – FlightPrep</PageTitle>
@@ -417,7 +416,6 @@ else
     private FlightPreparation? fp;
     private FlightAssessment? _assessment;
     private FlightImage? lightboxImg;
-    private GoNoGoSettings _goNoGoSettings = new();
 
     private bool showFlownModal;
     private string? flownLandingNotes;
@@ -446,14 +444,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync();
-
         fp = await FpSvc.GetByIdAsync(Id);
 
         if (fp != null)
         {
             // Compute assessment (TotaalGewicht, LiftVoldoende, GoNoGo via service)
-            _assessment = AssessmentSvc.Compute(fp, _goNoGoSettings);
+            _assessment = await AssessmentSvc.ComputeAsync(fp);
 
             // Initialise flown modal pre-fill
             flownLandingNotes = fp.ActualLandingNotes;

@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace FlightPrep.Services;
 
 public class EnhancedTrajectoryService(
-    WeatherFetchService weatherService,
+    IWeatherFetchService weatherService,
     ILogger<EnhancedTrajectoryService> logger) : IEnhancedTrajectoryService
 {
     public async Task<SimulatedTrajectory> ComputeAsync(

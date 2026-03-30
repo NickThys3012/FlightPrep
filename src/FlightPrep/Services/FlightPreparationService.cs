@@ -12,7 +12,7 @@ namespace FlightPrep.Services;
 /// </summary>
 public class FlightPreparationService(
     IDbContextFactory<AppDbContext> dbFactory,
-    ILogger<FlightPreparationService> logger)
+    ILogger<FlightPreparationService> logger) : IFlightPreparationService
 {
     // ── Reference data ────────────────────────────────────────────────────────
 

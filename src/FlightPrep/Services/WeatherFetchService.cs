@@ -7,7 +7,7 @@ namespace FlightPrep.Services;
 
 public record HourlyForecast(DateTime Time, double TempC, double WindSpeedKmh, int WindDirDeg, int PrecipProb);
 
-public class WeatherFetchService(IHttpClientFactory httpFactory, ILogger<WeatherFetchService> logger)
+public class WeatherFetchService(IHttpClientFactory httpFactory, ILogger<WeatherFetchService> logger) : IWeatherFetchService
 {
     public async Task<string?> FetchMetarAsync(string icao)
     {
