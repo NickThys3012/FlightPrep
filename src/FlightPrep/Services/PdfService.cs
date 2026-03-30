@@ -9,7 +9,7 @@ using QuestPDF.Infrastructure;
 
 namespace FlightPrep.Services;
 
-public class PdfService(SunriseService sunriseSvc, TrajectoryMapService mapSvc, GoNoGoService goNoGoSvc)
+public class PdfService(SunriseService sunriseSvc, TrajectoryMapService mapSvc, GoNoGoService goNoGoSvc, FlightAssessmentService assessmentSvc)
 {
     private static readonly string PrimaryColor = "#1a3a5c";
     private static readonly string LightBg = "#f0f4f8";
@@ -27,8 +27,8 @@ public class PdfService(SunriseService sunriseSvc, TrajectoryMapService mapSvc, 
         if (loc?.Latitude.HasValue == true && loc.Longitude.HasValue)
             sunriseSunset = sunriseSvc.Calculate(fp.Datum, loc.Latitude!.Value, loc.Longitude!.Value);
 
-        var settings = await goNoGoSvc.GetSettingsAsync();
-        var gng = goNoGoSvc.Compute(fp, settings);
+        var assessment = await assessmentSvc.ComputeAsync(fp);
+        var gng = assessment.GoNoGo;
 
         return Document.Create(container =>
         {
@@ -191,7 +191,7 @@ public class PdfService(SunriseService sunriseSvc, TrajectoryMapService mapSvc, 
                         });
                         altLoad = !altLoad;
                     }
-                    var totalWeight = $"{fp.TotaalGewicht:F1} kg";
+                    var totalWeight = $"{assessment.TotaalGewicht:F1} kg";
                     col.Item().Background(Colors.Grey.Lighten3).Padding(3).Row(row =>
                     {
                         row.RelativeItem(3).Text("Totaal gewicht").Bold();
@@ -200,8 +200,8 @@ public class PdfService(SunriseService sunriseSvc, TrajectoryMapService mapSvc, 
                     col.Item().Background(Colors.White).Padding(3)
                         .Text($"Max Altitude: {(fp.MaxAltitudeFt.HasValue ? fp.MaxAltitudeFt + " ft" : "–")}  |  Lift units: {fp.LiftUnits?.ToString("F0") ?? "–"}  |  Totaal lift: {fp.TotaalLiftKg?.ToString("F1") ?? "–"} kg");
                     col.Item().Background(LightBg).Padding(3)
-                        .Text(fp.LiftVoldoende ? "Lift voldoende" : "Lift onvoldoende").Bold()
-                        .FontColor(fp.LiftVoldoende ? Colors.Green.Darken2 : Colors.Red.Darken2);
+                        .Text(assessment.LiftVoldoende ? "Lift voldoende" : "Lift onvoldoende").Bold()
+                        .FontColor(assessment.LiftVoldoende ? Colors.Green.Darken2 : Colors.Red.Darken2);
                     if (!string.IsNullOrWhiteSpace(fp.LoadNotes))
                         col.Item().Background(Colors.White).Padding(3).Text($"Notities: {fp.LoadNotes}");
 

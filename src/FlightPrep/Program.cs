@@ -25,6 +25,7 @@ builder.Services.AddHttpClient<WeatherService>();
 builder.Services.AddSingleton<SunriseService>();
 builder.Services.AddScoped<PdfService>();
 builder.Services.AddScoped<GoNoGoService>();
+builder.Services.AddScoped<FlightAssessmentService>();
 builder.Services.AddScoped<FlightPreparationService>();
 // Data protection keys persist to /root/.aspnet/DataProtection-Keys (mounted as Docker volume)
 

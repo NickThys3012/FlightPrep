@@ -1,6 +1,7 @@
 @page "/flights/{Id:int}"
 @rendermode InteractiveServer
 @inject FlightPreparationService FpSvc
+@inject FlightAssessmentService AssessmentSvc
 @inject PdfService PdfSvc
 @inject SunriseService SunriseSvc
 @inject IJSRuntime JS
@@ -31,7 +32,7 @@ else
                     @fp.Datum.ToString("dd MMMM yyyy") &nbsp;
                     <span class="text-muted fw-normal fs-5">@fp.Tijdstip.ToString("HH:mm")</span>
                 </h2>
-                @{ var gng = GoNoGoSvc.Compute(fp, _goNoGoSettings); }
+                @{ var gng = _assessment?.GoNoGo ?? "unknown"; }
                 <FlightGoNoGoBadge GoNoGoResult="@gng" ShowEmoji="true" />
             </div>
             <div class="fp-toolbar">
@@ -193,13 +194,13 @@ else
                                 {
                                     <tr><td>@p.Name</td><td>@p.WeightKg.ToString("F1") kg</td></tr>
                                 }
-                                <tr class="fw-bold table-secondary"><td>Totaal</td><td>@fp.TotaalGewicht.ToString("F1") kg</td></tr>
+                                <tr class="fw-bold table-secondary"><td>Totaal</td><td>@(_assessment?.TotaalGewicht.ToString("F1") ?? "–") kg</td></tr>
                             </tbody>
                         </table>
                         @if (fp.TotaalLiftKg.HasValue)
                         {
-                            <span class="badge @(fp.LiftVoldoende ? "bg-success" : "bg-danger")">
-                                @(fp.LiftVoldoende ? "✅ Lift voldoende" : "❌ Lift onvoldoende")
+                            <span class="badge @((_assessment?.LiftVoldoende ?? false) ? "bg-success" : "bg-danger")">
+                                @((_assessment?.LiftVoldoende ?? false) ? "✅ Lift voldoende" : "❌ Lift onvoldoende")
                             </span>
                         }
                     </div>
@@ -414,6 +415,7 @@ else
 @code {
     [Parameter] public int Id { get; set; }
     private FlightPreparation? fp;
+    private FlightAssessment? _assessment;
     private FlightImage? lightboxImg;
     private GoNoGoSettings _goNoGoSettings = new();
 
@@ -450,6 +452,9 @@ else
 
         if (fp != null)
         {
+            // Compute assessment (TotaalGewicht, LiftVoldoende, GoNoGo via service)
+            _assessment = AssessmentSvc.Compute(fp, _goNoGoSettings);
+
             // Initialise flown modal pre-fill
             flownLandingNotes = fp.ActualLandingNotes;
             flownDurationMinutes = fp.ActualFlightDurationMinutes;
