@@ -90,17 +90,25 @@ public class FlightPreparationService(
     {
         ArgumentNullException.ThrowIfNull(fp);
 
+        // Hoist nav props outside try so they are accessible in the finally block.
+        Balloon? balloon = null;
+        Pilot? pilot = null;
+        Location? location = null;
+        List<Passenger> passengers = [];
+        List<FlightImage> images = [];
+        List<WindLevel> windLevels = [];
+
         try
         {
             await using var db = await dbFactory.CreateDbContextAsync();
 
             // Capture navigation props and detach them so EF does not try to upsert them.
-            var balloon    = fp.Balloon;    fp.Balloon    = null;
-            var pilot      = fp.Pilot;      fp.Pilot      = null;
-            var location   = fp.Location;   fp.Location   = null;
-            var passengers = fp.Passengers.ToList(); fp.Passengers.Clear();
-            var images     = fp.Images.ToList();     fp.Images.Clear();
-            var windLevels = fp.WindLevels.ToList(); fp.WindLevels.Clear();
+            balloon    = fp.Balloon;    fp.Balloon    = null;
+            pilot      = fp.Pilot;      fp.Pilot      = null;
+            location   = fp.Location;   fp.Location   = null;
+            passengers = fp.Passengers.ToList(); fp.Passengers.Clear();
+            images     = fp.Images.ToList();     fp.Images.Clear();
+            windLevels = fp.WindLevels.ToList(); fp.WindLevels.Clear();
 
             await using var tx = await db.Database.BeginTransactionAsync();
             try
@@ -163,20 +171,23 @@ public class FlightPreparationService(
                 throw;
             }
 
-            // Restore all navigation props so callers see a consistent entity.
-            fp.Balloon     = balloon;
-            fp.Pilot       = pilot;
-            fp.Location    = location;
-            fp.Passengers  = passengers;
-            fp.Images      = images;
-            fp.WindLevels  = windLevels;
-
             return fp.Id;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "SaveAsync failed for FlightPreparation Id={Id}", fp.Id);
             throw;
+        }
+        finally
+        {
+            // Restore all navigation props whether save succeeded or failed,
+            // so the caller's entity is never left in a half-null state.
+            fp.Balloon    = balloon;
+            fp.Pilot      = pilot;
+            fp.Location   = location;
+            fp.Passengers = passengers;
+            fp.Images     = images;
+            fp.WindLevels = windLevels;
         }
     }
 

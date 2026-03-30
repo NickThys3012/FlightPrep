@@ -75,7 +75,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
-    var db = dbFactory.CreateDbContext();
+    using var db = dbFactory.CreateDbContext();
     db.Database.Migrate();
 }
 
