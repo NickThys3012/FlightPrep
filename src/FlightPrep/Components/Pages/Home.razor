@@ -1,6 +1,7 @@
 @page "/"
 @rendermode InteractiveServer
 @inject IDbContextFactory<AppDbContext> DbFactory
+@inject GoNoGoService GoNoGoSvc
 
 <PageTitle>FlightPrep – Dashboard</PageTitle>
 
@@ -71,9 +72,7 @@
                             </div>
                         </div>
                         <div class="d-flex gap-2 align-items-center">
-                            <span class="go-badge @(f.GoNoGo == "green" ? "go-badge-go" : f.GoNoGo == "yellow" ? "go-badge-caution" : f.GoNoGo == "red" ? "go-badge-nogo" : "go-badge-unknown")">
-                                @(f.GoNoGo == "green" ? "GO" : f.GoNoGo == "yellow" ? "CAUTION" : f.GoNoGo == "red" ? "NO-GO" : "–")
-                            </span>
+                            <FlightGoNoGoBadge GoNoGoResult="@GoNoGoSvc.Compute(f, _goNoGoSettings)" />
                             @if (f.IsFlown)
                             {
                                 <span class="badge bg-success">Gevlogen</span>
@@ -91,9 +90,11 @@
     private int flightsThisYear;
     private int flightsFlown;
     private List<FlightPreparation>? recentFlights;
+    private GoNoGoSettings _goNoGoSettings = new();
 
     protected override async Task OnInitializedAsync()
     {
+        _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync();
         await using var db = await DbFactory.CreateDbContextAsync();
         var currentYear = DateTime.UtcNow.Year;
 

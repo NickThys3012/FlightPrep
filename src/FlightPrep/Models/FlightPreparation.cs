@@ -90,6 +90,7 @@ public class FlightPreparation
     public bool LiftVoldoende =>
         TotaalLiftKg.HasValue && TotaalLiftKg.Value > TotaalGewicht;
 
+    [Obsolete("Use GoNoGoService.Compute(fp, settings) instead. This property uses hardcoded thresholds and ignores pilot-configured GoNoGoSettings.")]
     public string GoNoGo
     {
         get

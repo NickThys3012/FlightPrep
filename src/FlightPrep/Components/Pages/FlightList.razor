@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject NavigationManager Nav
+@inject GoNoGoService GoNoGoSvc
 
 <PageTitle>Vaarten – FlightPrep</PageTitle>
 
@@ -52,9 +53,7 @@ else
                         <td>@(f.Pilot?.Name ?? "–")</td>
                         <td>@(f.Location?.Name ?? "–")</td>
                         <td>
-                            <span class="go-badge @(f.GoNoGo == "green" ? "go-badge-go" : f.GoNoGo == "yellow" ? "go-badge-caution" : f.GoNoGo == "red" ? "go-badge-nogo" : "go-badge-unknown")">
-                                @(f.GoNoGo == "green" ? "GO" : f.GoNoGo == "yellow" ? "CAUTION" : f.GoNoGo == "red" ? "NO-GO" : "–")
-                            </span>
+                            <FlightGoNoGoBadge GoNoGoResult="@GetGoNoGo(f)" />
                             @if (f.IsFlown)
                             {
                                 <span class="badge bg-success ms-1">Gevlogen</span>
@@ -118,6 +117,7 @@ else
 
 @code {
     private List<FlightPreparation>? flights;
+    private GoNoGoSettings _goNoGoSettings = new();
     private int? deleteId;
     private bool sortDesc = true;
     private int currentPage = 1;
@@ -141,8 +141,11 @@ else
 
     protected override async Task OnInitializedAsync() => await LoadFlights();
 
+    private string GetGoNoGo(FlightPreparation f) => GoNoGoSvc.Compute(f, _goNoGoSettings);
+
     private async Task LoadFlights()
     {
+        _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync();
         await using var db = await DbFactory.CreateDbContextAsync();
         flights = await db.FlightPreparations
             .Include(f => f.Balloon)

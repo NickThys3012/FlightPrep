@@ -6,6 +6,7 @@
 @inject IJSRuntime JS
 @inject KmlService KmlSvc
 @inject ILogger<FlightView> Logger
+@inject GoNoGoService GoNoGoSvc
 @using FlightPrep.Models.Trajectory
 
 <PageTitle>Vaart Bekijken – FlightPrep</PageTitle>
@@ -30,10 +31,8 @@ else
                     @fp.Datum.ToString("dd MMMM yyyy") &nbsp;
                     <span class="text-muted fw-normal fs-5">@fp.Tijdstip.ToString("HH:mm")</span>
                 </h2>
-                @{ var gng = fp.GoNoGo; }
-                <span class="go-badge @(gng == "green" ? "go-badge-go" : gng == "yellow" ? "go-badge-caution" : gng == "red" ? "go-badge-nogo" : "go-badge-unknown")">
-                    @(gng == "green" ? "✅ GO" : gng == "yellow" ? "⚠️ CAUTION" : gng == "red" ? "🔴 NO-GO" : "⬜ Go/No-Go onbekend")
-                </span>
+                @{ var gng = GoNoGoSvc.Compute(fp, _goNoGoSettings); }
+                <FlightGoNoGoBadge GoNoGoResult="@gng" ShowEmoji="true" />
             </div>
             <div class="fp-toolbar">
                 <a href="/flights/@fp.Id/edit" class="btn btn-outline-secondary">Bewerken</a>
@@ -416,6 +415,7 @@ else
     [Parameter] public int Id { get; set; }
     private FlightPreparation? fp;
     private FlightImage? lightboxImg;
+    private GoNoGoSettings _goNoGoSettings = new();
 
     private bool showFlownModal;
     private string? flownLandingNotes;
@@ -444,6 +444,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync();
+
         await using var db = await DbFactory.CreateDbContextAsync();
         fp = await db.FlightPreparations
             .Include(f => f.Balloon)

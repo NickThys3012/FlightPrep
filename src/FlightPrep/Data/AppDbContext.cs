@@ -48,8 +48,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         // Ignore computed properties
         modelBuilder.Entity<FlightPreparation>()
             .Ignore(f => f.TotaalGewicht)
-            .Ignore(f => f.LiftVoldoende)
-            .Ignore(f => f.GoNoGo);
+            .Ignore(f => f.LiftVoldoende);
+
+        // GoNoGo is ignored separately to suppress the [Obsolete] warning at the call site
+#pragma warning disable CS0618 // GoNoGo is deliberately ignored here; use GoNoGoService.Compute() at runtime
+        modelBuilder.Entity<FlightPreparation>().Ignore(f => f.GoNoGo);
+#pragma warning restore CS0618
 
         modelBuilder.Entity<Balloon>().HasData(
             new Balloon
