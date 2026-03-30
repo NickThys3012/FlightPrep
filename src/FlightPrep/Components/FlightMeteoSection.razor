@@ -193,8 +193,11 @@ else if (Fp?.LocationId != null && Fp.LocationId != 0)
 
     protected override void OnParametersSet()
     {
+        ArgumentNullException.ThrowIfNull(Fp);
+        ArgumentNullException.ThrowIfNull(MeteoImages);
+
         // Initialise the wind-profile toggle once, when Fp first arrives from the parent.
-        if (!_initialized && Fp != null)
+        if (!_initialized)
         {
             _initialized = true;
             _showWindProfile = Fp.WindLevels.Count > 0;
@@ -219,7 +222,11 @@ else if (Fp?.LocationId != null && Fp.LocationId != 0)
             else
                 weatherSuccess = true;
         }
-        catch (Exception ex) { weatherError = ex.Message; }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "FetchWeather failed for ICAO {Icao}", CurrentLocation?.IcaoCode);
+            weatherError = ex.Message;
+        }
         finally { fetchingWeather = false; }
     }
 

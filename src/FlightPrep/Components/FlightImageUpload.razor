@@ -37,6 +37,8 @@
 
     private const long MaxImageBytes = 15 * 1024 * 1024; // 15 MB per image
 
+    protected override void OnParametersSet() => ArgumentNullException.ThrowIfNull(Images);
+
     private async Task HandleUpload(InputFileChangeEventArgs e)
     {
         ArgumentNullException.ThrowIfNull(Images);

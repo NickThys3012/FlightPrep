@@ -112,6 +112,8 @@
     /// <summary>The currently selected pilot (for the read-only pilot weight row).</summary>
     [Parameter] public Pilot? CurrentPilot { get; set; }
 
+    protected override void OnParametersSet() => ArgumentNullException.ThrowIfNull(Fp);
+
     private void AddPassenger() =>
         Fp.Passengers.Add(new Passenger { Order = Fp.Passengers.Count });
 
