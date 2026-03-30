@@ -1,7 +1,7 @@
 @page "/flights/new"
 @page "/flights/{Id:int}/edit"
 @rendermode InteractiveServer
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject FlightPreparationService FpSvc
 @inject NavigationManager Nav
 @inject PdfService PdfSvc
 @inject SunriseService SunriseSvc
@@ -611,25 +611,17 @@
     {
         _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync();
 
-        await using var db = await DbFactory.CreateDbContextAsync();
-        balloons = await db.Balloons.OrderBy(b => b.Registration).ToListAsync();
-        pilots = await db.Pilots.OrderBy(p => p.Name).ToListAsync();
-        locations = await db.Locations.OrderBy(l => l.Name).ToListAsync();
+        balloons  = await FpSvc.GetBalloonsAsync();
+        pilots    = await FpSvc.GetPilotsAsync();
+        locations = await FpSvc.GetLocationsAsync();
 
         if (Id.HasValue)
         {
-            fp = await db.FlightPreparations
-                .Include(f => f.Balloon)
-                .Include(f => f.Pilot)
-                .Include(f => f.Location)
-                .Include(f => f.Passengers.OrderBy(p => p.Order))
-                .Include(f => f.Images.OrderBy(i => i.Order))
-                .Include(f => f.WindLevels.OrderBy(w => w.Order))
-                .FirstOrDefaultAsync(f => f.Id == Id.Value);
+            fp = await FpSvc.GetByIdAsync(Id.Value);
 
             if (fp == null) { Nav.NavigateTo("/flights"); return; }
 
-            currentPilot = fp.Pilot;
+            currentPilot  = fp.Pilot;
             meteoImages   = fp.Images.Where(i => i.Section == "Meteo").ToList();
             trajectImages = fp.Images.Where(i => i.Section == "Traject").ToList();
         }
@@ -728,10 +720,7 @@
     {
         MergeSimulationsToFp();
         if (fp is null || fp.Id == 0) return; // new flight — will be saved when user saves the form
-        await using var db = await DbFactory.CreateDbContextAsync();
-        db.Attach(fp);
-        db.Entry(fp).Property(x => x.TrajectorySimulationJson).IsModified = true;
-        await db.SaveChangesAsync();
+        await FpSvc.PatchTrajectoryJsonAsync(fp.Id, fp.TrajectorySimulationJson);
     }
 
     private async Task BerekEnhancedTraject()
@@ -837,84 +826,21 @@
         saving = true; saveMessage = null;
         try
         {
-            await using var db = await DbFactory.CreateDbContextAsync();
             currentPilot = pilots.FirstOrDefault(p => p.Id == fp.PilotId);
 
-            if (fp.Id == 0)
-            {
-                fp.CreatedAt = fp.UpdatedAt = DateTime.UtcNow;
-                var balloon   = fp.Balloon;   fp.Balloon   = null;
-                var pilot     = fp.Pilot;     fp.Pilot     = null;
-                var location  = fp.Location;  fp.Location  = null;
-                var passengers = fp.Passengers.ToList(); fp.Passengers.Clear();
-                var windLevels = fp.WindLevels.ToList(); fp.WindLevels.Clear();
+            // Merge split image lists back onto the entity before persisting.
+            fp.Images = meteoImages.Concat(trajectImages).ToList();
 
-                db.FlightPreparations.Add(fp);
-                await db.SaveChangesAsync();
+            await FpSvc.SaveAsync(fp);
 
-                // Passengers
-                for (int i = 0; i < passengers.Count; i++)
-                { passengers[i].FlightPreparationId = fp.Id; passengers[i].Order = i; passengers[i].Id = 0; }
-                db.Passengers.AddRange(passengers);
-
-                // Images
-                var allImages = meteoImages.Concat(trajectImages).ToList();
-                for (int i = 0; i < allImages.Count; i++)
-                { allImages[i].FlightPreparationId = fp.Id; allImages[i].Id = 0; allImages[i].Order = i; }
-                db.FlightImages.AddRange(allImages);
-
-                // WindLevels
-                for (int i = 0; i < windLevels.Count; i++)
-                { windLevels[i].FlightPreparationId = fp.Id; windLevels[i].Id = 0; windLevels[i].Order = i; }
-                db.WindLevels.AddRange(windLevels);
-
-                await db.SaveChangesAsync();
-                fp.Balloon = balloon; fp.Pilot = pilot; fp.Location = location;
-                // fp.Passengers and fp.WindLevels already populated by EF navigation fixup
-            }
-            else
-            {
-                fp.UpdatedAt = DateTime.UtcNow;
-
-                // Replace passengers
-                db.Passengers.RemoveRange(await db.Passengers.Where(p => p.FlightPreparationId == fp.Id).ToListAsync());
-                var newPax = fp.Passengers.ToList(); fp.Passengers.Clear();
-                var balloon  = fp.Balloon;  fp.Balloon  = null;
-                var pilot    = fp.Pilot;    fp.Pilot    = null;
-                var location = fp.Location; fp.Location = null;
-                var images   = fp.Images;   fp.Images   = new();
-                var windLevels = fp.WindLevels.ToList(); fp.WindLevels.Clear();
-
-                db.FlightPreparations.Update(fp);
-                await db.SaveChangesAsync();
-
-                // Replace images
-                db.FlightImages.RemoveRange(await db.FlightImages.Where(i => i.FlightPreparationId == fp.Id).ToListAsync());
-                var allImages = meteoImages.Concat(trajectImages).ToList();
-                for (int i = 0; i < allImages.Count; i++)
-                { allImages[i].FlightPreparationId = fp.Id; allImages[i].Id = 0; allImages[i].Order = i; }
-                db.FlightImages.AddRange(allImages);
-
-                for (int i = 0; i < newPax.Count; i++)
-                { newPax[i].FlightPreparationId = fp.Id; newPax[i].Order = i; newPax[i].Id = 0; }
-                db.Passengers.AddRange(newPax);
-
-                // Replace wind levels
-                db.WindLevels.RemoveRange(await db.WindLevels.Where(w => w.FlightPreparationId == fp.Id).ToListAsync());
-                for (int i = 0; i < windLevels.Count; i++)
-                { windLevels[i].FlightPreparationId = fp.Id; windLevels[i].Id = 0; windLevels[i].Order = i; }
-                db.WindLevels.AddRange(windLevels);
-
-                await db.SaveChangesAsync();
-
-                fp.Balloon = balloon; fp.Pilot = pilot; fp.Location = location;
-                // fp.Passengers and fp.WindLevels already populated by EF navigation fixup
-            }
-
+            // Re-populate navigation props from local lists (service may have cleared them
+            // temporarily during EF operations; they are restored by the service, but ensure
+            // in-memory image state is consistent with what we merged above).
             fp.Balloon  = balloons.FirstOrDefault(b => b.Id == fp.BalloonId);
             fp.Pilot    = pilots.FirstOrDefault(p => p.Id == fp.PilotId);
             fp.Location = locations.FirstOrDefault(l => l.Id == fp.LocationId);
             fp.Images   = meteoImages.Concat(trajectImages).ToList();
+
             saveMessage = "✅ Vaart opgeslagen!"; saveError = false;
             return fp;
         }

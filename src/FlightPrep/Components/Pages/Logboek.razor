@@ -1,8 +1,7 @@
 @page "/logboek"
 @rendermode InteractiveServer
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject FlightPreparationService FpSvc
 @inject IJSRuntime JS
-@using FlightPrep.Data
 @using FlightPrep.Models
 @using Microsoft.EntityFrameworkCore
 
@@ -171,13 +170,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        flights = await db.FlightPreparations
-            .Include(f => f.Balloon)
-            .Include(f => f.Pilot)
-            .Include(f => f.Location)
-            .OrderBy(f => f.Datum)
-            .ToListAsync();
+        flights = await FpSvc.GetAllWithNavAsync();
 
         totalFlights = flights.Count;
         flownFlights = flights.Count(f => f.IsFlown);

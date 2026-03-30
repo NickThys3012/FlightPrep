@@ -1,6 +1,6 @@
 @page "/flights/{Id:int}"
 @rendermode InteractiveServer
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject FlightPreparationService FpSvc
 @inject PdfService PdfSvc
 @inject SunriseService SunriseSvc
 @inject IJSRuntime JS
@@ -446,15 +446,7 @@ else
     {
         _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync();
 
-        await using var db = await DbFactory.CreateDbContextAsync();
-        fp = await db.FlightPreparations
-            .Include(f => f.Balloon)
-            .Include(f => f.Pilot)
-            .Include(f => f.Location)
-            .Include(f => f.Passengers.OrderBy(p => p.Order))
-            .Include(f => f.Images.OrderBy(i => i.Order))
-            .Include(f => f.WindLevels.OrderBy(w => w.Order))
-            .FirstOrDefaultAsync(f => f.Id == Id);
+        fp = await FpSvc.GetByIdAsync(Id);
 
         if (fp != null)
         {
@@ -546,11 +538,7 @@ else
             var pts = KmlSvc.ParseCoordinates(kml);
             if (pts.Count == 0) { kmlUploadError = "Geen geldige coördinaten gevonden in het KML bestand."; return; }
 
-            await using var db = await DbFactory.CreateDbContextAsync();
-            var flight = await db.FlightPreparations.FindAsync(fp!.Id);
-            if (flight == null) return;
-            flight.KmlTrack = kml;
-            await db.SaveChangesAsync();
+            await FpSvc.PatchKmlTrackAsync(fp!.Id, kml);
 
             fp.KmlTrack = kml;
             trackPoints = pts;
@@ -566,15 +554,8 @@ else
     private async Task SaveFlown()
     {
         if (fp == null) return;
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var entity = await db.FlightPreparations.FindAsync(fp.Id);
-        if (entity == null) return;
-        entity.IsFlown = true;
-        entity.ActualLandingNotes = flownLandingNotes;
-        entity.ActualFlightDurationMinutes = flownDurationMinutes;
-        entity.ActualRemarks = flownRemarks;
-        entity.UpdatedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync();
+
+        await FpSvc.PatchFlownAsync(fp.Id, true, flownLandingNotes, flownDurationMinutes, flownRemarks);
 
         fp.IsFlown = true;
         fp.ActualLandingNotes = flownLandingNotes;

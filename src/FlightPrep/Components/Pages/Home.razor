@@ -1,6 +1,6 @@
 @page "/"
 @rendermode InteractiveServer
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject FlightPreparationService FpSvc
 @inject GoNoGoService GoNoGoSvc
 
 <PageTitle>FlightPrep – Dashboard</PageTitle>
@@ -95,20 +95,12 @@
     protected override async Task OnInitializedAsync()
     {
         _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync();
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var currentYear = DateTime.UtcNow.Year;
 
-        totalFlights     = await db.FlightPreparations.CountAsync();
-        flightsThisYear  = await db.FlightPreparations.CountAsync(f => f.Datum.Year == currentYear);
-        flightsFlown     = await db.FlightPreparations.CountAsync(f => f.IsFlown);
+        var (total, thisYear, flown) = await FpSvc.GetFlightCountsAsync();
+        totalFlights    = total;
+        flightsThisYear = thisYear;
+        flightsFlown    = flown;
 
-        recentFlights = await db.FlightPreparations
-            .Include(f => f.Balloon)
-            .Include(f => f.Pilot)
-            .Include(f => f.Location)
-            .OrderByDescending(f => f.Datum)
-            .ThenByDescending(f => f.Tijdstip)
-            .Take(5)
-            .ToListAsync();
+        recentFlights = await FpSvc.GetRecentAsync(5);
     }
 }
