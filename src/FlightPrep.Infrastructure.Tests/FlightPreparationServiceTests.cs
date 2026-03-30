@@ -2,6 +2,8 @@ using FlightPrep.Data;
 using FlightPrep.Models;
 using FlightPrep.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.InMemory.Infrastructure.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -27,7 +29,8 @@ public class FlightPreparationServiceTests
 
         var services = new ServiceCollection();
         services.AddDbContextFactory<AppDbContext>(o =>
-            o.UseInMemoryDatabase(dbName));
+            o.UseInMemoryDatabase(dbName)
+             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
 
         var provider = services.BuildServiceProvider();
         return (provider.GetRequiredService<IDbContextFactory<AppDbContext>>(), provider);

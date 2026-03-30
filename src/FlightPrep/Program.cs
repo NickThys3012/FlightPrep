@@ -21,7 +21,7 @@ builder.Host.UseSerilog((ctx, cfg) => cfg
 builder.Services.AddDbContextFactory<AppDbContext>(opts =>
     opts.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddHttpClient<WeatherService>();
+builder.Services.AddHttpClient<IWeatherService, WeatherService>();
 builder.Services.AddSingleton<ISunriseService, SunriseService>();
 builder.Services.AddScoped<IPdfService, PdfService>();
 builder.Services.AddScoped<IGoNoGoService, GoNoGoService>();

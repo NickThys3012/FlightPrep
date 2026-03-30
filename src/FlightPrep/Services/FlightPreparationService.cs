@@ -102,65 +102,74 @@ public class FlightPreparationService(
             var images     = fp.Images.ToList();     fp.Images.Clear();
             var windLevels = fp.WindLevels.ToList(); fp.WindLevels.Clear();
 
-            if (fp.Id == 0)
+            await using var tx = await db.Database.BeginTransactionAsync();
+            try
             {
-                // ── CREATE ─────────────────────────────────────────────────
-                fp.CreatedAt = fp.UpdatedAt = DateTime.UtcNow;
-                db.FlightPreparations.Add(fp);
-                await db.SaveChangesAsync();
+                if (fp.Id == 0)
+                {
+                    // ── CREATE ─────────────────────────────────────────────────
+                    fp.CreatedAt = fp.UpdatedAt = DateTime.UtcNow;
+                    db.FlightPreparations.Add(fp);
+                    await db.SaveChangesAsync(); // assigns fp.Id
 
-                for (int i = 0; i < passengers.Count; i++)
-                { passengers[i].FlightPreparationId = fp.Id; passengers[i].Order = i; passengers[i].Id = 0; }
-                db.Passengers.AddRange(passengers);
+                    for (int i = 0; i < passengers.Count; i++)
+                    { passengers[i].FlightPreparationId = fp.Id; passengers[i].Order = i; passengers[i].Id = 0; }
+                    db.Passengers.AddRange(passengers);
 
-                for (int i = 0; i < images.Count; i++)
-                { images[i].FlightPreparationId = fp.Id; images[i].Id = 0; images[i].Order = i; }
-                db.FlightImages.AddRange(images);
+                    for (int i = 0; i < images.Count; i++)
+                    { images[i].FlightPreparationId = fp.Id; images[i].Id = 0; images[i].Order = i; }
+                    db.FlightImages.AddRange(images);
 
-                for (int i = 0; i < windLevels.Count; i++)
-                { windLevels[i].FlightPreparationId = fp.Id; windLevels[i].Id = 0; windLevels[i].Order = i; }
-                db.WindLevels.AddRange(windLevels);
+                    for (int i = 0; i < windLevels.Count; i++)
+                    { windLevels[i].FlightPreparationId = fp.Id; windLevels[i].Id = 0; windLevels[i].Order = i; }
+                    db.WindLevels.AddRange(windLevels);
 
-                await db.SaveChangesAsync();
+                    await db.SaveChangesAsync();
+                }
+                else
+                {
+                    // ── UPDATE ─────────────────────────────────────────────────
+                    fp.UpdatedAt = DateTime.UtcNow;
+
+                    db.Passengers.RemoveRange(
+                        await db.Passengers.Where(p => p.FlightPreparationId == fp.Id).ToListAsync());
+                    db.FlightImages.RemoveRange(
+                        await db.FlightImages.Where(i => i.FlightPreparationId == fp.Id).ToListAsync());
+                    db.WindLevels.RemoveRange(
+                        await db.WindLevels.Where(w => w.FlightPreparationId == fp.Id).ToListAsync());
+
+                    db.FlightPreparations.Update(fp);
+
+                    for (int i = 0; i < passengers.Count; i++)
+                    { passengers[i].FlightPreparationId = fp.Id; passengers[i].Order = i; passengers[i].Id = 0; }
+                    db.Passengers.AddRange(passengers);
+
+                    for (int i = 0; i < images.Count; i++)
+                    { images[i].FlightPreparationId = fp.Id; images[i].Id = 0; images[i].Order = i; }
+                    db.FlightImages.AddRange(images);
+
+                    for (int i = 0; i < windLevels.Count; i++)
+                    { windLevels[i].FlightPreparationId = fp.Id; windLevels[i].Id = 0; windLevels[i].Order = i; }
+                    db.WindLevels.AddRange(windLevels);
+
+                    await db.SaveChangesAsync();
+                }
+
+                await tx.CommitAsync();
             }
-            else
+            catch
             {
-                // ── UPDATE ─────────────────────────────────────────────────
-                fp.UpdatedAt = DateTime.UtcNow;
-
-                // Remove existing related records before updating scalar props.
-                db.Passengers.RemoveRange(
-                    await db.Passengers.Where(p => p.FlightPreparationId == fp.Id).ToListAsync());
-
-                db.FlightPreparations.Update(fp);
-                await db.SaveChangesAsync();
-
-                // Replace images and wind levels.
-                db.FlightImages.RemoveRange(
-                    await db.FlightImages.Where(i => i.FlightPreparationId == fp.Id).ToListAsync());
-
-                for (int i = 0; i < passengers.Count; i++)
-                { passengers[i].FlightPreparationId = fp.Id; passengers[i].Order = i; passengers[i].Id = 0; }
-                db.Passengers.AddRange(passengers);
-
-                for (int i = 0; i < images.Count; i++)
-                { images[i].FlightPreparationId = fp.Id; images[i].Id = 0; images[i].Order = i; }
-                db.FlightImages.AddRange(images);
-
-                db.WindLevels.RemoveRange(
-                    await db.WindLevels.Where(w => w.FlightPreparationId == fp.Id).ToListAsync());
-
-                for (int i = 0; i < windLevels.Count; i++)
-                { windLevels[i].FlightPreparationId = fp.Id; windLevels[i].Id = 0; windLevels[i].Order = i; }
-                db.WindLevels.AddRange(windLevels);
-
-                await db.SaveChangesAsync();
+                await tx.RollbackAsync();
+                throw;
             }
 
-            // Restore navigation props on the entity (callers may rely on them).
-            fp.Balloon   = balloon;
-            fp.Pilot     = pilot;
-            fp.Location  = location;
+            // Restore all navigation props so callers see a consistent entity.
+            fp.Balloon     = balloon;
+            fp.Pilot       = pilot;
+            fp.Location    = location;
+            fp.Passengers  = passengers;
+            fp.Images      = images;
+            fp.WindLevels  = windLevels;
 
             return fp.Id;
         }
