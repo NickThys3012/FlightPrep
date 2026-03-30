@@ -9,7 +9,7 @@ using QuestPDF.Infrastructure;
 
 namespace FlightPrep.Services;
 
-public class PdfService(SunriseService sunriseSvc, TrajectoryMapService mapSvc)
+public class PdfService(SunriseService sunriseSvc, TrajectoryMapService mapSvc, GoNoGoService goNoGoSvc)
 {
     private static readonly string PrimaryColor = "#1a3a5c";
     private static readonly string LightBg = "#f0f4f8";
@@ -27,7 +27,8 @@ public class PdfService(SunriseService sunriseSvc, TrajectoryMapService mapSvc)
         if (loc?.Latitude.HasValue == true && loc.Longitude.HasValue)
             sunriseSunset = sunriseSvc.Calculate(fp.Datum, loc.Latitude!.Value, loc.Longitude!.Value);
 
-        var gng = fp.GoNoGo;
+        var settings = await goNoGoSvc.GetSettingsAsync();
+        var gng = goNoGoSvc.Compute(fp, settings);
 
         return Document.Create(container =>
         {

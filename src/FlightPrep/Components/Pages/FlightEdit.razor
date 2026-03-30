@@ -3,13 +3,13 @@
 @rendermode InteractiveServer
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject NavigationManager Nav
-@inject WeatherFetchService WeatherFetchSvc
 @inject PdfService PdfSvc
 @inject SunriseService SunriseSvc
 @inject IJSRuntime JS
 @inject ITrajectoryService TrajectorySvc
 @inject ILogger<FlightEdit> Logger
 @inject IEnhancedTrajectoryService EnhancedTrajectorySvc
+@inject GoNoGoService GoNoGoSvc
 @using Microsoft.AspNetCore.Components.Forms
 @using FlightPrep.Models.Trajectory
 
@@ -28,13 +28,11 @@
     else
     {
         <!-- Go/No-Go inline badge (hidden when unknown) -->
-        var gng = fp?.GoNoGo ?? "unknown";
+        var gng = fp != null ? GoNoGoSvc.Compute(fp, _goNoGoSettings) : "unknown";
         if (gng != "unknown")
         {
             <div class="mb-3">
-                <span class="badge px-3 py-2 fs-6 @(gng == "green" ? "bg-success" : gng == "yellow" ? "bg-warning text-dark" : "bg-danger")">
-                    @(gng == "green" ? "GO" : gng == "yellow" ? "CAUTION" : "NO-GO")
-                </span>
+                <FlightGoNoGoBadge GoNoGoResult="@gng" />
                 <span class="text-muted ms-2 small">
                     @(gng == "green" ? "Vlucht goedgekeurd" : gng == "yellow" ? "Voorzichtigheid geboden" : "Vlucht niet toegestaan")
                 </span>
@@ -127,178 +125,9 @@
                 </h2>
                 <div id="sec2" class="accordion-collapse collapse">
                     <div class="accordion-body">
-                        @if (!string.IsNullOrEmpty(currentLocation?.IcaoCode))
-                        {
-                            <div class="mb-3 d-flex align-items-center gap-2">
-                                <button class="btn btn-sm btn-outline-primary" @onclick="FetchWeather" disabled="@fetchingWeather">
-                                    @(fetchingWeather ? "Ophalen..." : "METAR/TAF ophalen")
-                                </button>
-                                <span class="text-muted small">@(currentLocation.IcaoCode)</span>
-                                @if (weatherError != null)
-                                {
-                                    <span class="text-danger small">@weatherError</span>
-                                }
-                                @if (weatherSuccess)
-                                {
-                                    <span class="text-success small">✅ METAR/TAF opgehaald!</span>
-                                }
-                            </div>
-                        }
-                        else if (fp?.LocationId != null && fp.LocationId != 0)
-                        {
-                            <div class="mb-3">
-                                <span class="text-muted small">⚠️ Voeg een ICAO-code toe aan deze locatie (<a href="/settings/locations">Instellingen → Locaties</a>) om METAR/TAF op te halen.</span>
-                            </div>
-                        }
-                        @if (currentLocation?.Latitude.HasValue == true && currentLocation.Longitude.HasValue)
-                        {
-                            <div class="mb-3">
-                                <button class="btn btn-sm btn-outline-secondary" @onclick="FetchForecast" disabled="@fetchingForecast">
-                                    @(fetchingForecast ? "Laden..." : "Weersvoorspelling ophalen")
-                                </button>
-                            </div>
-                            @if (forecast.Count > 0)
-                            {
-                                <div class="mb-3">
-                                    <div class="fw-semibold small mb-1">Weersvoorspelling (3 dagen)</div>
-                                    <div style="overflow-x:auto;">
-                                        <table class="table table-sm table-bordered small">
-                                            <thead class="table-secondary">
-                                                <tr><th>Tijd</th><th>Temp</th><th>Wind</th><th>Richting</th><th>Neerslag</th></tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach (var h in forecast.Where((_, i) => i % 3 == 0).Take(24))
-                                                {
-                                                    <tr>
-                                                        <td>@h.Time.ToString("dd/MM HH:mm")</td>
-                                                        <td>@h.TempC.ToString("F1")°C</td>
-                                                        <td>@h.WindSpeedKmh.ToString("F0") km/h</td>
-                                                        <td>@h.WindDirDeg°</td>
-                                                        <td>@h.PrecipProb%</td>
-                                                    </tr>
-                                                }
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            }
-                        }
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label">METAR</label>
-                                <textarea class="form-control font-monospace" rows="3" @bind="fp.Metar"></textarea>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">TAF</label>
-                                <textarea class="form-control font-monospace" rows="5" @bind="fp.Taf"></textarea>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Windrichting/-snelheid per hoogte</label>
-                                <textarea class="form-control" rows="3" @bind="fp.WindPerHoogte"></textarea>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Neerslagkans / bewolking</label>
-                                <input type="text" class="form-control" @bind="fp.Neerslag" />
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Temperatuur (°C)</label>
-                                <input type="number" step="0.1" class="form-control" @bind="fp.TemperatuurC" />
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Dauwpunt (°C)</label>
-                                <input type="number" step="0.1" class="form-control" @bind="fp.DauwpuntC" />
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">QNH (hPa)</label>
-                                <input type="number" step="0.1" class="form-control" @bind="fp.QnhHpa" />
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Zichtbaarheid (km)</label>
-                                <input type="number" step="0.1" class="form-control" @bind="fp.ZichtbaarheidKm" />
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">CAPE (J/kg)</label>
-                                <input type="number" step="1" class="form-control" @bind="fp.CapeJkg" />
-                            </div>
-
-                            <!-- Surface wind -->
-                            <div class="col-md-3">
-                                <label class="form-label">Windrichting oppervlak (°)</label>
-                                <input type="number" class="form-control" @bind="fp.SurfaceWindDirectionDeg" />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Windsnelheid oppervlak (kt)</label>
-                                <input type="number" step="0.5" class="form-control" @bind="fp.SurfaceWindSpeedKt" />
-                            </div>
-
-                            <!-- Wind profile toggle -->
-                            <div class="col-12 mt-2">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="windProfileToggle"
-                                        checked="@showWindProfile"
-                                        @onchange="OnWindProfileToggleChanged" />
-                                    <label class="form-check-label" for="windProfileToggle">Windprofiel per hoogte invullen</label>
-                                </div>
-                                <div class="mt-2 d-flex align-items-center gap-2">
-                                    <button class="btn btn-sm btn-outline-info"
-                                            @onclick="FetchWindProfile"
-                                            disabled="@fetchingWindProfile">
-                                        <span class="@(fetchingWindProfile ? "spinner-border spinner-border-sm" : "bi bi-cloud-download")"></span>
-                                        @(fetchingWindProfile ? "Ophalen..." : "Windprofiel ophalen (open-meteo)")
-                                    </button>
-                                    @if (windProfileError != null)
-                                    {
-                                        <span class="text-danger small">@windProfileError</span>
-                                    }
-                                </div>
-                            </div>
-
-                            @if (showWindProfile)
-                            {
-                                <div class="col-12">
-                                    <table class="table table-sm table-bordered">
-                                        <thead class="table-light">
-                                            <tr><th>Hoogte (ft)</th><th>Richting (°)</th><th>Snelheid (kt)</th><th>Temp (°C)</th></tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var wl in fp.WindLevels.OrderBy(w => w.Order))
-                                            {
-                                                <tr>
-                                                    <td><strong>@wl.AltitudeFt</strong></td>
-                                                    <td><input type="number" class="form-control form-control-sm" @bind="wl.DirectionDeg" /></td>
-                                                    <td><input type="number" class="form-control form-control-sm" @bind="wl.SpeedKt" /></td>
-                                                    <td><input type="number" step="0.1" class="form-control form-control-sm" @bind="wl.TempC" /></td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            }
-
-                            <!-- Image upload – Meteo -->
-                            <div class="col-12 mt-2">
-                                <label class="form-label fw-semibold">📷 Foto's (sonde, sounding, skew-T, ...)</label>
-                                <InputFile OnChange="UploadMeteoImages" multiple accept="image/*"
-                                    class="form-control" />
-                                @if (meteoImages.Count > 0)
-                                {
-                                    <div class="d-flex flex-wrap gap-2 mt-2">
-                                        @foreach (var img in meteoImages)
-                                        {
-                                            <div class="position-relative" style="width:140px">
-                                                <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)"
-                                                    class="img-thumbnail" style="width:140px;height:105px;object-fit:cover" />
-                                                <span class="position-absolute top-0 end-0 p-1 text-truncate w-100 small text-muted"
-                                                    style="font-size:.65rem;background:rgba(255,255,255,.8)">@img.FileName</span>
-                                                <button type="button" class="btn btn-danger btn-sm position-absolute top-0 start-0"
-                                                    style="padding:1px 5px;font-size:.7rem"
-                                                    @onclick="() => RemoveImage(img)">✕</button>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                            </div>
-                        </div>
+                        <FlightMeteoSection Fp="fp"
+                                            CurrentLocation="currentLocation"
+                                            MeteoImages="meteoImages" />
                     </div>
                 </div>
             </div>
@@ -432,110 +261,7 @@
                 </h2>
                 <div id="sec7" class="accordion-collapse collapse">
                     <div class="accordion-body">
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-4">
-                                <label class="form-label">Gewicht envelop+brander+mand+flessen (kg)</label>
-                                <input type="number" step="0.1" class="form-control" @bind="fp.EnvelopeWeightKg" />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Max Altitude (ft)</label>
-                                <input type="number" class="form-control" @bind="fp.MaxAltitudeFt" />
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Lift units</label>
-                                <input type="number" step="1" class="form-control" @bind="fp.LiftUnits" />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Totaal lift (kg)</label>
-                                <input type="number" step="0.1" class="form-control" @bind="fp.TotaalLiftKg" />
-                            </div>
-                        </div>
-
-                        <h6>Gewichten</h6>
-                        <table class="table table-sm table-bordered">
-                            <thead class="table-secondary">
-                                <tr>
-                                    <th>Naam</th>
-                                    <th style="width:150px">Gewicht (kg)</th>
-                                    <th style="width:60px"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Pilot row (read-only) -->
-                                <tr class="table-light">
-                                    <td>
-                                        <em>Piloot: @(currentPilot?.Name ?? "–")</em>
-                                    </td>
-                                    <td>@(currentPilot?.WeightKg?.ToString("F1") ?? "–")</td>
-                                    <td></td>
-                                </tr>
-                                @for (int i = 0; i < fp.Passengers.Count; i++)
-                                {
-                                    var idx = i;
-                                    <tr>
-                                        <td>
-                                            <input type="text" class="form-control form-control-sm"
-                                                placeholder="Naam passagier"
-                                                value="@fp.Passengers[idx].Name"
-                                                @onchange="e => fp.Passengers[idx].Name = e.Value?.ToString() ?? string.Empty" />
-                                        </td>
-                                        <td>
-                                            <input type="number" step="0.1" class="form-control form-control-sm"
-                                                @bind="fp.Passengers[idx].WeightKg"
-                                                @bind:culture="System.Globalization.CultureInfo.InvariantCulture" />
-                                        </td>
-                                        <td>
-                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemovePassenger(idx)">✕</button>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <td colspan="3">
-                                        <button class="btn btn-sm btn-outline-success" @onclick="AddPassenger">+ Passagier toevoegen</button>
-                                    </td>
-                                </tr>
-                                <tr class="table-secondary fw-bold">
-                                    <td>Totaal gewicht</td>
-                                    <td>@(CalcTotalWeight().ToString("F1")) kg</td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-
-                        <div class="mt-2">
-                            @if (fp.TotaalLiftKg.HasValue)
-                            {
-                                var liftOk = fp.TotaalLiftKg.Value > CalcTotalWeight();
-                                var pct = fp.TotaalLiftKg.Value > 0
-                                    ? Math.Min(100, CalcTotalWeight() / fp.TotaalLiftKg.Value * 100)
-                                    : 0;
-                                <div class="mb-2">
-                                    <div class="d-flex justify-content-between small mb-1">
-                                        <span>Belading: @CalcTotalWeight().ToString("F1") kg / @fp.TotaalLiftKg kg lift</span>
-                                        <span class="fw-semibold">@pct.ToString("F0")%</span>
-                                    </div>
-                                    <div class="fp-load-bar-wrap">
-                                        <div class="fp-load-bar @(liftOk ? "fp-load-bar-ok" : "fp-load-bar-warn")"
-                                             style="width:@pct.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)%"></div>
-                                    </div>
-                                </div>
-                                @if (liftOk)
-                                {
-                                    <span class="badge bg-success">✅ Lift voldoende</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-danger">❌ Lift onvoldoende</span>
-                                }
-                            }
-                        </div>
-
-                        <div class="mt-3">
-                            <label class="form-label">Notities</label>
-                            <textarea class="form-control" rows="3" @bind="fp.LoadNotes"></textarea>
-                        </div>
+                        <FlightPassengerList Fp="fp" CurrentPilot="currentPilot" />
                     </div>
                 </div>
             </div>
@@ -735,26 +461,9 @@
 
                         <!-- Image upload – Traject -->
                         <div>
-                            <label class="form-label fw-semibold">📷 Foto's (trajectkaart, wind chart, ...)</label>
-                            <InputFile OnChange="UploadTrajectImages" multiple accept="image/*"
-                                class="form-control" />
-                            @if (trajectImages.Count > 0)
-                            {
-                                <div class="d-flex flex-wrap gap-2 mt-2">
-                                    @foreach (var img in trajectImages)
-                                    {
-                                        <div class="position-relative" style="width:140px">
-                                            <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)"
-                                                class="img-thumbnail" style="width:140px;height:105px;object-fit:cover" />
-                                            <span class="position-absolute top-0 end-0 p-1 text-truncate w-100 small text-muted"
-                                                style="font-size:.65rem;background:rgba(255,255,255,.8)">@img.FileName</span>
-                                            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 start-0"
-                                                style="padding:1px 5px;font-size:.7rem"
-                                                @onclick="() => RemoveImage(img)">✕</button>
-                                        </div>
-                                    }
-                                </div>
-                            }
+                            <FlightImageUpload Label="📷 Foto's (trajectkaart, wind chart, ...)"
+                                               Section="Traject"
+                                               Images="trajectImages" />
                         </div>
                     </div>
                 </div>
@@ -816,16 +525,12 @@
     private List<Location> locations = new();
     private Pilot? currentPilot;
     private Location? currentLocation;
+    private GoNoGoSettings _goNoGoSettings = new();
 
     // Images kept in memory; persisted on save
     private List<FlightImage> meteoImages = new();
     private List<FlightImage> trajectImages = new();
 
-    private bool fetchingWeather;
-    private string? weatherError;
-    private bool weatherSuccess;
-    private bool fetchingForecast;
-    private List<HourlyForecast> forecast = new();
     private bool saving;
     private string? saveMessage;
     private bool saveError;
@@ -833,8 +538,6 @@
     private int simulationDurationMinutes = 60;
     private List<SimulatedTrajectory>? simulatedTrajectories;
     private string? trajectoryError;
-    private bool fetchingWindProfile = false;
-    private string? windProfileError;
 
     private double enhAscentRateMs   = 3.0;
     private List<int> enhCruiseAltsFt = new() { 3000 };
@@ -849,19 +552,6 @@
     {
         if (enhCruiseAltsFt.Count < 5)
             enhCruiseAltsFt.Add((enhCruiseAltsFt.Count > 0 ? enhCruiseAltsFt[^1] : 2000) + 1000);
-    }
-
-    private bool _showWindProfile;
-    private bool showWindProfile
-    {
-        get => _showWindProfile;
-        set
-        {
-            if (_showWindProfile == value) return;
-            _showWindProfile = value;
-            if (!value && fp != null)
-                fp.WindLevels.Clear();
-        }
     }
 
     private (TimeOnly Sunrise, TimeOnly Sunset)? sunriseSunset;
@@ -911,11 +601,16 @@
             var html = await JS.InvokeAsync<string?>("quillGetHtml", "pax-briefing-editor");
             if (html != null) fp!.PaxBriefing = html;
         }
-        catch { /* JS not available (pre-render) */ }
+        catch (Exception ex)
+        {
+            Logger.LogDebug(ex, "JS interop not available during pre-render — expected");
+        }
     }
 
     protected override async Task OnInitializedAsync()
     {
+        _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync();
+
         await using var db = await DbFactory.CreateDbContextAsync();
         balloons = await db.Balloons.OrderBy(b => b.Registration).ToListAsync();
         pilots = await db.Pilots.OrderBy(p => p.Name).ToListAsync();
@@ -937,7 +632,6 @@
             currentPilot = fp.Pilot;
             meteoImages   = fp.Images.Where(i => i.Section == "Meteo").ToList();
             trajectImages = fp.Images.Where(i => i.Section == "Traject").ToList();
-            _showWindProfile = fp.WindLevels.Count > 0;
         }
         else
         {
@@ -1095,46 +789,6 @@
         }
     }
 
-    private async Task FetchWindProfile()
-    {
-        windProfileError = null;
-        fetchingWindProfile = true;
-        StateHasChanged();
-        try
-        {
-            if (fp?.Location?.Latitude is null || fp.Location.Longitude is null)
-            {
-                windProfileError = "Locatie heeft geen coördinaten.";
-                return;
-            }
-            var flightDt = fp.Datum.ToDateTime(fp.Tijdstip);
-            var levels = await WeatherFetchSvc.FetchWindProfileAsync(
-                fp.Location.Latitude.Value, fp.Location.Longitude.Value, flightDt);
-            if (!levels.Any())
-            {
-                windProfileError = "Windprofiel ophalen mislukt. Probeer opnieuw.";
-                return;
-            }
-            // Clear and replace WindLevels — keep FKs intact
-            fp.WindLevels.Clear();
-            foreach (var lvl in levels)
-            {
-                lvl.FlightPreparationId = fp.Id;
-                fp.WindLevels.Add(lvl);
-            }
-            showWindProfile = true;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "FetchWindProfile failed for flight {Id}", fp?.Id);
-            windProfileError = "Windprofiel ophalen mislukt. Probeer opnieuw.";
-        }
-        finally
-        {
-            fetchingWindProfile = false;
-        }
-    }
-
     private void OnBalloonChanged()
     {
         if (fp == null) return;
@@ -1173,96 +827,6 @@
         else
             sunriseSunset = null;
     }
-
-    private void OnWindProfileToggleChanged(ChangeEventArgs e)
-    {
-        var enabled = e.Value is bool b && b;
-        if (enabled && fp != null && fp.WindLevels.Count == 0)
-            PopulateDefaultWindLevels();
-        showWindProfile = enabled;
-    }
-
-    private void PopulateDefaultWindLevels()
-    {
-        if (fp == null) return;
-        int[] altitudes = { 0, 500, 1000, 1500, 2000, 3000, 5000 };
-        for (int i = 0; i < altitudes.Length; i++)
-            fp.WindLevels.Add(new WindLevel { AltitudeFt = altitudes[i], Order = i });
-    }
-
-    private async Task FetchWeather()
-    {
-        if (currentLocation?.IcaoCode == null || fp == null) return;
-        weatherError = null; weatherSuccess = false;
-        fetchingWeather = true;
-        try
-        {
-            var metar = await WeatherFetchSvc.FetchMetarAsync(currentLocation.IcaoCode);
-            var taf = await WeatherFetchSvc.FetchTafAsync(currentLocation.IcaoCode);
-            if (metar != null) fp.Metar = metar;
-            if (taf != null) fp.Taf = taf;
-            if (metar == null && taf == null)
-                weatherError = "Geen data gevonden voor " + currentLocation.IcaoCode;
-            else
-                weatherSuccess = true;
-        }
-        catch (Exception ex) { weatherError = ex.Message; }
-        finally { fetchingWeather = false; }
-    }
-
-    private async Task FetchForecast()
-    {
-        if (currentLocation?.Latitude == null || currentLocation.Longitude == null || fp == null) return;
-        fetchingForecast = true;
-        try { forecast = await WeatherFetchSvc.FetchForecastAsync(currentLocation.Latitude.Value, currentLocation.Longitude.Value); }
-        catch { }
-        finally { fetchingForecast = false; }
-    }
-
-    // ── Image upload ─────────────────────────────────────────────────────────
-    private const long MaxImageBytes = 15 * 1024 * 1024; // 15 MB per image
-
-    private async Task UploadMeteoImages(InputFileChangeEventArgs e)   => await UploadImages(e, "Meteo");
-    private async Task UploadTrajectImages(InputFileChangeEventArgs e) => await UploadImages(e, "Traject");
-
-    private async Task UploadImages(InputFileChangeEventArgs e, string section)
-    {
-        var targetList = section == "Meteo" ? meteoImages : trajectImages;
-        foreach (var file in e.GetMultipleFiles(20))
-        {
-            if (file.Size > MaxImageBytes) continue;
-            using var ms = new System.IO.MemoryStream();
-            await file.OpenReadStream(MaxImageBytes).CopyToAsync(ms);
-            targetList.Add(new FlightImage
-            {
-                Section     = section,
-                FileName    = file.Name,
-                ContentType = file.ContentType,
-                Data        = ms.ToArray(),
-                Order       = targetList.Count
-            });
-        }
-    }
-
-    private void RemoveImage(FlightImage img)
-    {
-        meteoImages.Remove(img);
-        trajectImages.Remove(img);
-    }
-
-    // ── Passengers ───────────────────────────────────────────────────────────
-    private void AddPassenger() =>
-        fp!.Passengers.Add(new Passenger { Order = fp.Passengers.Count });
-
-    private void RemovePassenger(int index)
-    {
-        if (index >= 0 && index < fp!.Passengers.Count) fp.Passengers.RemoveAt(index);
-    }
-
-    private double CalcTotalWeight() =>
-        (fp?.EnvelopeWeightKg ?? 0)
-        + (currentPilot?.WeightKg ?? pilots.FirstOrDefault(p => p.Id == fp?.PilotId)?.WeightKg ?? 0)
-        + (fp?.Passengers.Sum(p => p.WeightKg) ?? 0);
 
     // ── Save ─────────────────────────────────────────────────────────────────
     private async Task<FlightPreparation?> SaveInternal()
