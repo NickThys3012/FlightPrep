@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace FlightPrep.Services;
 
-public record HourlyForecast(DateTime Time, double TempC, double WindSpeedKmh, int WindDirDeg, int PrecipProb);
+// HourlyForecast is defined in FlightPrep.Domain/Services/HourlyForecast.cs
 
 public class WeatherFetchService(IHttpClientFactory httpFactory, ILogger<WeatherFetchService> logger) : IWeatherFetchService
 {

@@ -1,6 +1,6 @@
 namespace FlightPrep.Services;
 
-public record TrackPoint(double Lat, double Lon, double AltM);
+// TrackPoint is defined in FlightPrep.Domain/Services/TrackPoint.cs
 
 public class KmlService : IKmlService
 {

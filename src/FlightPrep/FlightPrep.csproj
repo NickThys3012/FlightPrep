@@ -59,4 +59,9 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\FlightPrep.Domain\FlightPrep.Domain.csproj" />
+    <ProjectReference Include="..\FlightPrep.Infrastructure\FlightPrep.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>

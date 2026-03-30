@@ -1,12 +1,12 @@
 namespace FlightPrep.Services;
 
-internal static class TrajectoryMath
+public static class TrajectoryMath
 {
     /// <summary>
     /// Computes a destination point given a start point, bearing, and distance.
     /// Wind direction convention: wind FROM direction. Balloon bearing = (windDir + 180) % 360.
     /// </summary>
-    internal static (double Lat, double Lon) HaversineDestination(
+    public static (double Lat, double Lon) HaversineDestination(
         double lat, double lon, double bearingDeg, double distanceM)
     {
         const double R = 6_371_000;
