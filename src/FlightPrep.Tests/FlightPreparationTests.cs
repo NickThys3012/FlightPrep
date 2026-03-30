@@ -170,4 +170,64 @@ public class FlightPreparationTests
 
         Assert.Equal("green", fp.GoNoGo);
     }
+
+    // ── TotaalGewicht — additional edge cases ─────────────────────────────────
+
+    [Fact]
+    public void TotaalGewicht_WithPilotNoPassengers_ReturnsPilotPlusEnvelope()
+    {
+        // Arrange: envelope + pilot, zero passengers
+        var fp = BuildFp(envelopeKg: 200, pilotWeightKg: 80);
+        // Passengers list is intentionally empty (default)
+
+        // Act & Assert
+        Assert.Equal(280, fp.TotaalGewicht);
+    }
+
+    [Theory]
+    [InlineData(1,  70,  70)]
+    [InlineData(2,  65, 130)]
+    [InlineData(3,  80, 240)]
+    public void TotaalGewicht_VaryingPassengerCount_SumsCorrectly(
+        int count, double weightEach, double expectedPassengerTotal)
+    {
+        // Arrange
+        var fp = BuildFp(envelopeKg: 0, pilotWeightKg: 0);
+        for (int i = 0; i < count; i++)
+            fp.Passengers.Add(new Passenger { WeightKg = weightEach });
+
+        // Act & Assert
+        Assert.Equal(expectedPassengerTotal, fp.TotaalGewicht);
+    }
+
+    [Fact]
+    public void TotaalGewicht_AllComponentsPresent_ReturnsCorrectSum()
+    {
+        // Arrange: envelope=250, pilot=85, pax=[70, 75]
+        var fp = BuildFp(envelopeKg: 250, pilotWeightKg: 85);
+        fp.Passengers.Add(new Passenger { WeightKg = 70 });
+        fp.Passengers.Add(new Passenger { WeightKg = 75 });
+
+        // Act & Assert: 250 + 85 + 70 + 75 = 480
+        Assert.Equal(480, fp.TotaalGewicht);
+    }
+
+    // ── LiftVoldoende — additional edge cases ─────────────────────────────────
+
+    [Fact]
+    public void LiftVoldoende_LiftJustAboveWeight_ReturnsTrue()
+    {
+        // Total weight = 300, lift = 300.01 → true
+        var fp = BuildFp(envelopeKg: 300, totalLiftKg: 300.01);
+
+        Assert.True(fp.LiftVoldoende);
+    }
+
+    [Fact]
+    public void LiftVoldoende_ZeroLift_ReturnsFalse()
+    {
+        var fp = BuildFp(envelopeKg: 100, totalLiftKg: 0);
+
+        Assert.False(fp.LiftVoldoende);
+    }
 }
