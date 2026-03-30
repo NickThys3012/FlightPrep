@@ -1,6 +1,17 @@
 {
-  "currentVersion": "7.0.0",
+  "currentVersion": "7.0.1",
   "entries": [
+    {
+      "pr": 39,
+      "version": "7.0.1",
+      "title": "Refactor GoNoGo handling and improve error logging in FlightEdit",
+      "description": "Deze release verbetert de gebruikservaring en betrouwbaarheid van de FlightPrep applicatie.  \n- Nieuwe interactieve componenten zijn toegevoegd, waaronder de `FlightGoNoGoBadge` voor het tonen van de Go/No-Go status, wat de besluitvorming voor piloten vergemakkelijkt.  \n- De `FlightImageUpload` functie stelt gebruikers in staat om eenvoudig meerdere afbeeldingen te uploaden en te beheren, wat de visuele voorbereiding van de vlucht verbetert.  \n- De `FlightMeteoSection` biedt uitgebreide meteorologische informatie, inclusief weerdata en windprofielen, waardoor piloten beter geïnformeerd zijn over weersomstandigheden.  \n- Uitgebreide testdekking is toegevoegd, waardoor de robuustheid van de Go/No-Go logica is verbeterd en de kans op fouten in kritieke situaties is verminderd.",
+      "author": "NickThys3012",
+      "labels": [
+        "bug"
+      ],
+      "date": "2026-03-30T17:36:34Z"
+    },
     {
       "pr": 18,
       "version": "7.0.0",
