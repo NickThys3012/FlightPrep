@@ -1,6 +1,17 @@
 {
-  "currentVersion": "8.0.0",
+  "currentVersion": "9.0.0",
   "entries": [
+    {
+      "pr": 41,
+      "version": "9.0.0",
+      "title": "Implement ISA-based lift calculator and update related components",
+      "description": "De nieuwste update introduceert een ISA-gebaseerde liftcalculator voor het voorbereiden van ballonvluchten.  \n- Een nieuwe `LiftCalculator` service is toegevoegd, die nauwkeurige liftberekeningen mogelijk maakt, wat de piloot helpt bij het plannen van veiliger en efficiënter vliegen.  \n- Het `Balloon` model is herzien om nauwkeurige numerieke velden voor volume en interne temperatuur te gebruiken, wat de betrouwbaarheid van berekeningen verhoogt.  \n- De PDF-rapportage is verbeterd met gedetailleerde liftcalculaties, zodat piloten beter geïnformeerd zijn over hun vluchtprestaties.  \n- Alle tests zijn bijgewerkt om de nieuwe velden te ondersteunen, wat de algehele stabiliteit van de applicatie verbetert.",
+      "author": "NickThys3012",
+      "labels": [
+        "Feature"
+      ],
+      "date": "2026-03-31T12:17:02Z"
+    },
     {
       "pr": 40,
       "version": "8.0.0",
