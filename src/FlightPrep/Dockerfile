@@ -4,10 +4,13 @@ EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY ["FlightPrep.csproj", "."]
-RUN dotnet restore
+# Copy project files first for layer-cached restore
+COPY FlightPrep.Domain/FlightPrep.Domain.csproj FlightPrep.Domain/
+COPY FlightPrep.Infrastructure/FlightPrep.Infrastructure.csproj FlightPrep.Infrastructure/
+COPY FlightPrep/FlightPrep.csproj FlightPrep/
+RUN dotnet restore FlightPrep/FlightPrep.csproj
 COPY . .
-RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish FlightPrep/FlightPrep.csproj -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app

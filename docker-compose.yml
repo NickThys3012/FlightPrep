@@ -1,8 +1,8 @@
 services:
   web:
     build:
-      context: ./src/FlightPrep
-      dockerfile: Dockerfile
+      context: ./src
+      dockerfile: FlightPrep/Dockerfile
     ports:
       - "8082:8080"
     environment:
