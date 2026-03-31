@@ -270,10 +270,13 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         catch { /* malformed JSON — skip silently */ }
                     }
 
-                    // Trajectory map image — FitArea prevents layout crash when image
-                    // aspect ratio requires more height than remains on the current page
+                    // Trajectory map image — placed on its own page so it always has
+                    // full A4 height available (avoids FitArea shrinking it to a sliver
+                    // when preceding content fills most of the page)
                     if (mapPng != null)
-                        col.Item().PaddingTop(6).Image(mapPng).FitArea();
+                        col.Item().PageBreak();
+                    if (mapPng != null)
+                        col.Item().Image(mapPng).FitWidth();
 
                     // Traject images
                     var trajImgs = fp.Images.Where(i => i.Section == "Traject").ToList();
