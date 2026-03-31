@@ -40,7 +40,7 @@ public class FlightPreparationServiceTests
     {
         Registration = "OO-TST",
         Type         = "BB20N",
-        Volume       = "2000M³"
+        VolumeM3     = 2000
     };
 
     private static Pilot SeedPilot() => new()
@@ -91,8 +91,8 @@ public class FlightPreparationServiceTests
 
         await using var db = await factory.CreateDbContextAsync();
         db.Balloons.AddRange(
-            new Balloon { Registration = "OO-ZZZ", Type = "TypeA", Volume = "1000M³" },
-            new Balloon { Registration = "OO-AAA", Type = "TypeB", Volume = "2000M³" });
+            new Balloon { Registration = "OO-ZZZ", Type = "TypeA", VolumeM3 = 1000 },
+            new Balloon { Registration = "OO-AAA", Type = "TypeB", VolumeM3 = 2000 });
         await db.SaveChangesAsync();
 
         // Act

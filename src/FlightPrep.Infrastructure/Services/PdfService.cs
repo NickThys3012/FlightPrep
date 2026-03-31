@@ -66,7 +66,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     {
                         ("Datum", fp.Datum.ToString("dd/MM/yyyy")),
                         ("Tijdstip (LT)", fp.Tijdstip.ToString("HH:mm")),
-                        ("Ballon", fp.Balloon != null ? $"{fp.Balloon.Registration} – {fp.Balloon.Type} ({fp.Balloon.Volume})" : "–"),
+                        ("Ballon", fp.Balloon != null ? $"{fp.Balloon.Registration} – {fp.Balloon.Type} ({(fp.Balloon.VolumeM3.HasValue ? $"{fp.Balloon.VolumeM3:F0} m³" : "–")})" : "–"),
                         ("Piloot / PIC", fp.Pilot?.Name ?? "–"),
                         ("Locatie", fp.Location?.Name ?? "–"),
                         ("Veld eigenaar gemeld", fp.VeldEigenaarGemeld ? "Ja" : "Nee / NVT"),
@@ -202,6 +202,31 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     col.Item().Background(LightBg).Padding(3)
                         .Text(assessment.LiftVoldoende ? "Lift voldoende" : "Lift onvoldoende").Bold()
                         .FontColor(assessment.LiftVoldoende ? Colors.Green.Darken2 : Colors.Red.Darken2);
+
+                    // ISA lift calculation block — only when all inputs are present
+                    if (fp.Balloon?.VolumeM3.HasValue == true &&
+                        fp.Balloon?.InternalEnvelopeTempC.HasValue == true &&
+                        fp.Location?.ElevationM.HasValue == true &&
+                        fp.TemperatuurC.HasValue &&
+                        fp.MaxAltitudeFt.HasValue)
+                    {
+                        var A  = fp.MaxAltitudeFt.Value * 0.3048;
+                        var Eg = fp.Location.ElevationM.Value;
+                        var Tg = fp.TemperatuurC.Value;
+                        var Ti = fp.Balloon.InternalEnvelopeTempC.Value;
+                        var V  = fp.Balloon.VolumeM3.Value;
+                        var lr = LiftCalculator.Calculate(A, Eg, Tg, Ti, V);
+
+                        col.Item().Background(LightBg).Padding(3)
+                            .Text($"Ti (inw. temp): {Ti:F0}°C  |  Ballonvolume: {V:F0} m³");
+                        col.Item().Background(Colors.White).Padding(3)
+                            .Text($"ISA Ta @ max alt: {lr.AmbientTempAtAltC:F1}°C  |  ISA P @ max alt: {lr.PressureHpa:F1} hPa");
+
+                        col.Item().Background(Colors.White).Padding(3)
+                            .Text("Berekend via ISA-formule (Bijlage 2, Belgian Hot Air Balloon Flight Manual, Cameron Balloons Ltd.)")
+                            .FontSize(7).Italic().FontColor(Colors.Grey.Darken1);
+                    }
+
                     if (!string.IsNullOrWhiteSpace(fp.LoadNotes))
                         col.Item().Background(Colors.White).Padding(3).Text($"Notities: {fp.LoadNotes}");
 
@@ -245,9 +270,12 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         catch { /* malformed JSON — skip silently */ }
                     }
 
-                    // Trajectory map image
+                    // Trajectory map image — TrajectoryMapService enforces ≥4:3 landscape
+                    // aspect ratio so FitWidth is always safe on an A4 page
                     if (mapPng != null)
-                        col.Item().PaddingTop(6).Image(mapPng).FitWidth();
+                        col.Item().PageBreak();
+                    if (mapPng != null)
+                        col.Item().Image(mapPng).FitWidth();
 
                     // Traject images
                     var trajImgs = fp.Images.Where(i => i.Section == "Traject").ToList();

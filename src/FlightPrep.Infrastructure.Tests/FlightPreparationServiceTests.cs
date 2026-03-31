@@ -45,7 +45,7 @@ public class FlightPreparationServiceTests
     {
         Registration = "OO-TST",
         Type         = "BB20N",
-        Volume       = "2000M³"
+        VolumeM3     = 2000
     };
 
     private static Pilot SeedPilot() => new()

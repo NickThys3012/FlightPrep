@@ -8,4 +8,5 @@ public class Location
     public string? AirspaceNotes { get; set; }
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
+    public double? ElevationM { get; set; }
 }

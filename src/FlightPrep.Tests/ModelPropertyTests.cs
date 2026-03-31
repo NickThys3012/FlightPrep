@@ -16,14 +16,14 @@ public class ModelPropertyTests
             Id = 1,
             Registration = "OO-BAL",
             Type = "Cameron A-180",
-            Volume = "180",
+            VolumeM3 = 180,
             EmptyWeightKg = 250.5
         };
 
         Assert.Equal(1, b.Id);
         Assert.Equal("OO-BAL", b.Registration);
         Assert.Equal("Cameron A-180", b.Type);
-        Assert.Equal("180", b.Volume);
+        Assert.Equal(180, b.VolumeM3);
         Assert.Equal(250.5, b.EmptyWeightKg);
     }
 

@@ -67,7 +67,7 @@
                                     <option value="">– Selecteer ballon –</option>
                                     @foreach (var b in balloons)
                                     {
-                                        <option value="@b.Id">@b.Registration – @b.Type (@b.Volume)</option>
+                                        <option value="@b.Id">@b.Registration – @b.Type (@(b.VolumeM3.HasValue ? $"{b.VolumeM3:F0} m³" : "–"))</option>
                                     }
                                 </select>
                             </div>

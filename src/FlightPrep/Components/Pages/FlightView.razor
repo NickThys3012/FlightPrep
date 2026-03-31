@@ -51,7 +51,7 @@ else
                         <dl class="row mb-0">
                             <dt class="col-sm-3">Datum</dt><dd class="col-sm-9">@fp.Datum.ToString("dd/MM/yyyy")</dd>
                             <dt class="col-sm-3">Tijdstip</dt><dd class="col-sm-9">@fp.Tijdstip.ToString("HH:mm") LT</dd>
-                            <dt class="col-sm-3">Ballon</dt><dd class="col-sm-9">@(fp.Balloon != null ? $"{fp.Balloon.Registration} – {fp.Balloon.Type} ({fp.Balloon.Volume})" : "–")</dd>
+                            <dt class="col-sm-3">Ballon</dt><dd class="col-sm-9">@(fp.Balloon != null ? $"{fp.Balloon.Registration} – {fp.Balloon.Type} ({(fp.Balloon.VolumeM3.HasValue ? $"{fp.Balloon.VolumeM3:F0} m³" : "–")})" : "–")</dd>
                             <dt class="col-sm-3">Piloot / PIC</dt><dd class="col-sm-9">@(fp.Pilot?.Name ?? "–")</dd>
                             <dt class="col-sm-3">Locatie</dt><dd class="col-sm-9">@(fp.Location?.Name ?? "–")</dd>
                             <dt class="col-sm-3">Veld eigenaar gemeld</dt>
