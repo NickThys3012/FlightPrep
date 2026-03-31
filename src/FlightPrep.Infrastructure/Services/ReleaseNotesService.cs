@@ -10,6 +10,7 @@ public class ReleaseNotesService(
     ILogger<ReleaseNotesService> logger) : IReleaseNotesService
 {
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
+    private static readonly SemaphoreSlim _semaphore = new(1, 1);
 
     private ReleaseNotesDocument? _cache;
     private DateTime _cachedAt = DateTime.MinValue;
@@ -19,8 +20,13 @@ public class ReleaseNotesService(
         if (_cache != null && (DateTime.UtcNow - _cachedAt).TotalMinutes < 5)
             return _cache;
 
+        await _semaphore.WaitAsync();
         try
         {
+            // Re-check inside the lock — another thread may have populated the cache
+            if (_cache != null && (DateTime.UtcNow - _cachedAt).TotalMinutes < 5)
+                return _cache;
+
             var path = Path.Combine(env.WebRootPath, "release-notes.json");
             var json = await File.ReadAllTextAsync(path);
             _cache = JsonSerializer.Deserialize<ReleaseNotesDocument>(json, JsonOpts) ?? new();
@@ -33,6 +39,10 @@ public class ReleaseNotesService(
         {
             logger.LogError(ex, "Failed to load release notes");
             return new();
+        }
+        finally
+        {
+            _semaphore.Release();
         }
     }
 }
