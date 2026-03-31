@@ -1,5 +1,5 @@
 @rendermode InteractiveServer
-@inject WeatherFetchService WeatherFetchSvc
+@inject IWeatherFetchService WeatherFetchSvc
 @inject ILogger<FlightMeteoSection> Logger
 
 @if (!string.IsNullOrEmpty(CurrentLocation?.IcaoCode))

@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FlightPrep.Domain.Tests/FlightPrep.Domain.Tests.csproj" />
+    <Project Path="src/FlightPrep.Domain/FlightPrep.Domain.csproj" />
+    <Project Path="src/FlightPrep.Infrastructure.Tests/FlightPrep.Infrastructure.Tests.csproj" />
+    <Project Path="src/FlightPrep.Infrastructure/FlightPrep.Infrastructure.csproj" />
+    <Project Path="src/FlightPrep.Tests/FlightPrep.Tests.csproj" />
+    <Project Path="src/FlightPrep/FlightPrep.csproj" />
+  </Folder>
+</Solution>

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FlightPrep.Services;
 
-public class GoNoGoService(IDbContextFactory<AppDbContext> dbFactory)
+public class GoNoGoService(IDbContextFactory<AppDbContext> dbFactory) : IGoNoGoService
 {
     public async Task<GoNoGoSettings> GetSettingsAsync()
     {
@@ -36,18 +36,27 @@ public class GoNoGoService(IDbContextFactory<AppDbContext> dbFactory)
 
     public string Compute(FlightPreparation fp, GoNoGoSettings s)
     {
-        bool hasData = fp.SurfaceWindSpeedKt.HasValue || fp.ZichtbaarheidKm.HasValue || fp.CapeJkg.HasValue;
+        return Compute(fp.SurfaceWindSpeedKt, fp.ZichtbaarheidKm, fp.CapeJkg, s);
+    }
+
+    /// <summary>
+    /// Compute overload that accepts raw weather values — used by the list page
+    /// with <see cref="FlightPreparationSummary"/> rows.
+    /// </summary>
+    public string Compute(double? windKt, double? visKm, double? capeJkg, GoNoGoSettings s)
+    {
+        bool hasData = windKt.HasValue || visKm.HasValue || capeJkg.HasValue;
         if (!hasData) return "unknown";
 
         bool red =
-            (fp.SurfaceWindSpeedKt >= s.WindRedKt) ||
-            (fp.ZichtbaarheidKm.HasValue && fp.ZichtbaarheidKm < s.VisRedKm) ||
-            (fp.CapeJkg >= s.CapeRedJkg);
+            (windKt >= s.WindRedKt) ||
+            (visKm.HasValue && visKm < s.VisRedKm) ||
+            (capeJkg >= s.CapeRedJkg);
 
         bool yellow =
-            (fp.SurfaceWindSpeedKt >= s.WindYellowKt) ||
-            (fp.ZichtbaarheidKm.HasValue && fp.ZichtbaarheidKm < s.VisYellowKm) ||
-            (fp.CapeJkg >= s.CapeYellowJkg);
+            (windKt >= s.WindYellowKt) ||
+            (visKm.HasValue && visKm < s.VisYellowKm) ||
+            (capeJkg >= s.CapeYellowJkg);
 
         return red ? "red" : yellow ? "yellow" : "green";
     }

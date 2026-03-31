@@ -1,6 +1,6 @@
 namespace FlightPrep.Services;
 
-public class WeatherService(HttpClient http)
+public class WeatherService(HttpClient http) : IWeatherService
 {
     public async Task<(string? Metar, string? Taf)> FetchAsync(string icao)
     {

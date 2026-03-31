@@ -1,8 +1,8 @@
 @page "/flights"
 @rendermode InteractiveServer
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject IFlightPreparationService FpSvc
 @inject NavigationManager Nav
-@inject GoNoGoService GoNoGoSvc
+@inject IGoNoGoService GoNoGoSvc
 
 <PageTitle>Vaarten – FlightPrep</PageTitle>
 
@@ -49,9 +49,9 @@ else
                     <tr>
                         <td class="fw-semibold">@f.Datum.ToString("dd/MM/yyyy")</td>
                         <td>@f.Tijdstip.ToString("HH:mm")</td>
-                        <td>@(f.Balloon?.Registration ?? "–")</td>
-                        <td>@(f.Pilot?.Name ?? "–")</td>
-                        <td>@(f.Location?.Name ?? "–")</td>
+                        <td>@(f.BalloonRegistration ?? "–")</td>
+                        <td>@(f.PilotName ?? "–")</td>
+                        <td>@(f.LocationName ?? "–")</td>
                         <td>
                             <FlightGoNoGoBadge GoNoGoResult="@GetGoNoGo(f)" />
                             @if (f.IsFlown)
@@ -116,21 +116,21 @@ else
 }
 
 @code {
-    private List<FlightPreparation>? flights;
+    private List<FlightPreparationSummary>? flights;
     private GoNoGoSettings _goNoGoSettings = new();
     private int? deleteId;
     private bool sortDesc = true;
     private int currentPage = 1;
     private const int PageSize = 20;
 
-    private IEnumerable<FlightPreparation> SortedFlights =>
+    private IEnumerable<FlightPreparationSummary> SortedFlights =>
         sortDesc
             ? flights!.OrderByDescending(f => f.Datum).ThenByDescending(f => f.Tijdstip)
             : flights!.OrderBy(f => f.Datum).ThenBy(f => f.Tijdstip);
 
     private int TotalPages => (int)Math.Ceiling((flights?.Count ?? 0) / (double)PageSize);
 
-    private IEnumerable<FlightPreparation> PagedFlights =>
+    private IEnumerable<FlightPreparationSummary> PagedFlights =>
         SortedFlights.Skip((currentPage - 1) * PageSize).Take(PageSize);
 
     private void ToggleSort()
@@ -141,17 +141,13 @@ else
 
     protected override async Task OnInitializedAsync() => await LoadFlights();
 
-    private string GetGoNoGo(FlightPreparation f) => GoNoGoSvc.Compute(f, _goNoGoSettings);
+    private string GetGoNoGo(FlightPreparationSummary f) =>
+        GoNoGoSvc.Compute(f.SurfaceWindSpeedKt, f.ZichtbaarheidKm, f.CapeJkg, _goNoGoSettings);
 
     private async Task LoadFlights()
     {
         _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync();
-        await using var db = await DbFactory.CreateDbContextAsync();
-        flights = await db.FlightPreparations
-            .Include(f => f.Balloon)
-            .Include(f => f.Pilot)
-            .Include(f => f.Location)
-            .ToListAsync();
+        flights = await FpSvc.GetSummariesAsync();
     }
 
     private void ConfirmDelete(int id) => deleteId = id;
@@ -159,13 +155,7 @@ else
     private async Task DeleteFlight()
     {
         if (!deleteId.HasValue) return;
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var fp = await db.FlightPreparations.FindAsync(deleteId.Value);
-        if (fp != null)
-        {
-            db.FlightPreparations.Remove(fp);
-            await db.SaveChangesAsync();
-        }
+        await FpSvc.DeleteAsync(deleteId.Value);
         deleteId = null;
         await LoadFlights();
     }

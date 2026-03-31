@@ -1,14 +1,14 @@
 services:
   web:
     build:
-      context: ./src/FlightPrep
-      dockerfile: Dockerfile
+      context: ./src
+      dockerfile: FlightPrep/Dockerfile
     ports:
       - "8082:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=flightprep;Username=fpuser;Password=fppass
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=flightprep;Username=${POSTGRES_USER:-fpuser};Password=${POSTGRES_PASSWORD:-fppass}
     volumes:
       - dpkeys:/root/.aspnet/DataProtection-Keys
     depends_on:
@@ -18,9 +18,9 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: flightprep
-      POSTGRES_USER: fpuser
-      POSTGRES_PASSWORD: fppass
+      POSTGRES_DB:       ${POSTGRES_DB:-flightprep}
+      POSTGRES_USER:     ${POSTGRES_USER:-fpuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fppass}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

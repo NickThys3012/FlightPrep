@@ -21,16 +21,18 @@ builder.Host.UseSerilog((ctx, cfg) => cfg
 builder.Services.AddDbContextFactory<AppDbContext>(opts =>
     opts.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddHttpClient<WeatherService>();
-builder.Services.AddSingleton<SunriseService>();
-builder.Services.AddScoped<PdfService>();
-builder.Services.AddScoped<GoNoGoService>();
+builder.Services.AddHttpClient<IWeatherService, WeatherService>();
+builder.Services.AddSingleton<ISunriseService, SunriseService>();
+builder.Services.AddScoped<IPdfService, PdfService>();
+builder.Services.AddScoped<IGoNoGoService, GoNoGoService>();
+builder.Services.AddScoped<IFlightAssessmentService, FlightAssessmentService>();
+builder.Services.AddScoped<IFlightPreparationService, FlightPreparationService>();
 // Data protection keys persist to /root/.aspnet/DataProtection-Keys (mounted as Docker volume)
 
 // Application Insights — only active when APPLICATIONINSIGHTS_CONNECTION_STRING is set
 if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
     builder.Services.AddApplicationInsightsTelemetry();
-builder.Services.AddSingleton<KmlService>();
+builder.Services.AddSingleton<IKmlService, KmlService>();
 builder.Services.AddSingleton<ITrajectoryService, TrajectoryService>();
 builder.Services.AddScoped<IEnhancedTrajectoryService, EnhancedTrajectoryService>();
 
@@ -54,15 +56,15 @@ builder.Services.AddHttpClient("staticmap", c =>
     c.DefaultRequestHeaders.UserAgent.ParseAdd("FlightPrep/1.0 (+https://github.com/NickThys3012/FlightPrep)");
     c.Timeout = TimeSpan.FromSeconds(10);
 });
-builder.Services.AddHttpClient<TrajectoryMapService>(c =>
+builder.Services.AddHttpClient<ITrajectoryMapService, TrajectoryMapService>(c =>
 {
     c.DefaultRequestHeaders.UserAgent.ParseAdd("FlightPrep/1.0 (+https://github.com/NickThys3012/FlightPrep)");
     c.Timeout = TimeSpan.FromSeconds(15);
 });
 builder.Services.AddMemoryCache();
-builder.Services.AddScoped<WeatherFetchService>();
-builder.Services.AddScoped<PowerLineService>();
-builder.Services.AddSingleton<ReleaseNotesService>();
+builder.Services.AddScoped<IWeatherFetchService, WeatherFetchService>();
+builder.Services.AddScoped<IPowerLineService, PowerLineService>();
+builder.Services.AddSingleton<IReleaseNotesService, ReleaseNotesService>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -73,7 +75,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
-    var db = dbFactory.CreateDbContext();
+    using var db = dbFactory.CreateDbContext();
     db.Database.Migrate();
 }
 
@@ -97,7 +99,7 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 app.MapStaticAssets();
-app.MapGet("/api/powerlines", async (double south, double west, double north, double east, PowerLineService powerLineService) =>
+app.MapGet("/api/powerlines", async (double south, double west, double north, double east, IPowerLineService powerLineService) =>
 {
     if (south >= north || west >= east ||
         south < -90 || north > 90 || west < -180 || east > 180)
