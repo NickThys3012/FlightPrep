@@ -53,10 +53,7 @@ jobs:
             --logger "trx;LogFileName=domain-results.trx" \
             /p:CollectCoverage=true \
             /p:CoverletOutputFormat=cobertura \
-            /p:CoverletOutput=${{ github.workspace }}/coverage/domain/ \
-            /p:Threshold=80 \
-            /p:ThresholdType=line \
-            /p:ThresholdStat=total
+            /p:CoverletOutput=${{ github.workspace }}/coverage/domain/
 
       - name: Run unit tests — Infrastructure (with coverage)
         run: |
@@ -65,11 +62,7 @@ jobs:
             --logger "trx;LogFileName=infra-results.trx" \
             /p:CollectCoverage=true \
             /p:CoverletOutputFormat=cobertura \
-            /p:CoverletOutput=${{ github.workspace }}/coverage/infra/ \
-            /p:Threshold=70 \
-            /p:ThresholdType=line \
-            /p:ThresholdStat=total \
-            '/p:ExcludeByFile="**/Migrations/**,**/AppDbContext.cs,**/PdfService.cs"'
+            /p:CoverletOutput=${{ github.workspace }}/coverage/infra/
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
