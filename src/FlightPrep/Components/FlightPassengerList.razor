@@ -44,7 +44,7 @@
     </div>
 </div>
 
-@if (_liftResult is not null)
+@if (_liftResult is not null && CanCalculateLift)
 {
     var _altM = Fp.MaxAltitudeFt!.Value * 0.3048;
     var _Eg   = Fp.Location!.ElevationM!.Value;

@@ -68,7 +68,15 @@
     </table>
     @if (!addingNew)
     {
-        <button class="btn btn-primary" @onclick="() => { addingNew = true; newBalloon = new(); }">➕ Ballon toevoegen</button>
+        <button class="btn btn-primary" @onclick="() => { addingNew = true; newBalloon = new(); newError = null; }">➕ Ballon toevoegen</button>
+    }
+    @if (editError is not null)
+    {
+        <div class="alert alert-danger mt-2">@editError</div>
+    }
+    @if (newError is not null)
+    {
+        <div class="alert alert-danger mt-2">@newError</div>
     }
 </div>
 
@@ -78,6 +86,8 @@
     private Balloon editBalloon = new();
     private bool addingNew;
     private Balloon newBalloon = new();
+    private string? editError;
+    private string? newError;
 
     protected override async Task OnInitializedAsync() => await Load();
 
@@ -97,6 +107,12 @@
 
     private async Task SaveEdit()
     {
+        if (editBalloon.InternalEnvelopeTempC is < 0 or > 100)
+        {
+            editError = "Inwendige temperatuur (Ti) moet tussen 0 en 100°C liggen.";
+            return;
+        }
+        editError = null;
         await using var db = await DbFactory.CreateDbContextAsync();
         db.Balloons.Update(editBalloon);
         await db.SaveChangesAsync();
@@ -106,6 +122,12 @@
 
     private async Task SaveNew()
     {
+        if (newBalloon.InternalEnvelopeTempC is < 0 or > 100)
+        {
+            newError = "Inwendige temperatuur (Ti) moet tussen 0 en 100°C liggen.";
+            return;
+        }
+        newError = null;
         await using var db = await DbFactory.CreateDbContextAsync();
         db.Balloons.Add(newBalloon);
         await db.SaveChangesAsync();

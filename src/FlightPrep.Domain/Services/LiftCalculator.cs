@@ -15,7 +15,7 @@ public static class LiftCalculator
     /// <param name="V">Envelope volume in m³</param>
     public static LiftResult Calculate(double A, double Eg, double Tg, double Ti, double V)
     {
-        Ti = Math.Min(Ti, MaxTi);
+        Ti = Math.Clamp(Ti, 0.0, MaxTi);
         double ta_at = Tg - (0.0065 * (A - Eg));
         double P     = 1013.25 * Math.Pow(1.0 - (0.0065 * A) / 288.15, 5.256);
         double L     = 0.3484 * V * P * (1.0 / (ta_at + 273.15) - 1.0 / (Ti + 273.15));
