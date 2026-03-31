@@ -55,6 +55,16 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
             var (txMax, tyMax) = LatLonToTile(minLat, maxLon, zoom); // SE corner
             int txCount = Math.Min(txMax - txMin + 1, 8);
             int tyCount = Math.Min(tyMax - tyMin + 1, 8);
+
+            // Enforce a minimum 4:3 landscape aspect ratio so the PDF map is always
+            // readable. A north-south trajectory can produce txCount=1, tyCount=5
+            // (ratio 0.2) which QuestPDF cannot fit even on a full A4 page.
+            // Expand the narrower tile dimension symmetrically until ratio >= 4:3.
+            while (txCount < (int)Math.Ceiling(tyCount * 4.0 / 3.0) && txCount < 8)
+            {
+                txMin--;
+                txCount = Math.Min(txMax - txMin + 1, 8);
+            }
             int imgW = txCount * TileSize;
             int imgH = tyCount * TileSize;
 

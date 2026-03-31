@@ -20,7 +20,6 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
         mapPng ??= await mapSvc.RenderAsync(fp.TrajectorySimulationJson);
 
         Settings.License = LicenseType.Community;
-        Settings.EnableDebugging = true; // TODO: remove after diagnosing layout crash
 
         // Compute sunrise/sunset if location has coords
         (TimeOnly Sunrise, TimeOnly Sunset)? sunriseSunset = null;
@@ -271,9 +270,8 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         catch { /* malformed JSON — skip silently */ }
                     }
 
-                    // Trajectory map image — placed on its own page so it always has
-                    // full A4 height available (avoids FitArea shrinking it to a sliver
-                    // when preceding content fills most of the page)
+                    // Trajectory map image — TrajectoryMapService enforces ≥4:3 landscape
+                    // aspect ratio so FitWidth is always safe on an A4 page
                     if (mapPng != null)
                         col.Item().PageBreak();
                     if (mapPng != null)
