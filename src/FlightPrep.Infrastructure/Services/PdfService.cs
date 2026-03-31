@@ -273,7 +273,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     // Trajectory map image — FitArea prevents layout crash when image
                     // aspect ratio requires more height than remains on the current page
                     if (mapPng != null)
-                        col.Item().PaddingTop(6).MaxHeight(400).Image(mapPng).FitArea();
+                        col.Item().PaddingTop(6).Image(mapPng).FitArea();
 
                     // Traject images
                     var trajImgs = fp.Images.Where(i => i.Section == "Traject").ToList();
