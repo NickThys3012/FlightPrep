@@ -1,6 +1,17 @@
 {
-  "currentVersion": "9.0.0",
+  "currentVersion": "9.0.1",
   "entries": [
+    {
+      "pr": 42,
+      "version": "9.0.1",
+      "title": "Ensure thread-safe caching in ReleaseNotesService with SemaphoreSlim",
+      "description": "Er zijn verbeteringen aangebracht aan de thread safety en betrouwbaarheid van de ReleaseNotesService.  \n- Een `SemaphoreSlim` is toegevoegd om te zorgen dat slechts één thread tegelijk de cache van release notes kan bijwerken, wat race conditions voorkomt tijdens gelijktijdige toegang.  \n- De `GetAsync`-methode is geoptimaliseerd met een dubbele controle om onnodige bestandslezingen te vermijden, wat de efficiëntie verhoogt.  \n- Er zijn nieuwe tests toegevoegd om te waarborgen dat na cache-expiratie de service de bestand opnieuw leest en dat meerdere gelijktijdige aanroepen dezelfde, volledig populierte cache-instantie ontvangen.",
+      "author": "NickThys3012",
+      "labels": [
+        "bug"
+      ],
+      "date": "2026-03-31T13:28:42Z"
+    },
     {
       "pr": 41,
       "version": "9.0.0",
