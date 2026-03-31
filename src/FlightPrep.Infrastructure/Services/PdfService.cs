@@ -20,6 +20,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
         mapPng ??= await mapSvc.RenderAsync(fp.TrajectorySimulationJson);
 
         Settings.License = LicenseType.Community;
+        Settings.EnableDebugging = true; // TODO: remove after diagnosing layout crash
 
         // Compute sunrise/sunset if location has coords
         (TimeOnly Sunrise, TimeOnly Sunset)? sunriseSunset = null;
