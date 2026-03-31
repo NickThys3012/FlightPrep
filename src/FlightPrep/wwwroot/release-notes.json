@@ -1,6 +1,17 @@
 {
-  "currentVersion": "7.0.1",
+  "currentVersion": "8.0.0",
   "entries": [
+    {
+      "pr": 40,
+      "version": "8.0.0",
+      "title": "Refactor services and structure for layered architecture implementation",
+      "description": "Er zijn belangrijke verbeteringen aangebracht in de architectuur en teststructuur van FlightPrep.  \n- Een nieuw `FlightPrep.Domain` project is toegevoegd, dat gedeelde domeinmodellen bevat en de basis legt voor een betere modulariteit en testbaarheid.  \n- De `FlightPreparationSummary` record is geïntroduceerd, waardoor alleen essentiële informatie wordt weergegeven op de vluchtlijstpagina, wat de efficiëntie voor piloten verhoogt.  \n- Uitgebreide eenheidstests zijn toegevoegd voor belangrijke domeindiensten en modellen, wat zorgt voor een robuustere codebasis en verhoogde betrouwbaarheid van de applicatie.  \n- De CI/CD workflow is geüpdatet om afzonderlijke testverslagen en code coverage rapporten te genereren voor elk project, wat de onderhoudbaarheid en zichtbaarheid verbetert.",
+      "author": "NickThys3012",
+      "labels": [
+        "Feature"
+      ],
+      "date": "2026-03-31T05:51:45Z"
+    },
     {
       "pr": 39,
       "version": "7.0.1",
