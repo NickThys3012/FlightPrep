@@ -66,7 +66,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     {
                         ("Datum", fp.Datum.ToString("dd/MM/yyyy")),
                         ("Tijdstip (LT)", fp.Tijdstip.ToString("HH:mm")),
-                        ("Ballon", fp.Balloon != null ? $"{fp.Balloon.Registration} – {fp.Balloon.Type} ({fp.Balloon.Volume})" : "–"),
+                        ("Ballon", fp.Balloon != null ? $"{fp.Balloon.Registration} – {fp.Balloon.Type} ({(fp.Balloon.VolumeM3.HasValue ? $"{fp.Balloon.VolumeM3:F0} m³" : "–")})" : "–"),
                         ("Piloot / PIC", fp.Pilot?.Name ?? "–"),
                         ("Locatie", fp.Location?.Name ?? "–"),
                         ("Veld eigenaar gemeld", fp.VeldEigenaarGemeld ? "Ja" : "Nee / NVT"),
@@ -202,6 +202,27 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     col.Item().Background(LightBg).Padding(3)
                         .Text(assessment.LiftVoldoende ? "Lift voldoende" : "Lift onvoldoende").Bold()
                         .FontColor(assessment.LiftVoldoende ? Colors.Green.Darken2 : Colors.Red.Darken2);
+
+                    // ISA lift calculation block — only when all inputs are present
+                    if (fp.Balloon?.VolumeM3.HasValue == true &&
+                        fp.Balloon?.InternalEnvelopeTempC.HasValue == true &&
+                        fp.Location?.ElevationM.HasValue == true &&
+                        fp.TemperatuurC.HasValue &&
+                        fp.MaxAltitudeFt.HasValue)
+                    {
+                        var A  = fp.MaxAltitudeFt.Value * 0.3048;
+                        var Eg = fp.Location.ElevationM.Value;
+                        var Tg = fp.TemperatuurC.Value;
+                        var Ti = fp.Balloon.InternalEnvelopeTempC.Value;
+                        var V  = fp.Balloon.VolumeM3.Value;
+                        var lr = LiftCalculator.Calculate(A, Eg, Tg, Ti, V);
+
+                        col.Item().Background(LightBg).Padding(3)
+                            .Text($"Ti (inw. temp): {Ti:F0}°C  |  Ballonvolume: {V:F0} m³");
+                        col.Item().Background(Colors.White).Padding(3)
+                            .Text($"ISA Ta @ max alt: {lr.AmbientTempAtAltC:F1}°C  |  ISA P @ max alt: {lr.PressureHpa:F1} hPa");
+                    }
+
                     if (!string.IsNullOrWhiteSpace(fp.LoadNotes))
                         col.Item().Background(Colors.White).Padding(3).Text($"Notities: {fp.LoadNotes}");
 

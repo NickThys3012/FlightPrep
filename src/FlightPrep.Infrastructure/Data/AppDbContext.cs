@@ -61,7 +61,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 Id = 1,
                 Registration = "OO-BUT",
                 Type = "BB22N",
-                Volume = "2200M³",
+                VolumeM3 = 2200,
+                InternalEnvelopeTempC = 80,
                 EmptyWeightKg = 323.4
             }
         );
