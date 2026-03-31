@@ -93,4 +93,62 @@ public class ReleaseNotesServiceTests : IDisposable
 
         Assert.NotNull(result);
     }
+
+    [Fact]
+    public async Task GetAsync_CalledAfterCacheExpiry_ReadsFileAgain()
+    {
+        // Arrange
+        WriteReleaseNotes(new ReleaseNotesDocument { CurrentVersion = "1.0.0" });
+        var sut = BuildSut();
+        _ = await sut.GetAsync(); // populate cache
+
+        // Reset _cachedAt to force expiry
+        var field = typeof(ReleaseNotesService)
+            .GetField("_cachedAt", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        field.SetValue(sut, DateTime.MinValue);
+
+        // Replace file with updated content
+        WriteReleaseNotes(new ReleaseNotesDocument { CurrentVersion = "3.0.0" });
+
+        // Act — cache is expired, so file must be re-read
+        var result = await sut.GetAsync();
+
+        // Assert
+        Assert.Equal("3.0.0", result.CurrentVersion);
+    }
+
+    [Fact]
+    public async Task GetAsync_ConcurrentCalls_AllReturnValidDocument()
+    {
+        // Arrange — regression test for issue #28 (thread-safety via SemaphoreSlim)
+        WriteReleaseNotes(new ReleaseNotesDocument
+        {
+            CurrentVersion = "2.0.0",
+            Entries =
+            [
+                new ReleaseEntry { Pr = 1, Title = "Alpha", Version = "2.0.0" },
+                new ReleaseEntry { Pr = 2, Title = "Beta",  Version = "2.0.0" }
+            ]
+        });
+        var sut = BuildSut();
+
+        // Act — 10 concurrent callers (simulates multiple Blazor circuits)
+        var tasks = Enumerable.Range(0, 10)
+            .Select(_ => Task.Run(() => sut.GetAsync()))
+            .ToArray();
+
+        var results = await Task.WhenAll(tasks);
+
+        // Assert — every caller received a fully-populated, non-null document
+        Assert.All(results, r =>
+        {
+            Assert.NotNull(r);
+            Assert.Equal("2.0.0", r.CurrentVersion);
+            Assert.Equal(2, r.Entries.Count);
+        });
+
+        // All results should be the exact same cached instance (no torn reads)
+        var first = results[0];
+        Assert.All(results, r => Assert.Same(first, r));
+    }
 }
