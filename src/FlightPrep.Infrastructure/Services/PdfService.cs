@@ -221,6 +221,18 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                             .Text($"Ti (inw. temp): {Ti:F0}°C  |  Ballonvolume: {V:F0} m³");
                         col.Item().Background(Colors.White).Padding(3)
                             .Text($"ISA Ta @ max alt: {lr.AmbientTempAtAltC:F1}°C  |  ISA P @ max alt: {lr.PressureHpa:F1} hPa");
+
+                        col.Item().Background(LightBg).PaddingHorizontal(3).PaddingTop(3)
+                            .Text(t =>
+                            {
+                                t.DefaultTextStyle(s => s.FontSize(8));
+                                t.Line($"Stap 1¹ — Ta = {Tg:F1} − (0,0065 × ({A:F0} − {Eg:F0})) = {lr.AmbientTempAtAltC:F1}°C");
+                                t.Line($"Stap 2¹ — P = 1013,25 × (1 − (0,0065 × {A:F0}) / 288,15)^5,256 = {lr.PressureHpa:F1} hPa");
+                                t.Line($"Stap 3¹ — L = 0,3484 × {V:F0} × {lr.PressureHpa:F1} × (1/({lr.AmbientTempAtAltC:F1}+273,15) − 1/({Ti:F0}+273,15)) = {lr.TotalLiftKg:F1} kg");
+                            });
+                        col.Item().Background(Colors.White).PaddingHorizontal(3).PaddingBottom(4)
+                            .Text("¹ Formule: Belgian Hot Air Balloon Flight Manual, Amendment 18, Appendix 2, p. A2-1 (Cameron Balloons Ltd.)")
+                            .FontSize(7).Italic().FontColor(Colors.Grey.Darken1);
                     }
 
                     if (!string.IsNullOrWhiteSpace(fp.LoadNotes))

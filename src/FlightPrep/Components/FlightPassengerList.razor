@@ -46,8 +46,27 @@
 
 @if (_liftResult is not null)
 {
+    var _altM = Fp.MaxAltitudeFt!.Value * 0.3048;
+    var _Eg   = Fp.Location!.ElevationM!.Value;
+    var _Tg   = Fp.TemperatuurC!.Value;
+    var _Ti   = Fp.Balloon!.InternalEnvelopeTempC!.Value;
+    var _V    = Fp.Balloon!.VolumeM3!.Value;
     <div class="alert alert-info py-2 mb-3 small">
         🧮 ISA: Ta = @_liftResult.AmbientTempAtAltC.ToString("F1")°C  |  P = @_liftResult.PressureHpa.ToString("F1") hPa  →  <strong>@_liftResult.TotalLiftKg.ToString("F1") kg</strong>
+        <div class="fp-calc-steps mt-1">
+            <small class="text-muted font-monospace d-block">
+                Stap 1 — Ta = @_Tg.ToString("F1")°C − (0,0065 × (@_altM.ToString("F0") − @_Eg.ToString("F0"))) = @_liftResult.AmbientTempAtAltC.ToString("F1")°C
+            </small>
+            <small class="text-muted font-monospace d-block">
+                Stap 2 — P = 1013,25 × (1 − (0,0065 × @_altM.ToString("F0")) / 288,15)^5,256 = @_liftResult.PressureHpa.ToString("F1") hPa
+            </small>
+            <small class="text-muted font-monospace d-block">
+                Stap 3 — L = 0,3484 × @_V.ToString("F0") × @_liftResult.PressureHpa.ToString("F1") × (1/(Ta+273,15) − 1/(@_Ti.ToString("F0")+273,15)) = @_liftResult.TotalLiftKg.ToString("F1") kg
+            </small>
+            <small class="text-muted fst-italic d-block mt-1">
+                ¹ Formule: Belgian Hot Air Balloon Flight Manual, Amendment 18, Appendix 2, p. A2-1 (Cameron Balloons Ltd.)
+            </small>
+        </div>
     </div>
 }
 
