@@ -20,7 +20,6 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
         mapPng ??= await mapSvc.RenderAsync(fp.TrajectorySimulationJson);
 
         Settings.License = LicenseType.Community;
-        Settings.EnableDebugging = true; // TODO: remove after diagnosing layout crash
 
         // Compute sunrise/sunset if location has coords
         (TimeOnly Sunrise, TimeOnly Sunset)? sunriseSunset = null;
@@ -271,9 +270,10 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         catch { /* malformed JSON — skip silently */ }
                     }
 
-                    // Trajectory map image
+                    // Trajectory map image — FitArea prevents layout crash when image
+                    // aspect ratio requires more height than remains on the current page
                     if (mapPng != null)
-                        col.Item().PaddingTop(6).Image(mapPng).FitWidth();
+                        col.Item().PaddingTop(6).MaxHeight(400).Image(mapPng).FitArea();
 
                     // Traject images
                     var trajImgs = fp.Images.Where(i => i.Section == "Traject").ToList();
