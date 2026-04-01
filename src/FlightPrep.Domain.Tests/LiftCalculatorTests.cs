@@ -4,7 +4,7 @@ namespace FlightPrep.Domain.Tests;
 
 /// <summary>
 /// Unit tests for <see cref="LiftCalculator.Calculate"/>.
-/// Covers the ISA-based total lift formula from the Belgian Hot Air Balloon
+/// Covers the ISA-based total lift formula from the Hot Air Balloon
 /// Flight Manual, Amendment 18, Appendix 2, Page A2-1.
 /// All expected values are pre-computed from the published formula.
 /// </summary>

@@ -223,7 +223,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                             .Text($"ISA Ta @ max alt: {lr.AmbientTempAtAltC:F1}°C  |  ISA P @ max alt: {lr.PressureHpa:F1} hPa");
 
                         col.Item().Background(Colors.White).Padding(3)
-                            .Text("Berekend via ISA-formule (Bijlage 2, Belgian Hot Air Balloon Flight Manual, Cameron Balloons Ltd.)")
+                            .Text("Berekend via ISA-formule (Bijlage 2, Hot Air Balloon Flight Manual, Cameron Balloons Ltd.)")
                             .FontSize(7).Italic().FontColor(Colors.Grey.Darken1);
                     }
 

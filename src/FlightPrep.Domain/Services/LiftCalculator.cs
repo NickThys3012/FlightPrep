@@ -1,7 +1,7 @@
 namespace FlightPrep.Services;
 
 /// <summary>
-/// ISA-based total lift formula — Belgian Hot Air Balloon Flight Manual,
+/// ISA-based total lift formula — Cameron Hot Air Balloon Flight Manual,
 /// Amendment 18, Appendix 2, Page A2-1.
 /// </summary>
 public static class LiftCalculator

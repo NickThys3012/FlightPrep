@@ -64,7 +64,7 @@
                 Stap 3 — L = 0,3484 × @_V.ToString("F0") × @_liftResult.PressureHpa.ToString("F1") × (1/(Ta+273,15) − 1/(@_Ti.ToString("F0")+273,15)) = @_liftResult.TotalLiftKg.ToString("F1") kg
             </small>
             <small class="text-muted fst-italic d-block mt-1">
-                ¹ Formule: Belgian Hot Air Balloon Flight Manual, Amendment 18, Appendix 2, p. A2-1 (Cameron Balloons Ltd.)
+                ¹ Formule: Hot Air Balloon Flight Manual, Amendment 18, Appendix 2, p. A2-1 (Cameron Balloons Ltd.)
             </small>
         </div>
     </div>
@@ -191,7 +191,7 @@
         Fp.MaxAltitudeFt * 0.3048 > Fp.Location!.ElevationM;
 
     /// <summary>
-    /// Calculates total lift using the ISA formula (Belgian Flight Manual, Appendix 2)
+    /// Calculates total lift using the ISA formula (Cameron Flight Manual, Appendix 2)
     /// and writes the result to Fp.TotaalLiftKg.
     /// </summary>
     private void BerekenLift()
