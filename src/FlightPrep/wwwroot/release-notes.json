@@ -1,6 +1,17 @@
 {
-  "currentVersion": "9.0.1",
+  "currentVersion": "9.0.2",
   "entries": [
+    {
+      "pr": 43,
+      "version": "9.0.2",
+      "title": "Fix text changes",
+      "description": "Deze release verbetert de nauwkeurigheid van de documentatie en gebruikersinterface.  \n- De verwijzing naar de ISA-gebaseerde totale liftformule is bijgewerkt naar de \"Hot Air Balloon Flight Manual, Cameron Balloons Ltd.\", wat zorgt voor correcte toeschrijving en consistentie.  \n- De gebruikersinterface is aangepast om deze correcte bron te weerspiegelen, waardoor de informatie voor piloten betrouwbaarder wordt.  \n- De documentatie is verbeterd, wat de begrijpelijkheid en het vertrouwen in de software vergroot.",
+      "author": "NickThys3012",
+      "labels": [
+        "bug"
+      ],
+      "date": "2026-04-01T13:43:17Z"
+    },
     {
       "pr": 42,
       "version": "9.0.1",
