@@ -1,6 +1,6 @@
 # FlightPrep ✈️
 
-A Blazor Server web app for hot air balloon pilots to create, manage, and export pre-flight preparation documents (*Vaartvoorbereiding*).
+A Blazor Server web app for hot air balloon pilots to create, manage, and export pre-flight preparation documents.
 
 ---
 
@@ -31,7 +31,9 @@ A Blazor Server web app for hot air balloon pilots to create, manage, and export
 - **Save & reload** – all flights stored in PostgreSQL; accessible from the flight list
 - **Reference data settings** – manage balloons, pilots, and locations (with ICAO code + coordinates)
 - **Image upload** – photos stored in the database (no filesystem required)
-- **In-app handleiding** – user manual with screenshots at `/handleiding`
+- **In-app manual** – user manual with screenshots at `/handleiding`
+- **PWA** – installable as a Progressive Web App with offline support
+- **Application Insights** – server-side Serilog sink + client-side JS SDK for end-to-end telemetry
 
 ---
 
@@ -63,42 +65,51 @@ docker compose down
 
 ```
 flightPrep/
-├── src/FlightPrep/
-│   ├── Components/
-│   │   ├── App.razor              # HTML shell; Bootstrap, Quill, Leaflet, Chart.js
-│   │   ├── Layout/                # NavMenu, MainLayout
-│   │   └── Pages/
-│   │       ├── FlightEdit.razor   # Pre-flight prep form (9-section accordion)
-│   │       ├── FlightList.razor   # Overview of all saved flights
-│   │       ├── FlightView.razor   # Read-only view, KML track, PDF export
-│   │       ├── Logboek.razor      # Statistics dashboard (feature/logboek)
-│   │       └── Settings/          # Balloon, Pilot, Location CRUD
-│   ├── Data/
-│   │   ├── AppDbContext.cs        # EF Core context
-│   │   └── Migrations/            # Auto-applied on startup
-│   ├── Models/                    # FlightPreparation, Balloon, Pilot, Location, etc.
-│   ├── Services/
-│   │   ├── PdfService.cs          # QuestPDF A4 document generation
-│   │   ├── KmlService.cs          # KML parser + flight stats
-│   │   ├── SunriseService.cs      # NOAA solar algorithm
-│   │   ├── WeatherService.cs      # Background meteo image fetching
-│   │   ├── WeatherFetchService.cs # METAR/TAF + Open-Meteo forecast
-│   │   └── GoNoGoService.cs       # Go/No-Go decision logic
-│   ├── wwwroot/
-│   │   ├── app.css                # Aviation theme
-│   │   ├── manifest.json          # PWA manifest (feature/pwa)
-│   │   ├── service-worker.js      # PWA service worker (feature/pwa)
-│   │   └── icons/                 # PWA icons
-│   ├── Dockerfile
-│   └── Program.cs
+├── src/
+│   ├── FlightPrep/                        # Blazor Server app (presentation + DI root)
+│   │   ├── Components/
+│   │   │   ├── App.razor                  # HTML shell; Bootstrap, Quill, Leaflet, Chart.js
+│   │   │   ├── Layout/                    # NavMenu, MainLayout
+│   │   │   └── Pages/
+│   │   │       ├── FlightEdit.razor       # Pre-flight prep form (9-section accordion)
+│   │   │       ├── FlightList.razor       # Overview of all saved flights
+│   │   │       ├── FlightView.razor       # Read-only view, KML track, PDF export
+│   │   │       ├── Logboek.razor          # Statistics dashboard
+│   │   │       ├── Admin/                 # Admin-only pages (User Management)
+│   │   │       └── Settings/              # Balloon, Pilot, Location CRUD
+│   │   ├── Pages/                         # Razor Pages for auth (Login, Register, Logout)
+│   │   ├── Services/
+│   │   │   ├── PdfService.cs              # QuestPDF A4 document generation
+│   │   │   ├── GoNoGoService.cs           # Go/No-Go decision logic
+│   │   │   └── AdminSeeder.cs             # Role + admin user seed on startup
+│   │   ├── Telemetry/
+│   │   │   └── FlightTelemetryInitializer.cs  # OTel processor enriching spans with flightId
+│   │   ├── wwwroot/
+│   │   │   ├── app.css                    # Aviation theme
+│   │   │   ├── manifest.json              # PWA manifest
+│   │   │   ├── service-worker.js          # PWA service worker
+│   │   │   └── icons/                     # PWA icons
+│   │   ├── Dockerfile
+│   │   └── Program.cs
+│   ├── FlightPrep.Domain/                 # Domain models + service interfaces
+│   │   ├── Models/                        # FlightPreparation, Balloon, Pilot, Location, etc.
+│   │   └── Services/                      # IFlightPreparationService, etc.
+│   ├── FlightPrep.Infrastructure/         # EF Core, migrations, Identity
+│   │   └── Data/
+│   │       ├── AppDbContext.cs            # IdentityDbContext<ApplicationUser>
+│   │       ├── ApplicationUser.cs         # ASP.NET Core Identity user with IsApproved flag
+│   │       └── Migrations/                # Auto-applied on startup
+│   ├── FlightPrep.Tests/                  # xUnit unit tests
+│   ├── FlightPrep.Domain.Tests/           # xUnit domain model tests
+│   ├── FlightPrep.Infrastructure.Tests/   # xUnit EF Core / service tests
+│   └── FlightPrep.Tests.UI/              # Playwright E2E tests (NUnit)
 ├── docker-compose.yml
 ├── infra/
-│   ├── main.bicep                 # Azure App Service B2 + PostgreSQL Flexible B1ms
-│   └── deploy.sh                  # One-shot Azure provisioning script
+│   ├── main.bicep                         # Azure App Service B2 + PostgreSQL Flexible B1ms
+│   └── deploy.sh                          # One-shot Azure provisioning script
 └── .github/
     └── workflows/
-        ├── ci-cd.yml              # Build → E2E tests (Playwright) → deploy
-        └── release-notes.yml      # AI release notes on PR merge
+        └── ci-cd.yml                      # Build → unit tests → release notes → E2E → deploy
 ```
 
 ---
@@ -109,20 +120,21 @@ flightPrep/
 
 ```
 Push / PR merge → main
-  ├─ build job     → dotnet build + unit tests + publish artifact
-  ├─ e2e job       → Playwright E2E tests (skipped for release-note commits)
-  └─ deploy job    → Azure App Service  (runs when e2e succeeds OR is skipped)
+  └─ ci-cd.yml
+       ├─ build job     → dotnet build + unit tests + generate release notes + publish artifact
+       ├─ e2e job       → Playwright E2E tests (skipped when commit message contains [skip e2e])
+       └─ deploy job    → Azure App Service (runs when e2e succeeds OR is skipped)
 ```
 
 ### Release notes automation
 
-When a PR is **merged to main**, a second workflow runs automatically:
+When a PR is **merged to main**, the build job automatically:
 
 ```
 PR merged → main
   1. Fetch list of changed files (gh CLI)
   2. Call GitHub Models API (gpt-4o-mini) with PR title, body, labels
-     → AI generates a Dutch description (≤ 3 sentences)
+     → AI generates a description (≤ 3 sentences)
      → fallback: PR body or title if API is unavailable
   3. Bump version in release-notes.json
        [feature] / label feature  →  major  (X+1.0.0)
@@ -139,7 +151,7 @@ The `/release-notes` page reads the baked-in JSON from the Docker image (always 
 
 ---
 
-
+## Deploy to Azure
 
 ### 1 – Provision infrastructure
 
@@ -189,6 +201,9 @@ The CI/CD pipeline will build, run Playwright E2E tests, and deploy to Azure aut
 |---|---|
 | `ConnectionStrings__DefaultConnection` | PostgreSQL connection string |
 | `ASPNETCORE_ENVIRONMENT` | `Development` or `Production` |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING` | Azure Application Insights connection string (optional) |
+| `SEED_ADMIN_USERNAME` | Email address for the seeded admin user (optional) |
+| `SEED_ADMIN_PASSWORD` | Password for the seeded admin user (optional) |
 
 ---
 
