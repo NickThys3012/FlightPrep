@@ -10,6 +10,8 @@ services:
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=flightprep;Username=${POSTGRES_USER:-fpuser};Password=${POSTGRES_PASSWORD:-fppass}
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
+      - SEED_ADMIN_USERNAME=${SEED_ADMIN_USERNAME:-}
+      - SEED_ADMIN_PASSWORD=${SEED_ADMIN_PASSWORD:-}
     volumes:
       - dpkeys:/root/.aspnet/DataProtection-Keys
     depends_on:
