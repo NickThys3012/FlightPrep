@@ -190,7 +190,7 @@ public class FlightPreparationServiceTests
         var sut     = BuildSut(factory);
 
         // Act
-        var result = await sut.GetSummariesAsync();
+        var result = await sut.GetSummariesAsync(null, true);
 
         // Assert
         Assert.Empty(result);
@@ -208,7 +208,7 @@ public class FlightPreparationServiceTests
         await sut.SaveAsync(SeedFlight());
 
         // Act
-        var result = await sut.GetSummariesAsync();
+        var result = await sut.GetSummariesAsync(null, true);
 
         // Assert
         Assert.Equal(3, result.Count);
@@ -223,7 +223,7 @@ public class FlightPreparationServiceTests
         await sut.SaveAsync(SeedFlight());
 
         // Act
-        var result = await sut.GetSummariesAsync();
+        var result = await sut.GetSummariesAsync(null, true);
 
         // Assert — nav-prop names projected as null
         Assert.Single(result);
@@ -621,7 +621,7 @@ public class FlightPreparationServiceTests
         await sut.SaveAsync(fp3);
 
         // Act
-        var result = await sut.GetAllWithNavAsync();
+        var result = await sut.GetAllWithNavAsync(null, true);
 
         // Assert — ascending order
         Assert.Equal(3, result.Count);
@@ -637,7 +637,7 @@ public class FlightPreparationServiceTests
         var sut     = BuildSut(factory);
 
         // Act
-        var result = await sut.GetAllWithNavAsync();
+        var result = await sut.GetAllWithNavAsync(null, true);
 
         // Assert
         Assert.Empty(result);

@@ -124,6 +124,8 @@ else
     private bool sortDesc = true;
     private int currentPage = 1;
     private const int PageSize = 20;
+    private string? _userId;
+    private bool _isAdmin;
 
     private IEnumerable<FlightPreparationSummary> SortedFlights =>
         sortDesc
@@ -150,13 +152,10 @@ else
     {
         _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync();
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var isAdmin = authState.User.IsInRole("Admin");
+        _userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        _isAdmin = authState.User.IsInRole("Admin");
 
-        var all = await FpSvc.GetSummariesAsync();
-        flights = isAdmin
-            ? all
-            : all.Where(f => f.CreatedByUserId == null || f.CreatedByUserId == userId).ToList();
+        flights = await FpSvc.GetSummariesAsync(_userId, _isAdmin);
     }
 
     private void ConfirmDelete(int id) => deleteId = id;

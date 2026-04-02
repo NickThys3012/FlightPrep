@@ -7,7 +7,7 @@ public interface IFlightPreparationService
     Task<List<Balloon>> GetBalloonsAsync();
     Task<List<Pilot>> GetPilotsAsync();
     Task<List<Location>> GetLocationsAsync();
-    Task<List<FlightPreparationSummary>> GetSummariesAsync();
+    Task<List<FlightPreparationSummary>> GetSummariesAsync(string? userId, bool isAdmin);
     Task<FlightPreparation?> GetByIdAsync(int id);
     Task<int> SaveAsync(FlightPreparation fp);
     Task DeleteAsync(int id);
@@ -16,5 +16,5 @@ public interface IFlightPreparationService
     Task PatchFlownAsync(int id, bool isFlown, string? landingNotes, int? durationMinutes, string? remarks);
     Task<(int Total, int ThisYear, int Flown)> GetFlightCountsAsync();
     Task<List<FlightPreparation>> GetRecentAsync(int count);
-    Task<List<FlightPreparation>> GetAllWithNavAsync();
+    Task<List<FlightPreparation>> GetAllWithNavAsync(string? userId, bool isAdmin);
 }

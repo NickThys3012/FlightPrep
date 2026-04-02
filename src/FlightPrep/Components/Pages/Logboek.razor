@@ -176,10 +176,7 @@ else
         var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var isAdmin = authState.User.IsInRole("Admin");
 
-        var all = await FpSvc.GetAllWithNavAsync();
-        flights = isAdmin
-            ? all
-            : all.Where(f => f.CreatedByUserId == null || f.CreatedByUserId == userId).ToList();
+        flights = await FpSvc.GetAllWithNavAsync(userId, isAdmin);
 
         totalFlights = flights.Count;
         flownFlights = flights.Count(f => f.IsFlown);

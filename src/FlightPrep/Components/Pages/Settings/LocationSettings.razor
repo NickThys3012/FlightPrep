@@ -99,10 +99,10 @@
     private async Task Load()
     {
         await using var db = await DbFactory.CreateDbContextAsync();
-        var all = await db.Locations.OrderBy(l => l.Name).ToListAsync();
-        locations = _isAdmin
-            ? all
-            : all.Where(l => l.OwnerId == null || l.OwnerId == _userId).ToList();
+        var query = db.Locations.AsQueryable();
+        if (!_isAdmin)
+            query = query.Where(l => l.OwnerId == null || l.OwnerId == _userId);
+        locations = await query.OrderBy(l => l.Name).ToListAsync();
     }
 
     private void StartEdit(Location l) =>
@@ -133,7 +133,11 @@
     {
         await using var db = await DbFactory.CreateDbContextAsync();
         var l = await db.Locations.FindAsync(id);
-        if (l != null) { db.Locations.Remove(l); await db.SaveChangesAsync(); }
+        if (l != null && (_isAdmin || l.OwnerId == null || l.OwnerId == _userId))
+        {
+            db.Locations.Remove(l);
+            await db.SaveChangesAsync();
+        }
         await Load();
     }
 }

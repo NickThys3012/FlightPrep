@@ -2,11 +2,18 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin")]
 @using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
 @inject UserManager<FlightPrep.Data.ApplicationUser> UserManager
 @inject ILogger<UserManagement> Logger
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>User Management</PageTitle>
 <h1>User Management</h1>
+
+@if (_errorMessage != null)
+{
+    <div class="alert alert-danger">@_errorMessage</div>
+}
 
 @if (_users == null)
 {
@@ -45,6 +52,7 @@ else
 
 @code {
     private List<UserViewModel>? _users;
+    private string? _errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -53,6 +61,7 @@ else
 
     private async Task LoadUsers()
     {
+        _errorMessage = null;
         var users = UserManager.Users.ToList();
         var vms = new List<UserViewModel>();
         foreach (var u in users)
@@ -77,6 +86,14 @@ else
 
     private async Task DeleteUser(string id)
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (id == currentUserId)
+        {
+            _errorMessage = "You cannot delete your own account.";
+            return;
+        }
+
         var user = await UserManager.FindByIdAsync(id);
         if (user != null)
         {

@@ -48,28 +48,26 @@ public class LoginModel : PageModel
 
     public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
     {
-        ReturnUrl = returnUrl;
+        returnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : "/";
 
         if (!ModelState.IsValid)
             return Page();
 
-        // Check approval before attempting sign-in to give a clear error message.
-        var user = await _userManager.FindByEmailAsync(Input.Email);
-        if (user is not null && !user.IsApproved)
-        {
-            ModelState.AddModelError(string.Empty, "Your account is pending admin approval.");
-            return Page();
-        }
-
+        // Validate password first — prevents email enumeration via the IsApproved pre-check.
         var result = await _signInManager.PasswordSignInAsync(
             Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: true);
 
         if (result.Succeeded)
         {
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                return LocalRedirect(returnUrl);
-
-            return LocalRedirect("/");
+            // Belt-and-suspenders: enforce IsApproved AFTER password succeeds.
+            var user = await _userManager.FindByEmailAsync(Input.Email);
+            if (user is { IsApproved: false })
+            {
+                await _signInManager.SignOutAsync(); // revoke just-issued cookie
+                ModelState.AddModelError(string.Empty, "Your account is pending admin approval.");
+                return Page();
+            }
+            return LocalRedirect(returnUrl);
         }
 
         if (result.IsLockedOut)

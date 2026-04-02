@@ -104,11 +104,10 @@
     private async Task Load()
     {
         await using var db = await DbFactory.CreateDbContextAsync();
-        var query = db.Balloons.OrderBy(b => b.Registration);
-        var all = await query.ToListAsync();
-        balloons = _isAdmin
-            ? all
-            : all.Where(b => b.OwnerId == null || b.OwnerId == _userId).ToList();
+        var query = db.Balloons.AsQueryable();
+        if (!_isAdmin)
+            query = query.Where(b => b.OwnerId == null || b.OwnerId == _userId);
+        balloons = await query.OrderBy(b => b.Registration).ToListAsync();
     }
 
     private void StartEdit(Balloon b)
@@ -154,7 +153,11 @@
     {
         await using var db = await DbFactory.CreateDbContextAsync();
         var b = await db.Balloons.FindAsync(id);
-        if (b != null) { db.Balloons.Remove(b); await db.SaveChangesAsync(); }
+        if (b != null && (_isAdmin || b.OwnerId == null || b.OwnerId == _userId))
+        {
+            db.Balloons.Remove(b);
+            await db.SaveChangesAsync();
+        }
         await Load();
     }
 }
