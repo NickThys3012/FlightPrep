@@ -1,6 +1,17 @@
 {
-  "currentVersion": "9.0.2",
+  "currentVersion": "9.0.3",
   "entries": [
+    {
+      "pr": 50,
+      "version": "9.0.3",
+      "title": "fix: wire Serilog to Application Insights sink (#45)",
+      "description": "De nieuwste update van FlightPrep verbetert de logboekregistratie en monitoring.  \n- Integratie van Application Insights voor verbeterde telemetrie, waardoor piloten beter inzicht krijgen in applicatieprestaties.  \n- Serilog is geconfigureerd om logs naar Application Insights te verzenden, wat zorgt voor efficiënte foutopsporing en prestatie-analyse.  \n- Telemetrie is alleen ingeschakeld wanneer de juiste configuratie beschikbaar is, wat zorgt voor een betere controle over de logging.",
+      "author": "NickThys3012",
+      "labels": [
+        "bug"
+      ],
+      "date": "2026-04-02T13:35:33Z"
+    },
     {
       "pr": 43,
       "version": "9.0.2",
