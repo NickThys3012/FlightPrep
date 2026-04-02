@@ -1,6 +1,17 @@
 {
-  "currentVersion": "9.0.6",
+  "currentVersion": "9.0.7",
   "entries": [
+    {
+      "pr": 54,
+      "version": "9.0.7",
+      "title": "fix: pass APPLICATIONINSIGHTS_CONNECTION_STRING through Docker Compose (#47)",
+      "description": "Deze release verbetert de configuratie voor het gebruik van Application Insights in de Docker-omgeving.  \n- De verbindingstring voor Application Insights wordt nu correct doorgegeven via het Docker Compose-bestand, wat zorgt voor een eenvoudigere integratie en monitoring van de applicatie.  \n- .env-bestand is toegevoegd aan .gitignore om te voorkomen dat gevoelige informatie per ongeluk wordt gecommitteerd.  \n- Het .env.example-bestand is bijgewerkt om alle beschikbare omgevingsvariabelen voor lokale ontwikkeling te documenteren, wat de instap voor nieuwe ontwikkelaars vergemakkelijkt.",
+      "author": "NickThys3012",
+      "labels": [
+        "bug"
+      ],
+      "date": "2026-04-02T15:58:12Z"
+    },
     {
       "pr": 53,
       "version": "9.0.6",
