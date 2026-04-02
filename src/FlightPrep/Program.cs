@@ -1,10 +1,12 @@
 using FlightPrep.Components;
 using FlightPrep.Data;
 using FlightPrep.Services;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF;
 using QuestPDF.Infrastructure;
 using Serilog;
+using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
 
 Settings.License = LicenseType.Community;
 
@@ -14,9 +16,17 @@ Log.Logger = new LoggerConfiguration()
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Host.UseSerilog((ctx, cfg) => cfg
-    .ReadFrom.Configuration(ctx.Configuration)
-    .WriteTo.Console());
+builder.Host.UseSerilog((ctx, cfg) =>
+{
+    cfg.ReadFrom.Configuration(ctx.Configuration)
+       .WriteTo.Console();
+
+    var connStr = ctx.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+    if (!string.IsNullOrEmpty(connStr))
+        cfg.WriteTo.ApplicationInsights(
+            new TelemetryConfiguration { ConnectionString = connStr },
+            TelemetryConverter.Traces);
+});
 
 builder.Services.AddDbContextFactory<AppDbContext>(opts =>
     opts.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
