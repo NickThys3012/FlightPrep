@@ -219,34 +219,16 @@ jobs:
       github.ref == 'refs/heads/main' &&
       github.event_name == 'push'
     environment: production
-    env:
-      AI_CONN_STR: ${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}
     # Required GitHub Actions secrets for this job:
-    # - AZURE_PUBLISH_PROFILE      : App Service publish profile (XML)
-    # - AZURE_CREDENTIALS          : Service principal JSON for az login
-    #                                (az ad sp create-for-rbac --sdk-auth)
-    # - APPLICATIONINSIGHTS_CONNECTION_STRING : from Azure Portal → App Insights → Overview
+    # - AZURE_PUBLISH_PROFILE : App Service publish profile (XML)
+    # Note: APPLICATIONINSIGHTS_CONNECTION_STRING is managed by Bicep (infra/main.bicep)
+    #       and does not need to be injected here.
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: flightprep-publish
           path: ./publish
-
-      - name: Azure Login
-        if: env.AI_CONN_STR != ''
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Configure App Insights connection string
-        if: env.AI_CONN_STR != ''
-        run: |
-          az webapp config appsettings set \
-            --name flightprep-web \
-            --resource-group flightprep-rg \
-            --settings APPLICATIONINSIGHTS_CONNECTION_STRING="$AI_CONN_STR" \
-            --output none
 
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
