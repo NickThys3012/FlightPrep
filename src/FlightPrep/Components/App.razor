@@ -1,3 +1,11 @@
+@inject IConfiguration Configuration
+@using System.Text.Json
+
+@{
+    var _aiConnStr = Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"] ?? string.Empty;
+    var _aiConnStrJson = JsonSerializer.Serialize(_aiConnStr); // safely JSON-encodes the value
+}
+
 <!DOCTYPE html>
 <html lang="nl">
 
@@ -26,6 +34,18 @@
     <link rel="icon" type="image/png" href="favicon.png" />
     <HeadOutlet />
     <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    @if (!string.IsNullOrEmpty(_aiConnStr))
+    {
+        <script type="text/javascript">
+            !function(T,l,y){var S=T.location,k="script",D=T.localStorage,C=T.sessionStorage,I=T.XMLHttpRequest,E="accessControl",A="anonymizeIp",O="appId",R="appInsightsSDK",N=T[R]||"appInsights",P="boRoleInstance",M="boRoleName",j="connectionString",z="extensions",H="extensionConfig",L=",",F="crossOrigin",B="maxAjaxCallsPerView",q="disableExceptionTracking",K="enable",U="iKey",G=T[N]||[],W=[];G.push=function(e){W.push(e)};var X=function(){},Y=!1;function V(c){for(;c.length;)W.push(c.shift())}var $=function(){return!0};function ee(c){return c!==undefined&&null!==c}var te=!1,ne=!1;T[R]=N;var ie=y.src,ae=y.name||N;T[ae]=G;var oe=T[ae+"Queue"]=T[ae+"Queue"]||[];oe.push(y);V(W);var se=D&&D.getItem&&D.getItem("aiBaseUri"),re=se||y.src&&y.src.indexOf("ai.3")>-1?y.src.replace(/[^\/]+$/,""):"https://js.monitor.azure.com/scripts/b/";var le=T[ae+".loader"];if(!le){le=T[ae+".loader"]={};le.q=[];le.v=ae;T[ae+".loader"]=le};le.config=y;T[ae]&&T[ae].initialize||function(c){V(oe);T[ae]=G;var f=l.createElement(k),d=l.getElementsByTagName(k)[0];f.src=re+"ai.3.gbl.min.js";d.parentNode.insertBefore(f,d)}(y)}(window,document,{
+                src: "https://js.monitor.azure.com/scripts/b/ai.3.gbl.min.js",
+                crossOrigin: "anonymous",
+                cfg: {
+                    connectionString: @_aiConnStrJson
+                }
+            });
+        </script>
+    }
 </head>
 
 <body>
