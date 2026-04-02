@@ -1,6 +1,15 @@
 {
-  "currentVersion": "9.0.3",
+  "currentVersion": "9.0.4",
   "entries": [
+    {
+      "pr": 51,
+      "version": "9.0.4",
+      "title": "fix: use TelemetryClient overload to avoid TelemetryConfiguration.Act…",
+      "description": "Deze release bevat belangrijke verbeteringen voor de stabiliteit van de applicatie.  \n- De toepassing maakt nu gebruik van de TelemetryClient overload, waardoor een crash bij het opstarten op Azure wordt voorkomen.  \n- Dit voorkomt een MissingMethodException die kan optreden door de afwezigheid van de verouderde TelemetryConfiguration.Active eigenschap in de DLL-versie die door de Azure App Service AI Agent extensie wordt geladen.  \n- De stabiliteit van de webapplicatie is verbeterd, wat zorgt voor een soepelere gebruikerservaring voor piloten tijdens de voorbereiding van hun ballonvluchten.",
+      "author": "NickThys3012",
+      "labels": [],
+      "date": "2026-04-02T13:47:52Z"
+    },
     {
       "pr": 50,
       "version": "9.0.3",
