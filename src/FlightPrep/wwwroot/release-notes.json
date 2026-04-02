@@ -1,6 +1,17 @@
 {
-  "currentVersion": "9.0.4",
+  "currentVersion": "9.0.5",
   "entries": [
+    {
+      "pr": 52,
+      "version": "9.0.5",
+      "title": "fix: correct CI/CD deploy job env scope, login guard, and az output (…",
+      "description": "Deze release verbetert de CI/CD-implementatie en de beveiliging van gevoelige informatie.  \n- De omgevingsvariabele AI_CONN_STR is nu op job-niveau ingesteld, waardoor de evaluatie van de if-voorwaarden correcter verloopt.  \n- De stap voor het inloggen bij Azure is beveiligd met dezelfde if-voorwaarde om regressie tijdens de uitrol te voorkomen.  \n- De optie --output none is toegevoegd aan az appsettings set, waardoor gevoelige waarden niet meer in de logs worden weergegeven.",
+      "author": "NickThys3012",
+      "labels": [
+        "bug"
+      ],
+      "date": "2026-04-02T15:39:12Z"
+    },
     {
       "pr": 51,
       "version": "9.0.4",
