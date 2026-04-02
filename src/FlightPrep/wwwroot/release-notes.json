@@ -1,6 +1,15 @@
 {
-  "currentVersion": "9.0.7",
+  "currentVersion": "9.0.8",
   "entries": [
+    {
+      "pr": 55,
+      "version": "9.0.8",
+      "title": "feat: add FlightTelemetryInitializer to enrich App Insights telemetry with flight context",
+      "description": "Deze release verbetert de telemetrie van de applicatie door contextuele informatie toe te voegen aan de verzamelde gegevens.  \n- Nieuwe `FlightTelemetryInitializer` voegt relevante vluchtcontext toe aan elke telemetrie-item, waardoor het eenvoudiger wordt om fouten en trage verzoeken te correlateren met specifieke vluchten of piloten in Azure Monitor.  \n- De `IHttpContextAccessor` en de nieuwe processor zijn geregistreerd in de OpenTelemetry-pijplijn, wat zorgt voor een betere integratie en prestaties.  \n- Geen nieuwe NuGet-pakketten zijn vereist, waardoor de installatie eenvoudig blijft en bestaande afhankelijkheden worden benut.",
+      "author": "NickThys3012",
+      "labels": [],
+      "date": "2026-04-02T16:17:58Z"
+    },
     {
       "pr": 54,
       "version": "9.0.7",
