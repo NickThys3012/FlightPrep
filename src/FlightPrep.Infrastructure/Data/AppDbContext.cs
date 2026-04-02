@@ -1,9 +1,10 @@
 using FlightPrep.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace FlightPrep.Data;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<ApplicationUser>(options)
 {
     public DbSet<Balloon> Balloons => Set<Balloon>();
     public DbSet<Pilot> Pilots => Set<Pilot>();
@@ -66,5 +67,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 EmptyWeightKg = 323.4
             }
         );
+
+        modelBuilder.Entity<FlightPreparation>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(f => f.CreatedByUserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Balloon>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(b => b.OwnerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Location>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(l => l.OwnerId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

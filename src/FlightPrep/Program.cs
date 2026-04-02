@@ -4,6 +4,7 @@ using FlightPrep.Services;
 using FlightPrep.Telemetry;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.AspNetCore.Identity;
 using OpenTelemetry;
 using OpenTelemetry.Trace;
 using Microsoft.EntityFrameworkCore;
@@ -36,6 +37,32 @@ builder.Host.UseSerilog((ctx, cfg) =>
 
 builder.Services.AddDbContextFactory<AppDbContext>(opts =>
     opts.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Identity requires a scoped DbContext alongside the factory
+builder.Services.AddDbContext<AppDbContext>(opts =>
+    opts.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+{
+    options.Password.RequireDigit = true;
+    options.Password.RequiredLength = 8;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+    options.User.RequireUniqueEmail = false;
+})
+.AddEntityFrameworkStores<AppDbContext>()
+.AddDefaultTokenProviders();
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/login";
+    options.AccessDeniedPath = "/access-denied";
+    options.ExpireTimeSpan = TimeSpan.FromDays(7);
+    options.SlidingExpiration = true;
+});
+
+builder.Services.AddAuthorization();
 
 builder.Services.AddHttpClient<IWeatherService, WeatherService>();
 builder.Services.AddSingleton<ISunriseService, SunriseService>();
@@ -89,15 +116,17 @@ builder.Services.AddSingleton<IReleaseNotesService, ReleaseNotesService>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
-// Auto-apply migrations
+// Auto-apply migrations and seed admin
 using (var scope = app.Services.CreateScope())
 {
     var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
     using var db = dbFactory.CreateDbContext();
     db.Database.Migrate();
+    await AdminSeeder.SeedAdminAsync(scope.ServiceProvider);
 }
 
 if (!app.Environment.IsDevelopment())
@@ -108,6 +137,9 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseAntiforgery();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapRazorPages();
 app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = ctx =>
@@ -149,4 +181,4 @@ app.MapGet("/tiles/{z}/{x}/{y}", async (int z, int x, int y, IHttpClientFactory 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-app.Run();
+await app.RunAsync();
