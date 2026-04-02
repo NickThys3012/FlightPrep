@@ -1,0 +1,96 @@
+@page "/admin/users"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<FlightPrep.Data.ApplicationUser> UserManager
+@inject ILogger<UserManagement> Logger
+
+<PageTitle>User Management</PageTitle>
+<h1>User Management</h1>
+
+@if (_users == null)
+{
+    <p>Loading…</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Roles</th>
+                <th>Approved</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var u in _users)
+            {
+                <tr>
+                    <td>@u.Email</td>
+                    <td>@string.Join(", ", u.Roles)</td>
+                    <td>@(u.IsApproved ? "✅" : "⏳")</td>
+                    <td>
+                        @if (!u.IsApproved)
+                        {
+                            <button class="btn btn-sm btn-success" @onclick="() => ApproveUser(u.Id)">Approve</button>
+                        }
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteUser(u.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<UserViewModel>? _users;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        var users = UserManager.Users.ToList();
+        var vms = new List<UserViewModel>();
+        foreach (var u in users)
+        {
+            var roles = await UserManager.GetRolesAsync(u);
+            vms.Add(new UserViewModel { Id = u.Id, Email = u.Email!, IsApproved = u.IsApproved, Roles = roles.ToList() });
+        }
+        _users = vms;
+    }
+
+    private async Task ApproveUser(string id)
+    {
+        var user = await UserManager.FindByIdAsync(id);
+        if (user != null)
+        {
+            user.IsApproved = true;
+            await UserManager.UpdateAsync(user);
+            Logger.LogInformation("Admin approved user {UserId}", id);
+            await LoadUsers();
+        }
+    }
+
+    private async Task DeleteUser(string id)
+    {
+        var user = await UserManager.FindByIdAsync(id);
+        if (user != null)
+        {
+            await UserManager.DeleteAsync(user);
+            Logger.LogInformation("Admin deleted user {UserId}", id);
+            await LoadUsers();
+        }
+    }
+
+    private class UserViewModel
+    {
+        public string Id { get; set; } = "";
+        public string Email { get; set; } = "";
+        public bool IsApproved { get; set; }
+        public List<string> Roles { get; set; } = [];
+    }
+}

@@ -1,6 +1,9 @@
 @page "/flights/{Id:int}"
+@attribute [Authorize]
 @rendermode InteractiveServer
 @inject IFlightPreparationService FpSvc
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Nav
 @inject IFlightAssessmentService AssessmentSvc
 @inject IPdfService PdfSvc
 @inject ISunriseService SunriseSvc
@@ -444,10 +447,21 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var isAdmin = authState.User.IsInRole("Admin");
+
         fp = await FpSvc.GetByIdAsync(Id);
 
         if (fp != null)
         {
+            // Ownership check — redirect if the flight belongs to another user
+            if (fp.CreatedByUserId != null && fp.CreatedByUserId != userId && !isAdmin)
+            {
+                Nav.NavigateTo("/flights");
+                return;
+            }
+
             // Compute assessment (TotaalGewicht, LiftVoldoende, GoNoGo via service)
             _assessment = await AssessmentSvc.ComputeAsync(fp);
 

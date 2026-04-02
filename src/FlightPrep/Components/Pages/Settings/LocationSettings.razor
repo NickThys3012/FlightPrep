@@ -1,6 +1,8 @@
 @page "/settings/locations"
+@attribute [Authorize]
 @rendermode InteractiveServer
 @inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Locaties – FlightPrep</PageTitle>
 
@@ -83,13 +85,24 @@
     private Location editLoc = new();
     private bool addingNew;
     private Location newLoc = new();
+    private string? _userId;
+    private bool _isAdmin;
 
-    protected override async Task OnInitializedAsync() => await Load();
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        _isAdmin = authState.User.IsInRole("Admin");
+        await Load();
+    }
 
     private async Task Load()
     {
         await using var db = await DbFactory.CreateDbContextAsync();
-        locations = await db.Locations.OrderBy(l => l.Name).ToListAsync();
+        var all = await db.Locations.OrderBy(l => l.Name).ToListAsync();
+        locations = _isAdmin
+            ? all
+            : all.Where(l => l.OwnerId == null || l.OwnerId == _userId).ToList();
     }
 
     private void StartEdit(Location l) =>
@@ -108,6 +121,7 @@
 
     private async Task SaveNew()
     {
+        newLoc.OwnerId = _userId;
         await using var db = await DbFactory.CreateDbContextAsync();
         db.Locations.Add(newLoc);
         await db.SaveChangesAsync();

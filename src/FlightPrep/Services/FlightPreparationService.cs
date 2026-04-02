@@ -57,7 +57,8 @@ public class FlightPreparationService(
                 f.Location != null ? f.Location.Name : null,
                 f.SurfaceWindSpeedKt,
                 f.ZichtbaarheidKm,
-                f.CapeJkg))
+                f.CapeJkg,
+                f.CreatedByUserId))
             .ToListAsync();
     }
 

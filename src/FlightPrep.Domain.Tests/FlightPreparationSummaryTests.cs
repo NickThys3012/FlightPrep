@@ -26,7 +26,8 @@ public class FlightPreparationSummaryTests
             LocationName: "Leuven",
             SurfaceWindSpeedKt: 8.5,
             ZichtbaarheidKm: 10,
-            CapeJkg: 250);
+            CapeJkg: 250,
+            CreatedByUserId: null);
 
         // Assert
         Assert.Equal(42,            summary.Id);
@@ -55,7 +56,8 @@ public class FlightPreparationSummaryTests
             LocationName: null,
             SurfaceWindSpeedKt: null,
             ZichtbaarheidKm: null,
-            CapeJkg: null);
+            CapeJkg: null,
+            CreatedByUserId: null);
 
         // Assert
         Assert.Null(summary.BalloonRegistration);
@@ -71,8 +73,8 @@ public class FlightPreparationSummaryTests
     public void Record_SameValues_AreEqual()
     {
         // Arrange
-        var a = new FlightPreparationSummary(1, DateOnly.MinValue, TimeOnly.MinValue, false, null, null, null, null, null, null);
-        var b = new FlightPreparationSummary(1, DateOnly.MinValue, TimeOnly.MinValue, false, null, null, null, null, null, null);
+        var a = new FlightPreparationSummary(1, DateOnly.MinValue, TimeOnly.MinValue, false, null, null, null, null, null, null, null);
+        var b = new FlightPreparationSummary(1, DateOnly.MinValue, TimeOnly.MinValue, false, null, null, null, null, null, null, null);
 
         // Assert — records with identical values must be equal
         Assert.Equal(a, b);
@@ -82,8 +84,8 @@ public class FlightPreparationSummaryTests
     public void Record_DifferentId_AreNotEqual()
     {
         // Arrange
-        var a = new FlightPreparationSummary(1, DateOnly.MinValue, TimeOnly.MinValue, false, null, null, null, null, null, null);
-        var b = new FlightPreparationSummary(2, DateOnly.MinValue, TimeOnly.MinValue, false, null, null, null, null, null, null);
+        var a = new FlightPreparationSummary(1, DateOnly.MinValue, TimeOnly.MinValue, false, null, null, null, null, null, null, null);
+        var b = new FlightPreparationSummary(2, DateOnly.MinValue, TimeOnly.MinValue, false, null, null, null, null, null, null, null);
 
         // Assert
         Assert.NotEqual(a, b);

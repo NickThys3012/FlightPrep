@@ -1,4 +1,5 @@
 @page "/settings/gonogo"
+@attribute [Authorize(Roles = "Admin")]
 @rendermode InteractiveServer
 @using FlightPrep.Models
 @using FlightPrep.Services
