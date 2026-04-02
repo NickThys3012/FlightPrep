@@ -50,6 +50,7 @@ packages/
 # Secrets
 *secrets*
 appsettings.Local.json
+.env
 
 # Publish
 publish/
