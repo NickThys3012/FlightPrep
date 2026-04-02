@@ -1,6 +1,7 @@
 using FlightPrep.Components;
 using FlightPrep.Data;
 using FlightPrep.Services;
+using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF;
@@ -23,9 +24,11 @@ builder.Host.UseSerilog((ctx, cfg) =>
 
     var connStr = ctx.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
     if (!string.IsNullOrEmpty(connStr))
-        cfg.WriteTo.ApplicationInsights(
-            new TelemetryConfiguration { ConnectionString = connStr },
-            TelemetryConverter.Traces);
+    {
+        var telemetryClient = new TelemetryClient(
+            new TelemetryConfiguration { ConnectionString = connStr });
+        cfg.WriteTo.ApplicationInsights(telemetryClient, TelemetryConverter.Traces);
+    }
 });
 
 builder.Services.AddDbContextFactory<AppDbContext>(opts =>
