@@ -1,8 +1,11 @@
 using FlightPrep.Components;
 using FlightPrep.Data;
 using FlightPrep.Services;
+using FlightPrep.Telemetry;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.Extensibility;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF;
 using QuestPDF.Infrastructure;
@@ -45,6 +48,11 @@ builder.Services.AddScoped<IFlightPreparationService, FlightPreparationService>(
 // Application Insights — only active when APPLICATIONINSIGHTS_CONNECTION_STRING is set
 if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
     builder.Services.AddApplicationInsightsTelemetry();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<FlightTelemetryInitializer>();
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing.AddProcessor(
+        sp => sp.GetRequiredService<FlightTelemetryInitializer>()));
 builder.Services.AddSingleton<IKmlService, KmlService>();
 builder.Services.AddSingleton<ITrajectoryService, TrajectoryService>();
 builder.Services.AddScoped<IEnhancedTrajectoryService, EnhancedTrajectoryService>();
