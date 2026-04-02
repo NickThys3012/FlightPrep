@@ -1,6 +1,17 @@
 {
-  "currentVersion": "9.0.5",
+  "currentVersion": "9.0.6",
   "entries": [
+    {
+      "pr": 53,
+      "version": "9.0.6",
+      "title": "fix: add Application Insights JS SDK to App.razor for client-side telemetry (#46)",
+      "description": "De applicatie is verbeterd met de integratie van Application Insights voor betere monitoring.  \n- De Application Insights JavaScript SDK is nu toegevoegd aan App.razor, waardoor client-side telemetry mogelijk is.  \n- De configuratie voor de connectiestring wordt dynamisch ingelezen, wat zorgt voor een veilige implementatie zonder risico op XSS.  \n- De SDK wordt alleen geladen wanneer de connectiestring beschikbaar is, waardoor lokale ontwikkelomgevingen niet worden belast.",
+      "author": "NickThys3012",
+      "labels": [
+        "bug"
+      ],
+      "date": "2026-04-02T15:53:13Z"
+    },
     {
       "pr": 52,
       "version": "9.0.5",
