@@ -48,7 +48,10 @@ public class FlightPreparationService(
         await using var db = await dbFactory.CreateDbContextAsync();
         var query = db.FlightPreparations.AsQueryable();
         if (!isAdmin)
-            query = query.Where(f => f.CreatedByUserId == null || f.CreatedByUserId == userId);
+        {
+            if (userId == null) return [];
+            query = query.Where(f => f.CreatedByUserId == userId);
+        }
         return await query
             .Select(f => new FlightPreparationSummary(
                 f.Id,
@@ -340,7 +343,10 @@ public class FlightPreparationService(
             .Include(f => f.Location)
             .AsQueryable();
         if (!isAdmin)
-            query = query.Where(f => f.CreatedByUserId == null || f.CreatedByUserId == userId);
+        {
+            if (userId == null) return [];
+            query = query.Where(f => f.CreatedByUserId == userId);
+        }
         return await query
             .OrderBy(f => f.Datum)
             .ToListAsync();

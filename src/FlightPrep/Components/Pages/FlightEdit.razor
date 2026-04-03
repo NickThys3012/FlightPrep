@@ -842,6 +842,14 @@
         {
             currentPilot = pilots.FirstOrDefault(p => p.Id == fp.PilotId);
 
+            // Defensive: stamp CreatedByUserId at save time for new flights.
+            // Covers edge cases where OnInitializedAsync ran before auth state was ready.
+            if (fp.Id == 0 && fp.CreatedByUserId == null)
+            {
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                fp.CreatedByUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            }
+
             // Merge split image lists back onto the entity before persisting.
             fp.Images = meteoImages.Concat(trajectImages).ToList();
 

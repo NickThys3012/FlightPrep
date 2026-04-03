@@ -89,7 +89,7 @@ public class FlightPreparationServiceOwnershipTests
     }
 
     [Fact]
-    public async Task GetSummariesAsync_PilotUser_ReturnsOwnAndNullFlights()
+    public async Task GetSummariesAsync_PilotUser_ReturnsOnlyOwnFlights()
     {
         // Arrange
         var (factory, _) = CreateFactory();
@@ -99,10 +99,10 @@ public class FlightPreparationServiceOwnershipTests
         // Act
         var result = await sut.GetSummariesAsync(userId: "user1", isAdmin: false);
 
-        // Assert — pilot sees own flights + flights with no owner
-        Assert.Equal(2, result.Count);
+        // Assert — pilot sees only their own flights; null-owner flights are NOT shown
+        Assert.Single(result);
         Assert.Contains(result, s => s.Id == user1Id);
-        Assert.Contains(result, s => s.Id == nullId);
+        Assert.DoesNotContain(result, s => s.Id == nullId);
     }
 
     [Fact]
@@ -121,19 +121,18 @@ public class FlightPreparationServiceOwnershipTests
     }
 
     [Fact]
-    public async Task GetSummariesAsync_NullUserId_NonAdmin_ReturnsOnlyNullOwnerFlights()
+    public async Task GetSummariesAsync_NullUserId_NonAdmin_ReturnsNoFlights()
     {
-        // Arrange — no authenticated user (userId = null, not an admin)
+        // Arrange — unauthenticated context (userId = null, not an admin)
         var (factory, _) = CreateFactory();
         var sut = BuildSut(factory);
-        var (user1Id, user2Id, nullId) = await SeedOwnershipFlightsAsync(factory);
+        await SeedOwnershipFlightsAsync(factory);
 
         // Act
         var result = await sut.GetSummariesAsync(userId: null, isAdmin: false);
 
-        // Assert — only the un-owned flight is visible
-        Assert.Single(result);
-        Assert.Equal(nullId, result[0].Id);
+        // Assert — no flights visible without a user identity
+        Assert.Empty(result);
     }
 
     // ── GetAllWithNavAsync — admin view ───────────────────────────────────────
@@ -154,7 +153,7 @@ public class FlightPreparationServiceOwnershipTests
     }
 
     [Fact]
-    public async Task GetAllWithNavAsync_PilotUser_ReturnsOwnAndNullFlights()
+    public async Task GetAllWithNavAsync_PilotUser_ReturnsOnlyOwnFlights()
     {
         // Arrange
         var (factory, _) = CreateFactory();
@@ -164,10 +163,10 @@ public class FlightPreparationServiceOwnershipTests
         // Act
         var result = await sut.GetAllWithNavAsync(userId: "user1", isAdmin: false);
 
-        // Assert — only own + null-owner flights
-        Assert.Equal(2, result.Count);
+        // Assert — pilot sees only their own flights
+        Assert.Single(result);
         Assert.Contains(result, f => f.Id == user1Id);
-        Assert.Contains(result, f => f.Id == nullId);
+        Assert.DoesNotContain(result, f => f.Id == nullId);
         Assert.DoesNotContain(result, f => f.Id == user2Id);
     }
 }
