@@ -106,6 +106,8 @@ public class LoginModel : PageModel
 
     private void RecordLoginEvent(string email, string? userId, bool success, string? failureReason, string? ipAddress)
     {
+        // Note: fire-and-forget — events may be lost on app shutdown/recycle.
+        // A future improvement is to drain via IHostedService on shutdown.
         _ = Task.Run(async () =>
         {
             try

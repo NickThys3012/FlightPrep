@@ -1,5 +1,6 @@
 using FlightPrep.Components;
 using FlightPrep.Data;
+using Microsoft.AspNetCore.HttpOverrides;
 using FlightPrep.Services;
 using FlightPrep.Telemetry;
 using Microsoft.ApplicationInsights;
@@ -137,6 +138,10 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseAntiforgery();
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapRazorPages();
