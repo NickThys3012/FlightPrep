@@ -14,6 +14,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<FlightImage> FlightImages => Set<FlightImage>();
     public DbSet<WindLevel> WindLevels => Set<WindLevel>();
     public DbSet<GoNoGoSettings> GoNoGoSettings => Set<GoNoGoSettings>();
+    public DbSet<LoginEvent> LoginEvents { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -85,5 +86,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             .WithMany()
             .HasForeignKey(l => l.OwnerId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<LoginEvent>(e =>
+        {
+            e.HasIndex(x => x.Email);
+            e.HasIndex(x => x.Timestamp);
+            e.Property(x => x.FailureReason).HasMaxLength(50);
+            e.Property(x => x.IpAddress).HasMaxLength(45);
+            e.Property(x => x.Email).HasMaxLength(256);
+        });
     }
 }
