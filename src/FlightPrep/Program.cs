@@ -131,13 +131,7 @@ using (var scope = app.Services.CreateScope())
     await AdminSeeder.SeedAdminAsync(scope.ServiceProvider);
 }
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Error");
-    app.UseHsts();
-}
-
-// Trust Azure App Service and other RFC-1918 private network proxies
+// Must be first — rewrites Request.Scheme before UseHsts/UseHttpsRedirection read it
 var forwardedOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
@@ -146,6 +140,12 @@ forwardedOptions.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("1
 forwardedOptions.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("172.16.0.0"), 12));
 forwardedOptions.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("192.168.0.0"), 16));
 app.UseForwardedHeaders(forwardedOptions);
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
+}
 app.UseHttpsRedirection();
 app.UseAntiforgery();
 app.UseAuthentication();
