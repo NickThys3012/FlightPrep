@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
+using IPlaywright = Microsoft.Playwright.IPlaywright;
 
 namespace FlightPrep.Tests.UI;
 
@@ -15,24 +16,41 @@ public abstract class BaseTest : PageTest
     protected static readonly string E2EAdminPassword =
         Environment.GetEnvironmentVariable("E2E_ADMIN_PASSWORD") ?? "E2eTest_Admin_123!";
 
+    // Populated by CreateAuthStateAsync() in [OneTimeSetUp] — loaded into every test context.
+    protected static string? AuthStatePath;
+
     public override BrowserNewContextOptions ContextOptions() => new()
     {
         ViewportSize = new ViewportSize { Width = 1280, Height = 900 },
         Locale = "nl-BE",
+        StorageStatePath = AuthStatePath,
     };
 
     /// <summary>
-    /// Logs in via the Login Razor Page and waits for the redirect to complete.
+    /// Logs in using a dedicated short-lived Playwright instance and saves the resulting
+    /// browser storage state (cookies) to a temp file. Call this from [OneTimeSetUp]
+    /// in concrete fixtures. Subsequent test contexts automatically load the saved state
+    /// via ContextOptions().StorageStatePath.
     /// </summary>
-    protected async Task LoginAsync(string email, string password)
+    protected static async Task CreateAuthStateAsync()
     {
-        await Page.GotoAsync($"{BaseUrl}/Login");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
+        var context = await browser.NewContextAsync(new()
+        {
+            ViewportSize = new ViewportSize { Width = 1280, Height = 900 },
+            Locale = "nl-BE",
+        });
+        var page = await context.NewPageAsync();
 
-        await Page.Locator("input[name='Input.Email']").FillAsync(email);
-        await Page.Locator("input[name='Input.Password']").FillAsync(password);
-        await Page.Locator("button[type='submit']").ClickAsync();
+        await page.GotoAsync($"{BaseUrl}/Login");
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.Locator("input[name='Input.Email']").FillAsync(E2EAdminEmail);
+        await page.Locator("input[name='Input.Password']").FillAsync(E2EAdminPassword);
+        await page.Locator("button[type='submit']").ClickAsync();
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        AuthStatePath = Path.Combine(Path.GetTempPath(), $"e2e-auth-{Guid.NewGuid()}.json");
+        await context.StorageStateAsync(new() { Path = AuthStatePath });
     }
 }

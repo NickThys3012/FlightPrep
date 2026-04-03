@@ -14,7 +14,7 @@ public class FlightFlowTest : BaseTest
     [OneTimeSetUp]
     public async Task LoginBeforeAllTests()
     {
-        await LoginAsync(E2EAdminEmail, E2EAdminPassword);
+        await CreateAuthStateAsync();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
