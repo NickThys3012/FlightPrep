@@ -11,6 +11,12 @@ public class FlightFlowTest : BaseTest
     // Shared across ordered tests within the same fixture instance.
     private static int _createdFlightId = -1;
 
+    [OneTimeSetUp]
+    public async Task LoginBeforeAllTests()
+    {
+        await LoginAsync(E2EAdminEmail, E2EAdminPassword);
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Order 1 – Home page
     // ─────────────────────────────────────────────────────────────────────────

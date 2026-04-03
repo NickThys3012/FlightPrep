@@ -161,6 +161,9 @@ jobs:
       - name: Start app stack (docker compose)
         run: docker compose up -d --build
         working-directory: .
+        env:
+          SEED_ADMIN_USERNAME: admin@e2etest.local
+          SEED_ADMIN_PASSWORD: E2eTest_Admin_123!
 
       - name: Wait for app to be ready
         run: |
@@ -190,6 +193,9 @@ jobs:
           --settings src/FlightPrep.Tests.UI/NUnit.runsettings
           --logger "trx;LogFileName=e2e-results.trx"
           --results-directory ./test-results
+        env:
+          E2E_ADMIN_EMAIL: admin@e2etest.local
+          E2E_ADMIN_PASSWORD: E2eTest_Admin_123!
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
