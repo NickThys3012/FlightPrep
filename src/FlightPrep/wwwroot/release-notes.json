@@ -1,6 +1,15 @@
 {
-  "currentVersion": "9.0.8",
+  "currentVersion": "10.0.0",
   "entries": [
+    {
+      "pr": 56,
+      "version": "10.0.0",
+      "title": "feat: local auth with RBAC (ASP.NET Core Identity) [feature]",
+      "description": "De nieuwe release introduceert lokale authenticatie en rolgebaseerde toegangscontrole voor een verbeterde gebruikerservaring.  \n- Volledige lokale authenticatie met goedkeuringsmechanisme voor zelfregistratie, wat de veiligheid van gebruikersaccounts verhoogt.  \n- Nieuwe pagina's voor inloggen, registreren en toegang geweigerd, die de gebruikersinterface verbeteren en het inlogproces stroomlijnen.  \n- Beheerfunctionaliteit toegevoegd voor gebruikersbeheer, inclusief goedkeuren en verwijderen van gebruikers, wat de administratieve efficiëntie bevordert.  \n- Eigenaarschap van vluchten, ballonnen en locaties wordt nu op SQL-niveau gefilterd, wat zorgt voor betere prestaties en databeveiliging.",
+      "author": "NickThys3012",
+      "labels": [],
+      "date": "2026-04-04T06:56:13Z"
+    },
     {
       "pr": 55,
       "version": "9.0.8",
