@@ -12,7 +12,7 @@ FlightPrep is a **Blazor Server** app (.NET 10) for Belgian hot-air balloon pilo
 dotnet build src/FlightPrep/FlightPrep.csproj
 
 # Run locally (needs a running Postgres — use docker compose)
-docker compose up -d          # starts app on :8082 and Postgres on :5432
+docker compose up -d          # starts app on :8082 and Postgres on :5433
 docker compose up -d --build  # rebuild image first
 
 # Run unit tests (xUnit)
@@ -129,7 +129,7 @@ Single job chain in `.github/workflows/ci-cd.yml`:
 The `build` job needs these `permissions`: `contents: write`, `models: read`, `pull-requests: read`.
 
 ### Local Postgres
-Connection string: `Host=db;Port=5432;Database=flightprep;Username=fpuser;Password=fppass`  
+Connection string: `Host=db;Port=5433;Database=flightprep;Username=fpuser;Password=fppass`  
 For local `dotnet run` (outside Docker), use `Host=localhost` instead.
 
 ### PWA

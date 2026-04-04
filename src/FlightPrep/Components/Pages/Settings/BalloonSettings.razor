@@ -1,6 +1,8 @@
 @page "/settings/balloons"
+@attribute [Authorize]
 @rendermode InteractiveServer
 @inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Ballonnen – FlightPrep</PageTitle>
 
@@ -88,13 +90,24 @@
     private Balloon newBalloon = new();
     private string? editError;
     private string? newError;
+    private string? _userId;
+    private bool _isAdmin;
 
-    protected override async Task OnInitializedAsync() => await Load();
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        _isAdmin = authState.User.IsInRole("Admin");
+        await Load();
+    }
 
     private async Task Load()
     {
         await using var db = await DbFactory.CreateDbContextAsync();
-        balloons = await db.Balloons.OrderBy(b => b.Registration).ToListAsync();
+        var query = db.Balloons.AsQueryable();
+        if (!_isAdmin)
+            query = query.Where(b => b.OwnerId == null || b.OwnerId == _userId);
+        balloons = await query.OrderBy(b => b.Registration).ToListAsync();
     }
 
     private void StartEdit(Balloon b)
@@ -128,6 +141,7 @@
             return;
         }
         newError = null;
+        newBalloon.OwnerId = _userId;
         await using var db = await DbFactory.CreateDbContextAsync();
         db.Balloons.Add(newBalloon);
         await db.SaveChangesAsync();
@@ -139,7 +153,11 @@
     {
         await using var db = await DbFactory.CreateDbContextAsync();
         var b = await db.Balloons.FindAsync(id);
-        if (b != null) { db.Balloons.Remove(b); await db.SaveChangesAsync(); }
+        if (b != null && (_isAdmin || b.OwnerId == null || b.OwnerId == _userId))
+        {
+            db.Balloons.Remove(b);
+            await db.SaveChangesAsync();
+        }
         await Load();
     }
 }

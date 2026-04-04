@@ -43,10 +43,16 @@ public class FlightPreparationService(
     /// Returns a lightweight summary list for the FlightList page.
     /// No heavy navigation collections are loaded.
     /// </summary>
-    public async Task<List<FlightPreparationSummary>> GetSummariesAsync()
+    public async Task<List<FlightPreparationSummary>> GetSummariesAsync(string? userId, bool isAdmin)
     {
         await using var db = await dbFactory.CreateDbContextAsync();
-        return await db.FlightPreparations
+        var query = db.FlightPreparations.AsQueryable();
+        if (!isAdmin)
+        {
+            if (userId == null) return [];
+            query = query.Where(f => f.CreatedByUserId == userId);
+        }
+        return await query
             .Select(f => new FlightPreparationSummary(
                 f.Id,
                 f.Datum,
@@ -57,7 +63,8 @@ public class FlightPreparationService(
                 f.Location != null ? f.Location.Name : null,
                 f.SurfaceWindSpeedKt,
                 f.ZichtbaarheidKm,
-                f.CapeJkg))
+                f.CapeJkg,
+                f.CreatedByUserId))
             .ToListAsync();
     }
 
@@ -327,13 +334,20 @@ public class FlightPreparationService(
     /// Used by the Logboek page for statistics and charts.
     /// Heavy collections (Passengers, Images, WindLevels) are NOT loaded.
     /// </summary>
-    public async Task<List<FlightPreparation>> GetAllWithNavAsync()
+    public async Task<List<FlightPreparation>> GetAllWithNavAsync(string? userId, bool isAdmin)
     {
         await using var db = await dbFactory.CreateDbContextAsync();
-        return await db.FlightPreparations
+        var query = db.FlightPreparations
             .Include(f => f.Balloon)
             .Include(f => f.Pilot)
             .Include(f => f.Location)
+            .AsQueryable();
+        if (!isAdmin)
+        {
+            if (userId == null) return [];
+            query = query.Where(f => f.CreatedByUserId == userId);
+        }
+        return await query
             .OrderBy(f => f.Datum)
             .ToListAsync();
     }

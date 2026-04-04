@@ -1,0 +1,176 @@
+@page "/admin/users"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
+@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+@using FlightPrep.Models
+@inject UserManager<FlightPrep.Data.ApplicationUser> UserManager
+@inject ILogger<UserManagement> Logger
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IDbContextFactory<FlightPrep.Data.AppDbContext> DbFactory
+
+<PageTitle>User Management</PageTitle>
+<h1>User Management</h1>
+
+@if (_errorMessage != null)
+{
+    <div class="alert alert-danger">@_errorMessage</div>
+}
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <button class="nav-link @(_activeTab == "users" ? "active" : "")" @onclick='() => _activeTab = "users"'>Users</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(_activeTab == "loginhistory" ? "active" : "")" @onclick='() => _activeTab = "loginhistory"'>Login History</button>
+    </li>
+</ul>
+
+@if (_activeTab == "users")
+{
+    @if (_users == null)
+    {
+        <p>Loading…</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Roles</th>
+                    <th>Approved</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in _users)
+                {
+                    <tr>
+                        <td>@u.Email</td>
+                        <td>@string.Join(", ", u.Roles)</td>
+                        <td>@(u.IsApproved ? "✅" : "⏳")</td>
+                        <td>
+                            @if (!u.IsApproved)
+                            {
+                                <button class="btn btn-sm btn-success" @onclick="() => ApproveUser(u.Id)">Approve</button>
+                            }
+                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteUser(u.Id)">Delete</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@if (_activeTab == "loginhistory")
+{
+    @if (_loginEvents == null)
+    {
+        <p>Loading…</p>
+    }
+    else if (!_loginEvents.Any())
+    {
+        <p class="text-muted">No login events recorded yet.</p>
+    }
+    else
+    {
+        <table class="table table-striped table-sm">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Email</th>
+                    <th>Success</th>
+                    <th>Failure Reason</th>
+                    <th>IP Address</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var e in _loginEvents)
+                {
+                    <tr>
+                        <td>@e.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</td>
+                        <td>@e.Email</td>
+                        <td>@(e.Success ? "✅" : "❌")</td>
+                        <td>@(e.FailureReason ?? "–")</td>
+                        <td>@(e.IpAddress ?? "–")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    private List<UserViewModel>? _users;
+    private List<LoginEvent>? _loginEvents;
+    private string? _errorMessage;
+    private string _activeTab = "users";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadUsers(), LoadLoginEvents());
+    }
+
+    private async Task LoadUsers()
+    {
+        _errorMessage = null;
+        var users = UserManager.Users.ToList();
+        var vms = new List<UserViewModel>();
+        foreach (var u in users)
+        {
+            var roles = await UserManager.GetRolesAsync(u);
+            vms.Add(new UserViewModel { Id = u.Id, Email = u.Email!, IsApproved = u.IsApproved, Roles = roles.ToList() });
+        }
+        _users = vms;
+    }
+
+    private async Task LoadLoginEvents()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _loginEvents = await db.LoginEvents
+            .OrderByDescending(e => e.Timestamp)
+            .Take(50)
+            .ToListAsync();
+    }
+
+    private async Task ApproveUser(string id)
+    {
+        var user = await UserManager.FindByIdAsync(id);
+        if (user != null)
+        {
+            user.IsApproved = true;
+            await UserManager.UpdateAsync(user);
+            Logger.LogInformation("Admin approved user {UserId}", id);
+            await LoadUsers();
+        }
+    }
+
+    private async Task DeleteUser(string id)
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (id == currentUserId)
+        {
+            _errorMessage = "You cannot delete your own account.";
+            return;
+        }
+
+        var user = await UserManager.FindByIdAsync(id);
+        if (user != null)
+        {
+            await UserManager.DeleteAsync(user);
+            Logger.LogInformation("Admin deleted user {UserId}", id);
+            await LoadUsers();
+        }
+    }
+
+    private class UserViewModel
+    {
+        public string Id { get; set; } = "";
+        public string Email { get; set; } = "";
+        public bool IsApproved { get; set; }
+        public List<string> Roles { get; set; } = [];
+    }
+}

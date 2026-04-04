@@ -10,6 +10,8 @@ services:
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=flightprep;Username=${POSTGRES_USER:-fpuser};Password=${POSTGRES_PASSWORD:-fppass}
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
+      - SEED_ADMIN_USERNAME=${SEED_ADMIN_USERNAME:-admin@e2etest.local}
+      - SEED_ADMIN_PASSWORD=${SEED_ADMIN_PASSWORD:-E2eTest_Admin_123!}
     volumes:
       - dpkeys:/root/.aspnet/DataProtection-Keys
     depends_on:
@@ -22,6 +24,8 @@ services:
       POSTGRES_DB:       ${POSTGRES_DB:-flightprep}
       POSTGRES_USER:     ${POSTGRES_USER:-fpuser}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fppass}
+    ports:
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

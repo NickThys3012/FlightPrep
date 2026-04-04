@@ -5,6 +5,7 @@ public class FlightPreparation
     public int Id { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public string? CreatedByUserId { get; set; }
 
     // Section 1 - Algemene Gegevens
     public DateOnly Datum { get; set; } = DateOnly.FromDateTime(DateTime.Today);

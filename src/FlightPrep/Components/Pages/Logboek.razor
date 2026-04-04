@@ -1,6 +1,8 @@
 @page "/logboek"
+@attribute [Authorize]
 @rendermode InteractiveServer
 @inject IFlightPreparationService FpSvc
+@inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
 @using FlightPrep.Models
 @using Microsoft.EntityFrameworkCore
@@ -170,7 +172,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        flights = await FpSvc.GetAllWithNavAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var isAdmin = authState.User.IsInRole("Admin");
+
+        flights = await FpSvc.GetAllWithNavAsync(userId, isAdmin);
 
         totalFlights = flights.Count;
         flownFlights = flights.Count(f => f.IsFlown);

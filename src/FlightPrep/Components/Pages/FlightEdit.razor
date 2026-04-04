@@ -1,7 +1,9 @@
 @page "/flights/new"
 @page "/flights/{Id:int}/edit"
+@attribute [Authorize]
 @rendermode InteractiveServer
 @inject IFlightPreparationService FpSvc
+@inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Nav
 @inject IPdfService PdfSvc
 @inject ISunriseService SunriseSvc
@@ -615,11 +617,22 @@
         pilots    = await FpSvc.GetPilotsAsync();
         locations = await FpSvc.GetLocationsAsync();
 
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var isAdmin = authState.User.IsInRole("Admin");
+
         if (Id.HasValue)
         {
             fp = await FpSvc.GetByIdAsync(Id.Value);
 
             if (fp == null) { Nav.NavigateTo("/flights"); return; }
+
+            // Ownership check — block access if flight belongs to another user
+            if (fp.CreatedByUserId != null && fp.CreatedByUserId != userId && !isAdmin)
+            {
+                Nav.NavigateTo("/flights");
+                return;
+            }
 
             currentPilot  = fp.Pilot;
             meteoImages   = fp.Images.Where(i => i.Section == "Meteo").ToList();
@@ -628,6 +641,7 @@
         else
         {
             fp = new FlightPreparation { PaxBriefing = DefaultPaxBriefing };
+            fp.CreatedByUserId = userId;
         }
 
         UpdateSunriseSunset();
@@ -827,6 +841,14 @@
         try
         {
             currentPilot = pilots.FirstOrDefault(p => p.Id == fp.PilotId);
+
+            // Defensive: stamp CreatedByUserId at save time for new flights.
+            // Covers edge cases where OnInitializedAsync ran before auth state was ready.
+            if (fp.Id == 0 && fp.CreatedByUserId == null)
+            {
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                fp.CreatedByUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            }
 
             // Merge split image lists back onto the entity before persisting.
             fp.Images = meteoImages.Concat(trajectImages).ToList();

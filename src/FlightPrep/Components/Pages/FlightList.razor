@@ -1,6 +1,8 @@
 @page "/flights"
+@attribute [Authorize]
 @rendermode InteractiveServer
 @inject IFlightPreparationService FpSvc
+@inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Nav
 @inject IGoNoGoService GoNoGoSvc
 
@@ -122,6 +124,8 @@ else
     private bool sortDesc = true;
     private int currentPage = 1;
     private const int PageSize = 20;
+    private string? _userId;
+    private bool _isAdmin;
 
     private IEnumerable<FlightPreparationSummary> SortedFlights =>
         sortDesc
@@ -147,7 +151,11 @@ else
     private async Task LoadFlights()
     {
         _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync();
-        flights = await FpSvc.GetSummariesAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        _isAdmin = authState.User.IsInRole("Admin");
+
+        flights = await FpSvc.GetSummariesAsync(_userId, _isAdmin);
     }
 
     private void ConfirmDelete(int id) => deleteId = id;

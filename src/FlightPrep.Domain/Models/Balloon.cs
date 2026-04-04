@@ -8,4 +8,5 @@ public class Balloon
     public double? VolumeM3 { get; set; }
     public double? InternalEnvelopeTempC { get; set; }
     public double? EmptyWeightKg { get; set; }
+    public string? OwnerId { get; set; }
 }

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — FlightPrep</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/app.css" asp-append-version="true" />
+</head>
+<body style="background-color: #f4f6f9; font-family: 'Inter', sans-serif;">
+@inject Microsoft.AspNetCore.Identity.SignInManager<FlightPrep.Data.ApplicationUser> SignInMgr
+
+@{
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString();
+    var hideLogoutBar = currentPage == "/Login" || currentPage == "/Register";
+}
+
+@if (!hideLogoutBar && SignInMgr.IsSignedIn(User))
+{
+    <div style="background:#1a1a2e;padding:6px 16px;display:flex;justify-content:flex-end;align-items:center;gap:12px;font-size:0.85rem;">
+        <span style="color:#adb5bd;">@User.Identity!.Name</span>
+        <form method="post" action="/Logout" style="margin:0;">
+            @Html.AntiForgeryToken()
+            <button type="submit" style="background:transparent;border:1px solid #6c757d;color:#adb5bd;padding:2px 10px;border-radius:4px;cursor:pointer;font-size:0.8rem;">
+                Logout
+            </button>
+        </form>
+    </div>
+}
+    @RenderBody()
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

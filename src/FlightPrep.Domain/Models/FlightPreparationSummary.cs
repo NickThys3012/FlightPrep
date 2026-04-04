@@ -15,4 +15,5 @@ public record FlightPreparationSummary(
     string? LocationName,
     double? SurfaceWindSpeedKt,
     double? ZichtbaarheidKm,
-    double? CapeJkg);
+    double? CapeJkg,
+    string? CreatedByUserId);

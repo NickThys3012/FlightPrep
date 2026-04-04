@@ -1,9 +1,10 @@
 using FlightPrep.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace FlightPrep.Data;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<ApplicationUser>(options)
 {
     public DbSet<Balloon> Balloons => Set<Balloon>();
     public DbSet<Pilot> Pilots => Set<Pilot>();
@@ -13,6 +14,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<FlightImage> FlightImages => Set<FlightImage>();
     public DbSet<WindLevel> WindLevels => Set<WindLevel>();
     public DbSet<GoNoGoSettings> GoNoGoSettings => Set<GoNoGoSettings>();
+    public DbSet<LoginEvent> LoginEvents { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -66,5 +68,32 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 EmptyWeightKg = 323.4
             }
         );
+
+        modelBuilder.Entity<FlightPreparation>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(f => f.CreatedByUserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Balloon>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(b => b.OwnerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Location>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(l => l.OwnerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<LoginEvent>(e =>
+        {
+            e.HasIndex(x => x.Email);
+            e.HasIndex(x => x.Timestamp);
+            e.Property(x => x.FailureReason).HasMaxLength(50);
+            e.Property(x => x.IpAddress).HasMaxLength(45);
+            e.Property(x => x.Email).HasMaxLength(256);
+        });
     }
 }
