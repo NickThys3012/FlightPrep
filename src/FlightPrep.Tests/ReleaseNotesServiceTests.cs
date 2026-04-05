@@ -8,7 +8,7 @@ using System.Text.Json;
 
 namespace FlightPrep.Tests;
 
-public class ReleaseNotesServiceTests : IDisposable
+public sealed class ReleaseNotesServiceTests : IDisposable
 {
     private readonly Mock<IWebHostEnvironment> _envMock = new();
     private readonly string _webRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -19,7 +19,11 @@ public class ReleaseNotesServiceTests : IDisposable
         _envMock.Setup(e => e.WebRootPath).Returns(_webRoot);
     }
 
-    public void Dispose() => Directory.Delete(_webRoot, true);
+    public void Dispose()
+    {
+        Directory.Delete(_webRoot, true);
+        GC.SuppressFinalize(this);
+    }
 
     private ReleaseNotesService BuildSut() =>
         new(_envMock.Object, NullLogger<ReleaseNotesService>.Instance);

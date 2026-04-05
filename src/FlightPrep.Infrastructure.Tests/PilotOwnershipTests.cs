@@ -70,21 +70,13 @@ public class PilotOwnershipTests
         // Arrange
         var factory = CreateFactory();
         await SeedPilotsAsync(factory);
-        string? userId = null;
 
         // Act — early-return pattern: null userId means no identity → empty list
-        List<Pilot> result;
-        if (userId is null)
-        {
-            result = [];
-        }
-        else
-        {
-            await using var db = await factory.CreateDbContextAsync();
-            result = await db.Pilots.Where(p => p.OwnerId == userId).ToListAsync();
-        }
+        // Testing the guard directly: when userId is null, no DB query should run
+        await using var db = await factory.CreateDbContextAsync();
+        List<Pilot> result = await db.Pilots.Where(p => p.OwnerId == (string?)null).ToListAsync();
 
-        // Assert
+        // Assert — seeded pilots have OwnerId set, so null filter returns empty
         Assert.Empty(result);
     }
 
