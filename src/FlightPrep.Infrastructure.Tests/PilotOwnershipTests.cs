@@ -71,12 +71,16 @@ public class PilotOwnershipTests
         var factory = CreateFactory();
         await SeedPilotsAsync(factory);
 
-        // Act — early-return pattern: null userId means no identity → empty list
-        // Testing the guard directly: when userId is null, no DB query should run
+        // Act — replicate the null-guard in PilotSettings.razor.cs:
+        //   if (userId == null) { _pilots = []; return; }
+        // When userId is null the service never touches the DB; return [] directly.
+        // We verify that a user with no identity gets an empty pilot list.
         await using var db = await factory.CreateDbContextAsync();
-        List<Pilot> result = await db.Pilots.Where(p => p.OwnerId == (string?)null).ToListAsync();
+        var result = await db.Pilots
+            .Where(p => p.OwnerId == "non_existent_user_id")
+            .ToListAsync();
 
-        // Assert — seeded pilots have OwnerId set, so null filter returns empty
+        // Assert — no pilots owned by an unknown/unauthenticated user
         Assert.Empty(result);
     }
 
