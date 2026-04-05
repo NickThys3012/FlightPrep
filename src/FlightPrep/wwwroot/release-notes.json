@@ -1,6 +1,15 @@
 {
-  "currentVersion": "10.0.0",
+  "currentVersion": "11.0.0",
   "entries": [
+    {
+      "pr": 61,
+      "version": "11.0.0",
+      "title": "[feature] Per-user scoping for all settings (Pilots, Balloons, Locations, GoNoGo)",
+      "description": "Alle instellingen zijn nu strikt gekoppeld aan de gebruiker, wat de databeveiliging verbetert.  \n- De zichtbaarheid van instellingen is beperkt tot de eigenaar, zodat piloten alleen hun eigen ballon- en locatie-instellingen kunnen bekijken en bewerken.  \n- Piloten hebben nu een unieke `OwnerId`, waardoor ze hun persoonlijke instellingen kunnen beheren zonder dat anderen toegang hebben.  \n- De GoNoGo-instellingen zijn omgevormd van een globale singleton naar per-gebruiker rijen, wat zorgt voor een betere organisatie en voorkomt duplicaten.  \n- PDF-rapportages en vluchtbeoordelingen zijn nu afgestemd op de persoonlijke drempels van de piloot, wat de relevantie van de informatie verhoogt.",
+      "author": "NickThys3012",
+      "labels": [],
+      "date": "2026-04-05T16:21:46Z"
+    },
     {
       "pr": 56,
       "version": "10.0.0",
