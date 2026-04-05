@@ -96,13 +96,8 @@ public class PowerLineService(IHttpClientFactory httpClientFactory, IMemoryCache
         var elements = doc.RootElement.GetProperty("elements");
 
         var features = new List<object>();
-        foreach (var element in elements.EnumerateArray())
+        foreach (var element in elements.EnumerateArray().Where(element => element.GetProperty("type").GetString() == "way"))
         {
-            if (element.GetProperty("type").GetString() != "way")
-            {
-                continue;
-            }
-
             if (!element.TryGetProperty("geometry", out var geometry))
             {
                 continue;

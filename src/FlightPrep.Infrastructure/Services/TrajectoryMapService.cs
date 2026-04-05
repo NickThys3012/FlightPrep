@@ -113,16 +113,14 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
             for (var col = 0; col < txCount; col++)
             for (var row = 0; row < tyCount; row++)
             {
-                if (tileImages[col][row] is { } bmp)
+                if (tileImages[col][row] is not { } bmp)
                 {
-                    canvas.DrawBitmap(bmp, col * TileSize, row * TileSize);
-                    bmp.Dispose();
+                    continue;
                 }
-            }
 
-            // Coordinate → pixel helpers (capture zoom/offset in closure)
-            float ToX(double lon) => (float)((LonToFrac(lon, zoom) - txMin) * TileSize);
-            float ToY(double lat) => (float)((LatToFrac(lat, zoom) - tyMin) * TileSize);
+                canvas.DrawBitmap(bmp, col * TileSize, row * TileSize);
+                bmp.Dispose();
+            }
 
             // Draw each trajectory
             foreach (var (_, colour, pts) in series)
@@ -155,6 +153,11 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
 
             logger.LogInformation("Trajectory map rendered: {Bytes} bytes", result.Length);
             return result;
+
+            float ToY(double lat) => (float)((LatToFrac(lat, zoom) - tyMin) * TileSize);
+
+            // Coordinate → pixel helpers (capture zoom/offset in closure)
+            float ToX(double lon) => (float)((LonToFrac(lon, zoom) - txMin) * TileSize);
         }
         catch (Exception ex)
         {

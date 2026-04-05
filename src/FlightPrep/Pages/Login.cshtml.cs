@@ -33,13 +33,17 @@ public class LoginModel : PageModel
 
     public bool Registered { get; set; }
 
+#pragma warning disable CA1054 // returnUrl is a query-string parameter — Uri cannot be model-bound by ASP.NET Core
     public void OnGet(string? returnUrl = null, int registered = 0)
+#pragma warning restore CA1054
     {
         ReturnUrl = returnUrl;
         Registered = registered == 1;
     }
 
+#pragma warning disable CA1054 // returnUrl is a query-string parameter — Uri cannot be model-bound by ASP.NET Core
     public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
+#pragma warning restore CA1054
     {
         returnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : "/";
 
