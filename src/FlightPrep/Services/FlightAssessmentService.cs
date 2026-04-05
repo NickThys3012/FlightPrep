@@ -18,7 +18,7 @@ public class FlightAssessmentService(IGoNoGoService goNoGoSvc) : IFlightAssessme
     {
         ArgumentNullException.ThrowIfNull(fp);
 
-        var settings = await goNoGoSvc.GetSettingsAsync();
+        var settings = await goNoGoSvc.GetSettingsAsync(null);
 
         var totaalGewicht = (fp.EnvelopeWeightKg ?? 0)
                           + (fp.Pilot?.WeightKg ?? 0)

@@ -33,7 +33,7 @@ public class GoNoGoServiceAsyncTests
         var sut = new GoNoGoService(factory);
 
         // Act
-        var result = await sut.GetSettingsAsync();
+        var result = await sut.GetSettingsAsync("user-1");
 
         // Assert – null-coalesced default; just verify non-null with sensible property
         Assert.NotNull(result);
@@ -49,11 +49,11 @@ public class GoNoGoServiceAsyncTests
         var settings = new GoNoGoSettings { WindRedKt = 20, VisRedKm = 1, CapeRedJkg = 800 };
 
         // Act
-        await sut.SaveSettingsAsync(settings);
+        await sut.SaveSettingsAsync(settings, "user-1");
 
         // Assert – row is retrievable and values match
-        var loaded = await sut.GetSettingsAsync();
-        Assert.Equal(1, loaded.Id);
+        var loaded = await sut.GetSettingsAsync("user-1");
+        Assert.NotNull(loaded);
         Assert.Equal(20, loaded.WindRedKt);
         Assert.Equal(1, loaded.VisRedKm);
         Assert.Equal(800, loaded.CapeRedJkg);
@@ -66,13 +66,13 @@ public class GoNoGoServiceAsyncTests
         var factory = CreateFactory(nameof(SaveSettingsAsync_ExistingRow_UpdatesValues));
         var sut = new GoNoGoService(factory);
 
-        await sut.SaveSettingsAsync(new GoNoGoSettings { WindRedKt = 15 });
+        await sut.SaveSettingsAsync(new GoNoGoSettings { WindRedKt = 15 }, "user-1");
 
         // Act – save again with different values
-        await sut.SaveSettingsAsync(new GoNoGoSettings { WindRedKt = 25, VisRedKm = 2 });
+        await sut.SaveSettingsAsync(new GoNoGoSettings { WindRedKt = 25, VisRedKm = 2 }, "user-1");
 
         // Assert – updated values persisted
-        var loaded = await sut.GetSettingsAsync();
+        var loaded = await sut.GetSettingsAsync("user-1");
         Assert.Equal(25, loaded.WindRedKt);
         Assert.Equal(2, loaded.VisRedKm);
     }
@@ -94,8 +94,8 @@ public class GoNoGoServiceAsyncTests
         };
 
         // Act
-        await sut.SaveSettingsAsync(input);
-        var result = await sut.GetSettingsAsync();
+        await sut.SaveSettingsAsync(input, "user-1");
+        var result = await sut.GetSettingsAsync("user-1");
 
         // Assert
         Assert.Equal(8,   result.WindYellowKt);

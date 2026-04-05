@@ -390,7 +390,7 @@ public class FlightAssessmentServiceTests
             VisRedKm      = 5,
             CapeYellowJkg = 200,
             CapeRedJkg    = 400
-        });
+        }, null);
 
         // Wind = 10 kt exceeds custom red (8) → should be "red"
         var fp = new FlightPreparation

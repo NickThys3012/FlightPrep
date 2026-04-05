@@ -1,7 +1,8 @@
 @page "/settings/pilots"
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize]
 @rendermode InteractiveServer
 @inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Piloten – FlightPrep</PageTitle>
 
@@ -62,18 +63,32 @@
 </div>
 
 @code {
-    private List<Pilot> pilots = new();
+    private List<Pilot> pilots = [];
     private int? editId;
     private Pilot editPilot = new();
     private bool addingNew;
     private Pilot newPilot = new();
+    private string? _userId;
+    private bool _isAdmin;
 
-    protected override async Task OnInitializedAsync() => await Load();
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        _isAdmin = authState.User.IsInRole("Admin");
+        await Load();
+    }
 
     private async Task Load()
     {
         await using var db = await DbFactory.CreateDbContextAsync();
-        pilots = await db.Pilots.OrderBy(p => p.Name).ToListAsync();
+        var query = db.Pilots.AsQueryable();
+        if (!_isAdmin)
+        {
+            if (_userId == null) { pilots = []; return; }
+            query = query.Where(p => p.OwnerId == _userId);
+        }
+        pilots = await query.OrderBy(p => p.Name).ToListAsync();
     }
 
     private void StartEdit(Pilot p) =>
@@ -84,7 +99,11 @@
     private async Task SaveEdit()
     {
         await using var db = await DbFactory.CreateDbContextAsync();
-        db.Pilots.Update(editPilot);
+        var p = await db.Pilots.FindAsync(editPilot.Id);
+        if (p is null || (!_isAdmin && p.OwnerId != _userId)) return;
+        var originalOwnerId = p.OwnerId;
+        db.Entry(p).CurrentValues.SetValues(editPilot);
+        p.OwnerId = originalOwnerId;
         await db.SaveChangesAsync();
         editId = null;
         await Load();
@@ -92,6 +111,7 @@
 
     private async Task SaveNew()
     {
+        newPilot.OwnerId = _userId;
         await using var db = await DbFactory.CreateDbContextAsync();
         db.Pilots.Add(newPilot);
         await db.SaveChangesAsync();
@@ -103,7 +123,11 @@
     {
         await using var db = await DbFactory.CreateDbContextAsync();
         var p = await db.Pilots.FindAsync(id);
-        if (p != null) { db.Pilots.Remove(p); await db.SaveChangesAsync(); }
+        if (p != null && (_isAdmin || p.OwnerId == _userId))
+        {
+            db.Pilots.Remove(p);
+            await db.SaveChangesAsync();
+        }
         await Load();
     }
 }

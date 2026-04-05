@@ -6,30 +6,28 @@ namespace FlightPrep.Services;
 
 public class GoNoGoService(IDbContextFactory<AppDbContext> dbFactory) : IGoNoGoService
 {
-    public async Task<GoNoGoSettings> GetSettingsAsync()
+    public async Task<GoNoGoSettings> GetSettingsAsync(string? userId)
     {
         await using var db = await dbFactory.CreateDbContextAsync();
-        return await db.GoNoGoSettings.FindAsync(1)
-               ?? new GoNoGoSettings();
+        return await db.GoNoGoSettings.FirstOrDefaultAsync(g => g.UserId == userId)
+               ?? new GoNoGoSettings { UserId = userId };
     }
 
-    public async Task SaveSettingsAsync(GoNoGoSettings s)
+    public async Task SaveSettingsAsync(GoNoGoSettings s, string? userId)
     {
         await using var db = await dbFactory.CreateDbContextAsync();
-        var existing = await db.GoNoGoSettings.FindAsync(1);
-        if (existing == null)
+        s.UserId = userId;
+        var existing = userId != null
+            ? await db.GoNoGoSettings.FirstOrDefaultAsync(g => g.UserId == userId)
+            : null;
+        if (existing != null)
         {
-            s.Id = 1;
-            db.GoNoGoSettings.Add(s);
+            db.Entry(existing).CurrentValues.SetValues(s);
+            existing.UserId = userId; // preserve FK
         }
         else
         {
-            existing.WindYellowKt  = s.WindYellowKt;
-            existing.WindRedKt     = s.WindRedKt;
-            existing.VisYellowKm   = s.VisYellowKm;
-            existing.VisRedKm      = s.VisRedKm;
-            existing.CapeYellowJkg = s.CapeYellowJkg;
-            existing.CapeRedJkg    = s.CapeRedJkg;
+            db.GoNoGoSettings.Add(s);
         }
         await db.SaveChangesAsync();
     }

@@ -101,7 +101,10 @@
         await using var db = await DbFactory.CreateDbContextAsync();
         var query = db.Locations.AsQueryable();
         if (!_isAdmin)
-            query = query.Where(l => l.OwnerId == null || l.OwnerId == _userId);
+        {
+            if (_userId == null) { locations = []; return; }
+            query = query.Where(l => l.OwnerId == _userId);
+        }
         locations = await query.OrderBy(l => l.Name).ToListAsync();
     }
 
@@ -113,7 +116,11 @@
     private async Task SaveEdit()
     {
         await using var db = await DbFactory.CreateDbContextAsync();
-        db.Locations.Update(editLoc);
+        var l = await db.Locations.FindAsync(editLoc.Id);
+        if (l is null || (!_isAdmin && l.OwnerId != _userId)) return;
+        var originalOwnerId = l.OwnerId;
+        db.Entry(l).CurrentValues.SetValues(editLoc);
+        l.OwnerId = originalOwnerId;
         await db.SaveChangesAsync();
         editId = null;
         await Load();
@@ -133,7 +140,7 @@
     {
         await using var db = await DbFactory.CreateDbContextAsync();
         var l = await db.Locations.FindAsync(id);
-        if (l != null && (_isAdmin || l.OwnerId == null || l.OwnerId == _userId))
+        if (l != null && (_isAdmin || l.OwnerId == _userId))
         {
             db.Locations.Remove(l);
             await db.SaveChangesAsync();

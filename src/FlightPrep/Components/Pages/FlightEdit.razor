@@ -611,8 +611,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync();
-
         balloons  = await FpSvc.GetBalloonsAsync();
         pilots    = await FpSvc.GetPilotsAsync();
         locations = await FpSvc.GetLocationsAsync();
@@ -620,6 +618,8 @@
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var isAdmin = authState.User.IsInRole("Admin");
+
+        _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync(userId);
 
         if (Id.HasValue)
         {
