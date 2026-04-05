@@ -1,6 +1,15 @@
 {
-  "currentVersion": "11.0.0",
+  "currentVersion": "11.1.0",
   "entries": [
+    {
+      "pr": 64,
+      "version": "11.1.0",
+      "title": "[refactor] Code-behind split + service cleanup",
+      "description": "De nieuwste release van FlightPrep bevat belangrijke verbeteringen aan de codebasis en de service-laag.  \n- Alle Blazor-componenten zijn nu opgesplitst in aparte code-behind bestanden, wat de onderhoudbaarheid en leesbaarheid van de code verbetert.  \n- Diverse ongebruikte parameters in de services zijn verwijderd, wat de efficiëntie van de applicatie verhoogt.  \n- De implementatie van LINQ in de `PowerLineService` vereenvoudigt de code en maakt deze beter te begrijpen.  \n- Er zijn verschillende build-fixes doorgevoerd, waardoor de applicatie nu zonder fouten of waarschuwingen compileert.",
+      "author": "NickThys3012",
+      "labels": [],
+      "date": "2026-04-05T19:39:17Z"
+    },
     {
       "pr": 61,
       "version": "11.0.0",
