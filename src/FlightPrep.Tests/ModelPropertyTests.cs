@@ -178,7 +178,7 @@ public class ModelPropertyTests
     {
         var s = new GoNoGoSettings();
 
-        Assert.Equal(1, s.Id);
+        Assert.Equal(0, s.Id);
         Assert.Equal(10, s.WindYellowKt);
         Assert.Equal(15, s.WindRedKt);
         Assert.Equal(5, s.VisYellowKm);

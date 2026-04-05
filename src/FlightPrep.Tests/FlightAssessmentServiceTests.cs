@@ -465,4 +465,88 @@ public class FlightAssessmentServiceTests
         // Assert
         Assert.Equal("unknown", result.GoNoGo);
     }
+
+    // ── Per-user thresholds: async ComputeAsync ───────────────────────────────
+
+    [Fact]
+    public async Task ComputeAsync_WithPerUserSettings_UsesUserThresholds()
+    {
+        // Arrange — save custom thresholds for a specific user (red at 5 kt, much stricter than default 15 kt)
+        var factory   = CreateDbFactory(nameof(ComputeAsync_WithPerUserSettings_UsesUserThresholds));
+        var goNoGoSvc = new GoNoGoService(factory);
+        var sut       = new FlightAssessmentService(goNoGoSvc);
+        const string userId = "pilot-user-1";
+
+        await goNoGoSvc.SaveSettingsAsync(new GoNoGoSettings
+        {
+            WindRedKt    = 5,
+            WindYellowKt = 3,
+            VisRedKm     = 3,
+            VisYellowKm  = 5,
+            CapeRedJkg   = 500,
+            CapeYellowJkg = 300,
+            UserId       = userId
+        }, userId);
+
+        // Wind = 8 kt is above the custom red threshold (5), but below the default red (15)
+        var fp = new FlightPreparation
+        {
+            SurfaceWindSpeedKt = 8,
+            TotaalLiftKg       = 500,
+            EnvelopeWeightKg   = 100
+        };
+
+        // Act
+        var result = await sut.ComputeAsync(fp, userId);
+
+        // Assert — must be "red" because 8 kt > custom threshold 5 kt
+        Assert.Equal("red", result.GoNoGo);
+    }
+
+    [Fact]
+    public async Task ComputeAsync_DifferentUsersGetDifferentThresholds()
+    {
+        // Arrange — user1 has strict thresholds (red at 5 kt), user2 has lenient (red at 20 kt)
+        var factory   = CreateDbFactory(nameof(ComputeAsync_DifferentUsersGetDifferentThresholds));
+        var goNoGoSvc = new GoNoGoService(factory);
+        var sut       = new FlightAssessmentService(goNoGoSvc);
+
+        await goNoGoSvc.SaveSettingsAsync(new GoNoGoSettings
+        {
+            WindRedKt    = 5,
+            WindYellowKt = 3,
+            VisRedKm     = 3,
+            VisYellowKm  = 5,
+            CapeRedJkg   = 500,
+            CapeYellowJkg = 300,
+            UserId       = "user1"
+        }, "user1");
+
+        await goNoGoSvc.SaveSettingsAsync(new GoNoGoSettings
+        {
+            WindRedKt    = 20,
+            WindYellowKt = 15,
+            VisRedKm     = 3,
+            VisYellowKm  = 5,
+            CapeRedJkg   = 500,
+            CapeYellowJkg = 300,
+            UserId       = "user2"
+        }, "user2");
+
+        // Wind = 10 kt is between the two thresholds
+        var fp = new FlightPreparation
+        {
+            SurfaceWindSpeedKt = 10,
+            TotaalLiftKg       = 500,
+            EnvelopeWeightKg   = 100
+        };
+
+        // Act
+        var result1 = await sut.ComputeAsync(fp, "user1");
+        var result2 = await sut.ComputeAsync(fp, "user2");
+
+        // Assert — user1: 10 > 5 → red; user2: 10 < 20 → not red
+        Assert.Equal("red", result1.GoNoGo);
+        Assert.NotEqual("red", result2.GoNoGo);
+    }
 }

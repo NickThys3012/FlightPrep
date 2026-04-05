@@ -418,6 +418,7 @@ else
     [Parameter] public int Id { get; set; }
     private FlightPreparation? fp;
     private FlightAssessment? _assessment;
+    private string? _userId;
     private FlightImage? lightboxImg;
 
     private bool showFlownModal;
@@ -449,6 +450,7 @@ else
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        _userId = userId;
         var isAdmin = authState.User.IsInRole("Admin");
 
         fp = await FpSvc.GetByIdAsync(Id);
@@ -582,7 +584,7 @@ else
     private async Task DownloadPdf()
     {
         if (fp == null) return;
-        var pdfBytes = await PdfSvc.GenerateAsync(fp);
+        var pdfBytes = await PdfSvc.GenerateAsync(fp, userId: _userId);
         var fileName = $"vaartvoorbereiding_{fp.Datum:yyyy-MM-dd}_{fp.Id}.pdf";
         await JS.InvokeVoidAsync("downloadFileFromBytes", fileName, "application/pdf",
             Convert.ToBase64String(pdfBytes));

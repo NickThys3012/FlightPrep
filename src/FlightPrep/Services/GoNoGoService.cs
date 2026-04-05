@@ -21,11 +21,15 @@ public class GoNoGoService(IDbContextFactory<AppDbContext> dbFactory) : IGoNoGoS
             .FirstOrDefaultAsync(g => g.UserId == userId);
         if (existing != null)
         {
-            var originalId     = existing.Id;
-            var originalUserId = existing.UserId;
-            db.Entry(existing).CurrentValues.SetValues(s);
-            existing.Id     = originalId;     // restore PK — SetValues would have overwritten it with s.Id
-            existing.UserId = originalUserId; // restore FK — preserve ownership
+            // Update each threshold individually — SetValues would try to overwrite the
+            // tracked PK (existing.Id) with s.Id which EF Core forbids for key properties.
+            existing.WindYellowKt  = s.WindYellowKt;
+            existing.WindRedKt     = s.WindRedKt;
+            existing.VisYellowKm   = s.VisYellowKm;
+            existing.VisRedKm      = s.VisRedKm;
+            existing.CapeYellowJkg = s.CapeYellowJkg;
+            existing.CapeRedJkg    = s.CapeRedJkg;
+            // existing.Id and existing.UserId are intentionally unchanged
         }
         else
         {

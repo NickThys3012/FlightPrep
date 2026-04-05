@@ -14,7 +14,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
     private static readonly string PrimaryColor = "#1a3a5c";
     private static readonly string LightBg = "#f0f4f8";
 
-    public async Task<byte[]> GenerateAsync(FlightPreparation fp, byte[]? mapPng = null, CancellationToken ct = default)
+    public async Task<byte[]> GenerateAsync(FlightPreparation fp, byte[]? mapPng = null, string? userId = null, CancellationToken ct = default)
     {
         // Generate trajectory map server-side if the caller didn't provide a pre-rendered one
         mapPng ??= await mapSvc.RenderAsync(fp.TrajectorySimulationJson);
@@ -27,7 +27,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
         if (loc?.Latitude.HasValue == true && loc.Longitude.HasValue)
             sunriseSunset = sunriseSvc.Calculate(fp.Datum, loc.Latitude!.Value, loc.Longitude!.Value);
 
-        var assessment = await assessmentSvc.ComputeAsync(fp);
+        var assessment = await assessmentSvc.ComputeAsync(fp, userId);
         var gng = assessment.GoNoGo;
 
         return Document.Create(container =>
