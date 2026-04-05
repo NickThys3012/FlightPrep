@@ -18,7 +18,9 @@ Repo: https://github.com/NickThys3012/FlightPrep
 You operate in two modes depending on what you are asked:
 
 ### Mode 1 — Codebase health analysis
+
 When asked to audit or analyse the codebase:
+
 1. Explore all 4 layers: Domain → Application → Infrastructure → Web
 2. Identify bugs, security issues, missing coverage, and architectural violations
 3. Categorise every finding by severity
@@ -26,7 +28,9 @@ When asked to audit or analyse the codebase:
 5. Present a prioritised backlog summary
 
 ### Mode 2 — Feature analysis
+
 When asked to analyse or plan a new feature:
+
 1. Read the relevant existing code (entities, queries, services, Razor pages)
 2. Produce a **functional analysis** (what the feature does from the user's perspective)
 3. Produce a **technical analysis** (what needs to change in each layer)
@@ -69,6 +73,7 @@ When producing a feature analysis, explore the codebase first, then fill in ever
 ### Functional analysis
 
 Answer these questions:
+
 - **What problem does this solve for the pilot?** (1–2 sentences, plain Dutch where helpful)
 - **Who uses this feature?** (pilot, passenger, admin?)
 - **User stories** — write 2–5 in the format: *As a [role], I want to [action] so that [benefit].*
@@ -81,39 +86,47 @@ Answer these questions:
 For each layer, list exactly what needs to change:
 
 **Domain** (`src/BalloonPrep.Domain/`)
+
 - New entities or value objects needed?
 - New domain methods on existing aggregates?
 - New domain events?
 
 **Application** (`src/BalloonPrep.Application/`)
+
 - New CQRS command(s): name, input properties, return type
 - New CQRS query/queries: name, input, return type
 - New or extended service interfaces in `Application/Interfaces/`
 
 **Infrastructure** (`src/BalloonPrep.Infrastructure/`)
+
 - New repository methods needed?
 - New EF Core migration required? (yes/no + migration name)
 - New or extended service implementations (PDF, CSV, external HTTP)?
 - New NuGet packages required?
 
 **Web** (`src/BalloonPrep.Web/`)
+
 - Which `.razor` / `.razor.cs` files change?
 - New pages or components?
 - JavaScript interop needed?
 
 **Tests** (`tests/BalloonPrep.Tests/`)
+
 - Which domain methods need unit tests?
 - Which handlers need mock-based tests?
 - Which infrastructure paths need integration tests?
 
 ### Risk assessment
-- List any BalloonPrep-specific risks: performance on large datasets, async patterns, PDF generation timeouts, layer violations
+
+- List any BalloonPrep-specific risks: performance on large datasets, async patterns, PDF generation timeouts, layer
+  violations
 
 ---
 
 ## GitHub issue formats
 
 ### Bug / finding issue (Mode 1)
+
 ```bash
 gh issue create \
   --repo NickThys3012/FlightPrep \
@@ -139,6 +152,7 @@ _Created by Planning Agent_" \
 ```
 
 ### Feature specification issue (Mode 2)
+
 ```bash
 gh issue create \
   --repo NickThys3012/FlightPrep \
@@ -213,6 +227,7 @@ _Created by Planning Agent_" \
 ## Label setup
 
 Create missing labels before creating issues:
+
 ```bash
 gh label create "feature"      --color "#7057ff" --repo NickThys3012/FlightPrep
 gh label create "testing"      --color "#0075ca" --repo NickThys3012/FlightPrep
@@ -225,6 +240,7 @@ gh label create "enhancement"  --color "#a2eeef" --repo NickThys3012/FlightPrep
 ## Output format
 
 ### Mode 1 (audit)
+
 ```
 ## 🔴 Critical
 - [#12] fix: divide-by-zero in TrajectoryService when ascentMs = 0
@@ -237,6 +253,7 @@ gh label create "enhancement"  --color "#a2eeef" --repo NickThys3012/FlightPrep
 ```
 
 ### Mode 2 (feature)
+
 ```
 ## ✅ Feature spec created: #<issue number>
 Title: feat: <feature name>

@@ -1,4 +1,6 @@
 @page "/settings/locations"
+@using FlightPrep.Domain.Models
+@using FlightPrep.Infrastructure.Data
 @attribute [Authorize]
 @rendermode InteractiveServer
 @inject IDbContextFactory<AppDbContext> DbFactory
@@ -11,80 +13,89 @@
 
     <table class="table table-hover">
         <thead class="table-dark">
-            <tr>
-                <th>Naam</th>
-                <th>ICAO</th>
-                <th>Lat</th>
-                <th>Lon</th>
-                <th>Hoogte (m)</th>
-                <th>Luchtruimnotities</th>
-                <th>Acties</th>
-            </tr>
+        <tr>
+            <th>Naam</th>
+            <th>ICAO</th>
+            <th>Lat</th>
+            <th>Lon</th>
+            <th>Hoogte (m)</th>
+            <th>Luchtruimnotities</th>
+            <th>Acties</th>
+        </tr>
         </thead>
         <tbody>
-            @foreach (var l in locations)
-            {
-                @if (editId == l.Id)
-                {
-                    <tr>
-                        <td><input class="form-control form-control-sm" @bind="editLoc.Name" /></td>
-                        <td><input class="form-control form-control-sm" @bind="editLoc.IcaoCode" placeholder="EBAW" /></td>
-                        <td><input type="number" step="0.000001" class="form-control form-control-sm" @bind="editLoc.Latitude" placeholder="51.189" /></td>
-                        <td><input type="number" step="0.000001" class="form-control form-control-sm" @bind="editLoc.Longitude" placeholder="4.460" /></td>
-                        <td><input type="number" step="1" min="0" class="form-control form-control-sm" @bind="editLoc.ElevationM" placeholder="0" /></td>
-                        <td><textarea class="form-control form-control-sm" rows="2" @bind="editLoc.AirspaceNotes"></textarea></td>
-                        <td>
-                            <button class="btn btn-sm btn-success" @onclick="SaveEdit">✅ Opslaan</button>
-                            <button class="btn btn-sm btn-secondary" @onclick="CancelEdit">Annuleren</button>
-                        </td>
-                    </tr>
-                }
-                else
-                {
-                    <tr>
-                        <td>@l.Name</td>
-                        <td>@(l.IcaoCode ?? "–")</td>
-                        <td>@(l.Latitude.HasValue ? l.Latitude.Value.ToString("F4") : "–")</td>
-                        <td>@(l.Longitude.HasValue ? l.Longitude.Value.ToString("F4") : "–")</td>
-                        <td>@(l.ElevationM?.ToString("F0") ?? "–") m AMSL</td>
-                        <td class="text-truncate" style="max-width:200px">@(l.AirspaceNotes ?? "–")</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-secondary" @onclick="() => StartEdit(l)">✏️</button>
-                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteLocation(l.Id)">🗑️</button>
-                        </td>
-                    </tr>
-                }
-            }
-            @if (addingNew)
+        @foreach (var l in _locations)
+        {
+            @if (_editId == l.Id)
             {
                 <tr>
-                    <td><input class="form-control form-control-sm" @bind="newLoc.Name" placeholder="Naam" /></td>
-                    <td><input class="form-control form-control-sm" @bind="newLoc.IcaoCode" placeholder="EBAW" /></td>
-                    <td><input type="number" step="0.000001" class="form-control form-control-sm" @bind="newLoc.Latitude" placeholder="51.189" /></td>
-                    <td><input type="number" step="0.000001" class="form-control form-control-sm" @bind="newLoc.Longitude" placeholder="4.460" /></td>
-                    <td><input type="number" step="1" min="0" class="form-control form-control-sm" @bind="newLoc.ElevationM" placeholder="0" /></td>
-                    <td><textarea class="form-control form-control-sm" rows="2" @bind="newLoc.AirspaceNotes"></textarea></td>
+                    <td><input class="form-control form-control-sm" @bind="_editLoc.Name"/></td>
+                    <td><input class="form-control form-control-sm" @bind="_editLoc.IcaoCode" placeholder="EBAW"/></td>
+                    <td><input type="number" step="0.000001" class="form-control form-control-sm"
+                               @bind="_editLoc.Latitude" placeholder="51.189"/></td>
+                    <td><input type="number" step="0.000001" class="form-control form-control-sm"
+                               @bind="_editLoc.Longitude" placeholder="4.460"/></td>
+                    <td><input type="number" step="1" min="0" class="form-control form-control-sm"
+                               @bind="_editLoc.ElevationM" placeholder="0"/></td>
+                    <td><textarea class="form-control form-control-sm" rows="2"
+                                  @bind="_editLoc.AirspaceNotes"></textarea></td>
                     <td>
-                        <button class="btn btn-sm btn-success" @onclick="SaveNew">✅ Toevoegen</button>
-                        <button class="btn btn-sm btn-secondary" @onclick="() => addingNew = false">Annuleren</button>
+                        <button class="btn btn-sm btn-success" @onclick="SaveEdit">✅ Opslaan</button>
+                        <button class="btn btn-sm btn-secondary" @onclick="CancelEdit">Annuleren</button>
                     </td>
                 </tr>
             }
+            else
+            {
+                <tr>
+                    <td>@l.Name</td>
+                    <td>@(l.IcaoCode ?? "–")</td>
+                    <td>@(l.Latitude.HasValue ? l.Latitude.Value.ToString("F4") : "–")</td>
+                    <td>@(l.Longitude.HasValue ? l.Longitude.Value.ToString("F4") : "–")</td>
+                    <td>@(l.ElevationM?.ToString("F0") ?? "–") m AMSL</td>
+                    <td class="text-truncate" style="max-width:200px">@(l.AirspaceNotes ?? "–")</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => StartEdit(l)">✏️</button>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteLocation(l.Id)">🗑️</button>
+                    </td>
+                </tr>
+            }
+        }
+        @if (_addingNew)
+        {
+            <tr>
+                <td><input class="form-control form-control-sm" @bind="_newLoc.Name" placeholder="Naam"/></td>
+                <td><input class="form-control form-control-sm" @bind="_newLoc.IcaoCode" placeholder="EBAW"/></td>
+                <td><input type="number" step="0.000001" class="form-control form-control-sm" @bind="_newLoc.Latitude"
+                           placeholder="51.189"/></td>
+                <td><input type="number" step="0.000001" class="form-control form-control-sm" @bind="_newLoc.Longitude"
+                           placeholder="4.460"/></td>
+                <td><input type="number" step="1" min="0" class="form-control form-control-sm"
+                           @bind="_newLoc.ElevationM" placeholder="0"/></td>
+                <td><textarea class="form-control form-control-sm" rows="2" @bind="_newLoc.AirspaceNotes"></textarea>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-success" @onclick="SaveNew">✅ Toevoegen</button>
+                    <button class="btn btn-sm btn-secondary" @onclick="() => _addingNew = false">Annuleren</button>
+                </td>
+            </tr>
+        }
         </tbody>
     </table>
     <p class="text-muted small">💡 Latitude en longitude worden gebruikt voor de zonsopgang/zonsondergang berekening.</p>
-    @if (!addingNew)
+    @if (!_addingNew)
     {
-        <button class="btn btn-primary" @onclick="() => { addingNew = true; newLoc = new(); }">➕ Locatie toevoegen</button>
+        <button class="btn btn-primary" @onclick="() => { _addingNew = true; _newLoc = new Location(); }">➕ Locatie toevoegen
+        </button>
     }
 </div>
 
 @code {
-    private List<Location> locations = new();
-    private int? editId;
-    private Location editLoc = new();
-    private bool addingNew;
-    private Location newLoc = new();
+    private List<Location> _locations = [];
+    private int? _editId;
+    private Location _editLoc = new();
+    private bool _addingNew;
+    private Location _newLoc = new();
     private string? _userId;
     private bool _isAdmin;
 
@@ -102,37 +113,42 @@
         var query = db.Locations.AsQueryable();
         if (!_isAdmin)
         {
-            if (_userId == null) { locations = []; return; }
+            if (_userId == null) { _locations = []; return; }
             query = query.Where(l => l.OwnerId == _userId);
         }
-        locations = await query.OrderBy(l => l.Name).ToListAsync();
+        _locations = await query.OrderBy(l => l.Name).ToListAsync();
     }
 
-    private void StartEdit(Location l) =>
-        (editId, editLoc) = (l.Id, new Location { Id = l.Id, Name = l.Name, IcaoCode = l.IcaoCode, AirspaceNotes = l.AirspaceNotes, Latitude = l.Latitude, Longitude = l.Longitude, ElevationM = l.ElevationM });
+    private void StartEdit(Location l)
+    {
+        (_editId, _editLoc) = (l.Id, new Location { Id = l.Id, Name = l.Name, IcaoCode = l.IcaoCode, AirspaceNotes = l.AirspaceNotes, Latitude = l.Latitude, Longitude = l.Longitude, ElevationM = l.ElevationM });
+    }
 
-    private void CancelEdit() => editId = null;
+    private void CancelEdit()
+    {
+        _editId = null;
+    }
 
     private async Task SaveEdit()
     {
         await using var db = await DbFactory.CreateDbContextAsync();
-        var l = await db.Locations.FindAsync(editLoc.Id);
+        var l = await db.Locations.FindAsync(_editLoc.Id);
         if (l is null || (!_isAdmin && l.OwnerId != _userId)) return;
         var originalOwnerId = l.OwnerId;
-        db.Entry(l).CurrentValues.SetValues(editLoc);
+        db.Entry(l).CurrentValues.SetValues(_editLoc);
         l.OwnerId = originalOwnerId;
         await db.SaveChangesAsync();
-        editId = null;
+        _editId = null;
         await Load();
     }
 
     private async Task SaveNew()
     {
-        newLoc.OwnerId = _userId;
+        _newLoc.OwnerId = _userId;
         await using var db = await DbFactory.CreateDbContextAsync();
-        db.Locations.Add(newLoc);
+        db.Locations.Add(_newLoc);
         await db.SaveChangesAsync();
-        addingNew = false;
+        _addingNew = false;
         await Load();
     }
 
@@ -145,6 +161,8 @@
             db.Locations.Remove(l);
             await db.SaveChangesAsync();
         }
+
         await Load();
     }
+
 }

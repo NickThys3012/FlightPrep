@@ -1,5 +1,5 @@
-using FlightPrep.Data;
-using FlightPrep.Models;
+using FlightPrep.Domain.Models;
+using FlightPrep.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -10,10 +10,10 @@ namespace FlightPrep.Pages;
 
 public class LoginModel : PageModel
 {
+    private readonly IDbContextFactory<AppDbContext> _dbFactory;
+    private readonly ILogger<LoginModel> _logger;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly ILogger<LoginModel> _logger;
-    private readonly IDbContextFactory<AppDbContext> _dbFactory;
 
     public LoginModel(
         SignInManager<ApplicationUser> signInManager,
@@ -27,26 +27,11 @@ public class LoginModel : PageModel
         _dbFactory = dbFactory;
     }
 
-    [BindProperty]
-    public InputModel Input { get; set; } = new();
+    [BindProperty] public InputModel Input { get; set; } = new();
 
     public string? ReturnUrl { get; set; }
 
     public bool Registered { get; set; }
-
-    public class InputModel
-    {
-        [Required(ErrorMessage = "E-mailadres is verplicht.")]
-        [EmailAddress(ErrorMessage = "Ongeldig e-mailadres.")]
-        public string Email { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Wachtwoord is verplicht.")]
-        [DataType(DataType.Password)]
-        public string Password { get; set; } = string.Empty;
-
-        [Display(Name = "Onthoud mij")]
-        public bool RememberMe { get; set; }
-    }
 
     public void OnGet(string? returnUrl = null, int registered = 0)
     {
@@ -59,13 +44,15 @@ public class LoginModel : PageModel
         returnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : "/";
 
         if (!ModelState.IsValid)
+        {
             return Page();
+        }
 
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
 
         // Validate password first — prevents email enumeration via the IsApproved pre-check.
         var result = await _signInManager.PasswordSignInAsync(
-            Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: true);
+            Input.Email, Input.Password, Input.RememberMe, true);
 
         if (result.Succeeded)
         {
@@ -76,7 +63,7 @@ public class LoginModel : PageModel
                 await _signInManager.SignOutAsync(); // revoke just-issued cookie
                 _logger.LogWarning("Login attempt by unapproved user {Email} from {IpAddress}",
                     Input.Email, ip);
-                RecordLoginEvent(Input.Email, user?.Id, false, "NotApproved", ip);
+                RecordLoginEvent(Input.Email, user.Id, false, "NotApproved", ip);
                 ModelState.AddModelError(string.Empty, "Your account is pending admin approval.");
                 return Page();
             }
@@ -104,8 +91,7 @@ public class LoginModel : PageModel
         return Page();
     }
 
-    private void RecordLoginEvent(string email, string? userId, bool success, string? failureReason, string? ipAddress)
-    {
+    private void RecordLoginEvent(string email, string? userId, bool success, string? failureReason, string? ipAddress) =>
         // Note: fire-and-forget — events may be lost on app shutdown/recycle.
         // A future improvement is to drain via IHostedService on shutdown.
         _ = Task.Run(async () =>
@@ -129,5 +115,17 @@ public class LoginModel : PageModel
                 _logger.LogError(ex, "Failed to record login event for {Email}", email);
             }
         });
+
+    public class InputModel
+    {
+        [Required(ErrorMessage = "E-mailadres is verplicht.")]
+        [EmailAddress(ErrorMessage = "Ongeldig e-mailadres.")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Wachtwoord is verplicht.")]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = string.Empty;
+
+        [Display(Name = "Onthoud mij")] public bool RememberMe { get; set; }
     }
 }

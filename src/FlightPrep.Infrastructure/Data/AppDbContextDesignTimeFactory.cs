@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace FlightPrep.Data;
+namespace FlightPrep.Infrastructure.Data;
 
 /// <summary>
-/// Design-time factory used by EF Core tools (migrations) so they can create
-/// an AppDbContext without running the full application startup.
+///     Design-time factory used by EF Core tools (migrations) so they can create
+///     an AppDbContext without running the full application startup.
 /// </summary>
 public class AppDbContextDesignTimeFactory : IDesignTimeDbContextFactory<AppDbContext>
 {

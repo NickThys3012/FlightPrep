@@ -1,9 +1,9 @@
-namespace FlightPrep.Models;
+namespace FlightPrep.Domain.Models;
 
 /// <summary>
-/// Lightweight projection used by the FlightList page.
-/// Contains only the fields needed for display and Go/No-Go computation.
-/// No heavy navigation collections are loaded.
+///     Lightweight projection used by the FlightList page.
+///     Contains only the fields needed for display and Go/No-Go computation.
+///     No heavy navigation collections are loaded.
 /// </summary>
 public record FlightPreparationSummary(
     int Id,

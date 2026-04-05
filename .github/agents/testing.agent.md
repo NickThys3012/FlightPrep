@@ -45,6 +45,7 @@ tests/BalloonPrep.Tests/              ← xUnit, net10.0
 ```
 
 Add the project reference once if not already there:
+
 ```bash
 dotnet add tests/BalloonPrep.Tests/BalloonPrep.Tests.csproj \
   reference src/BalloonPrep.Domain/BalloonPrep.Domain.csproj
@@ -56,11 +57,11 @@ dotnet add tests/BalloonPrep.Tests/BalloonPrep.Tests.csproj \
 
 `MethodName_Scenario_ExpectedResult`
 
-| ✅ Good | ❌ Bad |
-|--------|--------|
-| `AddPassenger_EmptyName_Throws` | `Test1` |
+| ✅ Good                                    | ❌ Bad              |
+|-------------------------------------------|--------------------|
+| `AddPassenger_EmptyName_Throws`           | `Test1`            |
 | `ComputeAsync_ZeroAscentRate_ReturnsNull` | `ComputeAsyncTest` |
-| `Coordinate_LatAbove90_ThrowsOutOfRange` | `TestCoordinate` |
+| `Coordinate_LatAbove90_ThrowsOutOfRange`  | `TestCoordinate`   |
 
 ---
 
@@ -82,6 +83,7 @@ public void MethodName_Scenario_ExpectedResult()
 ```
 
 For data-driven tests use `[Theory]` + `[InlineData]`:
+
 ```csharp
 [Theory]
 [InlineData(0)]
@@ -99,19 +101,23 @@ public void AddPassenger_NonPositiveWeight_Throws(double weight)
 ## Coverage targets for BalloonPrep
 
 ### Domain (no mocks needed — pure unit tests)
+
 - `FlightPreparation` — all behavioral methods + domain events
 - `Coordinate` — valid bounds, invalid lat, invalid lon, record equality
 - `Balloon` — max lift capacity
 
 ### Application (mock `IRepository` with Moq)
+
 - Command handlers — verify repo called with correct args, event raised
 - Query handlers — verify return shape and mapping
 
 ### Infrastructure (SQLite in-memory integration tests)
+
 - Repository CRUD round-trips
 - `FlightPreparation` with passengers persisted and reloaded correctly
 
 ### Regression tests (one per fixed bug)
+
 - `TrajectoryService`: `ascentRateMs = 0` → returns `(null, null)`
 - `TrajectoryService`: `descentRateMs = 0` → returns `(null, null)`
 - `TrajectoryService`: empty `Timestamps` → returns `(null, null)` / empty list
@@ -150,14 +156,16 @@ The CI/CD pipeline enforces **85% line coverage** on every push and PR.
 The build **fails** if coverage drops below this threshold.
 
 ### What counts
+
 - All code in `src/FlightPrep/` except:
-  - `**/Migrations/**` (auto-generated EF Core migrations)
-  - `**/Program.cs` (top-level startup, covered by E2E)
-  - `**/*.razor` (Blazor components, covered by Playwright E2E tests)
-  - `**/PdfService.cs` (QuestPDF rendering pipeline, covered by E2E)
-  - `**/AppDbContext.cs` (EF Core model config, covered by E2E)
+    - `**/Migrations/**` (auto-generated EF Core migrations)
+    - `**/Program.cs` (top-level startup, covered by E2E)
+    - `**/*.razor` (Blazor components, covered by Playwright E2E tests)
+    - `**/PdfService.cs` (QuestPDF rendering pipeline, covered by E2E)
+    - `**/AppDbContext.cs` (EF Core model config, covered by E2E)
 
 ### How to verify locally before pushing
+
 ```bash
 dotnet test src/FlightPrep.Tests/FlightPrep.Tests.csproj \
   /p:CollectCoverage=true \
@@ -168,11 +176,14 @@ dotnet test src/FlightPrep.Tests/FlightPrep.Tests.csproj \
   /p:ThresholdStat=total \
   "/p:ExcludeByFile=**/Migrations/**,**/Program.cs,**/*.razor,**/PdfService.cs,**/AppDbContext.cs"
 ```
+
 A non-zero exit code means coverage is below 85% — add tests before pushing.
 
 ### When adding new code
+
 Every new public method you receive from the implementation agent **must** be covered.
-If adding tests for a method would push a file above the threshold on its own, still write the tests — the threshold applies to the **total** project coverage.
+If adding tests for a method would push a file above the threshold on its own, still write the tests — the threshold
+applies to the **total** project coverage.
 
 ---
 
@@ -188,6 +199,7 @@ If adding tests for a method would push a file above the threshold on its own, s
 ## Done?
 
 After tests pass **and coverage is ≥ 85%**:
+
 ```bash
 git add src/FlightPrep.Tests/
 git commit -m "test: add coverage for <feature/fix> (#<issue>)"

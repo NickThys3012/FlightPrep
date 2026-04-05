@@ -1,4 +1,4 @@
-using FlightPrep.Data;
+using FlightPrep.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -10,13 +10,36 @@ public class RegisterModel : PageModel
 {
     private readonly UserManager<ApplicationUser> _userManager;
 
-    public RegisterModel(UserManager<ApplicationUser> userManager)
-    {
-        _userManager = userManager;
-    }
+    public RegisterModel(UserManager<ApplicationUser> userManager) => _userManager = userManager;
 
-    [BindProperty]
-    public InputModel Input { get; set; } = new();
+    [BindProperty] public InputModel Input { get; set; } = new();
+
+    public void OnGet() { }
+
+    public async Task<IActionResult> OnPostAsync()
+    {
+        if (!ModelState.IsValid)
+        {
+            return Page();
+        }
+
+        var user = new ApplicationUser { UserName = Input.Email, Email = Input.Email, IsApproved = false, EmailConfirmed = false };
+
+        var result = await _userManager.CreateAsync(user, Input.Password);
+
+        if (result.Succeeded)
+        {
+            await _userManager.AddToRoleAsync(user, "Pilot");
+            return RedirectToPage("/Login", new { registered = 1 });
+        }
+
+        foreach (var error in result.Errors)
+        {
+            ModelState.AddModelError(string.Empty, error.Description);
+        }
+
+        return Page();
+    }
 
     public class InputModel
     {
@@ -34,34 +57,5 @@ public class RegisterModel : PageModel
         [Compare(nameof(Password), ErrorMessage = "Wachtwoorden komen niet overeen.")]
         [Display(Name = "Bevestig wachtwoord")]
         public string ConfirmPassword { get; set; } = string.Empty;
-    }
-
-    public void OnGet() { }
-
-    public async Task<IActionResult> OnPostAsync()
-    {
-        if (!ModelState.IsValid)
-            return Page();
-
-        var user = new ApplicationUser
-        {
-            UserName = Input.Email,
-            Email = Input.Email,
-            IsApproved = false,
-            EmailConfirmed = false,
-        };
-
-        var result = await _userManager.CreateAsync(user, Input.Password);
-
-        if (result.Succeeded)
-        {
-            await _userManager.AddToRoleAsync(user, "Pilot");
-            return RedirectToPage("/Login", new { registered = 1 });
-        }
-
-        foreach (var error in result.Errors)
-            ModelState.AddModelError(string.Empty, error.Description);
-
-        return Page();
     }
 }

@@ -1,15 +1,15 @@
 @page "/logboek"
+@using FlightPrep.Domain.Models
+@using FlightPrep.Domain.Services
 @attribute [Authorize]
 @rendermode InteractiveServer
 @inject IFlightPreparationService FpSvc
 @inject AuthenticationStateProvider AuthStateProvider
-@inject IJSRuntime JS
-@using FlightPrep.Models
-@using Microsoft.EntityFrameworkCore
+@inject IJSRuntime Js
 
 <PageTitle>Logboek – FlightPrep</PageTitle>
 
-@if (flights == null)
+@if (_flights == null)
 {
     <div class="text-center py-5 text-muted"><em>Laden...</em></div>
 }
@@ -19,10 +19,10 @@ else
     <div class="d-flex justify-content-between align-items-start mb-4">
         <div>
             <h2 class="mb-1">📓 Logboek</h2>
-            @if (flights.Count > 0)
+            @if (_flights.Count > 0)
             {
-                var first = flights.First().Datum;
-                var last = flights.Last().Datum;
+                var first = _flights.First().Datum;
+                var last = _flights.Last().Datum;
                 <p class="text-muted mb-0">@first.ToString("dd/MM/yyyy") – @last.ToString("dd/MM/yyyy")</p>
             }
             else
@@ -37,25 +37,25 @@ else
     <div class="row g-3 mb-3">
         <div class="col-6 col-md-3">
             <div class="fp-stat-card">
-                <div class="stat-number">@totalFlights</div>
+                <div class="stat-number">@_totalFlights</div>
                 <div class="stat-label">Totaal vaarten</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="fp-stat-card">
-                <div class="stat-number">@flownFlights</div>
+                <div class="stat-number">@_flownFlights</div>
                 <div class="stat-label">Gevlogen vaarten</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="fp-stat-card">
-                <div class="stat-number">@FormatMinutes(totalMinutes)</div>
+                <div class="stat-number">@FormatMinutes(_totalMinutes)</div>
                 <div class="stat-label">Totale vluchttijd</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="fp-stat-card">
-                <div class="stat-number" style="font-size:1.1rem">@(mostUsedLocation?.Key ?? "–")</div>
+                <div class="stat-number" style="font-size:1.1rem">@(_mostUsedLocation?.Key ?? "–")</div>
                 <div class="stat-label">Meest gebruikte locatie</div>
             </div>
         </div>
@@ -65,19 +65,19 @@ else
     <div class="row g-3 mb-4">
         <div class="col-6 col-md-4">
             <div class="fp-stat-card">
-                <div class="stat-number" style="font-size:1.1rem">@(mostUsedBalloon?.Key ?? "–")</div>
+                <div class="stat-number" style="font-size:1.1rem">@(_mostUsedBalloon?.Key ?? "–")</div>
                 <div class="stat-label">Meest gebruikte ballon</div>
             </div>
         </div>
         <div class="col-6 col-md-4">
             <div class="fp-stat-card">
-                <div class="stat-number">@plannedFlights</div>
+                <div class="stat-number">@_plannedFlights</div>
                 <div class="stat-label">Vaarten gepland</div>
             </div>
         </div>
         <div class="col-6 col-md-4">
             <div class="fp-stat-card">
-                <div class="stat-number">@(flownFlights > 0 ? FormatMinutes(totalMinutes / flownFlights) : "–")</div>
+                <div class="stat-number">@(_flownFlights > 0 ? FormatMinutes(_totalMinutes / _flownFlights) : "–")</div>
                 <div class="stat-label">Gem. vluchtduur</div>
             </div>
         </div>
@@ -106,7 +106,7 @@ else
     <!-- Flight list -->
     <div class="fp-card p-0 overflow-hidden">
         <div class="fp-section-header">Volledige vluchtenlijst</div>
-        @if (!flights.Any())
+        @if (!_flights.Any())
         {
             <div class="fp-empty-state">
                 <div class="fp-empty-icon">🎈</div>
@@ -120,36 +120,36 @@ else
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
                     <thead>
-                        <tr>
-                            <th>Datum</th>
-                            <th>Locatie</th>
-                            <th>Ballon</th>
-                            <th>Piloot</th>
-                            <th>Duur</th>
-                            <th>Status</th>
-                        </tr>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Locatie</th>
+                        <th>Ballon</th>
+                        <th>Piloot</th>
+                        <th>Duur</th>
+                        <th>Status</th>
+                    </tr>
                     </thead>
                     <tbody>
-                        @foreach (var f in flights.OrderByDescending(f => f.Datum).ThenByDescending(f => f.Tijdstip))
-                        {
-                            <tr style="cursor:pointer" @onclick="() => Nav(f.Id)">
-                                <td>@f.Datum.ToString("dd/MM/yyyy")</td>
-                                <td>@(f.Location?.Name ?? "–")</td>
-                                <td>@(f.Balloon?.Registration ?? "–")</td>
-                                <td>@(f.Pilot?.Name ?? "–")</td>
-                                <td>@(f.ActualFlightDurationMinutes.HasValue ? FormatMinutes(f.ActualFlightDurationMinutes.Value) : "–")</td>
-                                <td>
-                                    @if (f.IsFlown)
-                                    {
-                                        <span class="badge bg-success">Gevlogen</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary">Gepland</span>
-                                    }
-                                </td>
-                            </tr>
-                        }
+                    @foreach (var f in _flights.OrderByDescending(f => f.Datum).ThenByDescending(f => f.Tijdstip))
+                    {
+                        <tr style="cursor:pointer" @onclick="() => Nav(f.Id)">
+                            <td>@f.Datum.ToString("dd/MM/yyyy")</td>
+                            <td>@(f.Location?.Name ?? "–")</td>
+                            <td>@(f.Balloon?.Registration ?? "–")</td>
+                            <td>@(f.Pilot?.Name ?? "–")</td>
+                            <td>@(f.ActualFlightDurationMinutes.HasValue ? FormatMinutes(f.ActualFlightDurationMinutes.Value) : "–")</td>
+                            <td>
+                                @if (f.IsFlown)
+                                {
+                                    <span class="badge bg-success">Gevlogen</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Gepland</span>
+                                }
+                            </td>
+                        </tr>
+                    }
                     </tbody>
                 </table>
             </div>
@@ -158,17 +158,17 @@ else
 }
 
 @code {
-    [Inject] private NavigationManager NavManager { get; set; } = default!;
+    [Inject] private NavigationManager NavManager { get; set; } = null!;
 
-    private List<FlightPreparation>? flights;
-    private int totalFlights;
-    private int flownFlights;
-    private int plannedFlights;
-    private int totalMinutes;
-    private IGrouping<string, FlightPreparation>? mostUsedLocation;
-    private IGrouping<string, FlightPreparation>? mostUsedBalloon;
-    private List<(string Label, int Count)>? flightsByMonth;
-    private List<(string Label, int Count)>? flightsByLocation;
+    private List<FlightPreparation>? _flights;
+    private int _totalFlights;
+    private int _flownFlights;
+    private int _plannedFlights;
+    private int _totalMinutes;
+    private IGrouping<string, FlightPreparation>? _mostUsedLocation;
+    private IGrouping<string, FlightPreparation>? _mostUsedBalloon;
+    private List<(string Label, int Count)>? _flightsByMonth;
+    private List<(string Label, int Count)>? _flightsByLocation;
 
     protected override async Task OnInitializedAsync()
     {
@@ -176,31 +176,31 @@ else
         var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var isAdmin = authState.User.IsInRole("Admin");
 
-        flights = await FpSvc.GetAllWithNavAsync(userId, isAdmin);
+        _flights = await FpSvc.GetAllWithNavAsync(userId, isAdmin);
 
-        totalFlights = flights.Count;
-        flownFlights = flights.Count(f => f.IsFlown);
-        plannedFlights = flights.Count(f => !f.IsFlown);
-        totalMinutes = flights.Where(f => f.ActualFlightDurationMinutes.HasValue)
-                              .Sum(f => f.ActualFlightDurationMinutes!.Value);
+        _totalFlights = _flights.Count;
+        _flownFlights = _flights.Count(f => f.IsFlown);
+        _plannedFlights = _flights.Count(f => !f.IsFlown);
+        _totalMinutes = _flights.Where(f => f.ActualFlightDurationMinutes.HasValue)
+            .Sum(f => f.ActualFlightDurationMinutes!.Value);
 
-        mostUsedLocation = flights.Where(f => f.Location != null)
+        _mostUsedLocation = _flights.Where(f => f.Location != null)
             .GroupBy(f => f.Location!.Name)
             .OrderByDescending(g => g.Count())
             .FirstOrDefault();
 
-        mostUsedBalloon = flights.Where(f => f.Balloon != null)
+        _mostUsedBalloon = _flights.Where(f => f.Balloon != null)
             .GroupBy(f => f.Balloon!.Registration)
             .OrderByDescending(g => g.Count())
             .FirstOrDefault();
 
-        flightsByMonth = flights
+        _flightsByMonth = _flights
             .GroupBy(f => new { f.Datum.Year, f.Datum.Month })
             .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
             .Select(g => ($"{g.Key.Year}-{g.Key.Month:D2}", g.Count()))
             .ToList();
 
-        flightsByLocation = flights.Where(f => f.Location != null)
+        _flightsByLocation = _flights.Where(f => f.Location != null)
             .GroupBy(f => f.Location!.Name)
             .OrderByDescending(g => g.Count())
             .Take(8)
@@ -210,22 +210,26 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && flightsByMonth != null)
+        if (firstRender && _flightsByMonth != null)
         {
-            await JS.InvokeVoidAsync("initLogboekCharts",
-                flightsByMonth.Select(x => x.Label).ToArray(),
-                flightsByMonth.Select(x => x.Count).ToArray(),
-                flightsByLocation!.Select(x => x.Label).ToArray(),
-                flightsByLocation!.Select(x => x.Count).ToArray());
+            await Js.InvokeVoidAsync("initLogboekCharts",
+                _flightsByMonth.Select(x => x.Label).ToArray(),
+                _flightsByMonth.Select(x => x.Count).ToArray(),
+                _flightsByLocation!.Select(x => x.Label).ToArray(),
+                _flightsByLocation!.Select(x => x.Count).ToArray());
         }
     }
 
     private static string FormatMinutes(int minutes)
     {
-        int h = minutes / 60;
-        int m = minutes % 60;
+        var h = minutes / 60;
+        var m = minutes % 60;
         return h > 0 ? $"{h}u {m}m" : $"{m}m";
     }
 
-    private void Nav(int id) => NavManager.NavigateTo($"/flights/{id}");
+    private void Nav(int id)
+    {
+        NavManager.NavigateTo($"/flights/{id}");
+    }
+
 }

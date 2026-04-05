@@ -1,39 +1,36 @@
-using System.Net;
-using System.Text.Json;
-using FlightPrep.Services;
+using FlightPrep.Infrastructure.Services;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using System.Net;
+using System.Text.Json;
 
 namespace FlightPrep.Tests;
 
 public class PowerLineServiceTests
 {
     private const string ValidOverpassJson = """
-        {
-            "elements": [
-                {
-                    "type": "way",
-                    "id": 1,
-                    "tags": { "power": "line", "voltage": "380000", "name": "Testlijn" },
-                    "geometry": [
-                        {"lat": 50.85, "lon": 4.35},
-                        {"lat": 50.86, "lon": 4.36}
-                    ]
-                }
-            ]
-        }
-        """;
+                                             {
+                                                 "elements": [
+                                                     {
+                                                         "type": "way",
+                                                         "id": 1,
+                                                         "tags": { "power": "line", "voltage": "380000", "name": "Testlijn" },
+                                                         "geometry": [
+                                                             {"lat": 50.85, "lon": 4.35},
+                                                             {"lat": 50.86, "lon": 4.36}
+                                                         ]
+                                                     }
+                                                 ]
+                                             }
+                                             """;
 
     private static (PowerLineService sut, IMemoryCache cache, MockHttpMessageHandler handler) Build(
         string responseBody = ValidOverpassJson,
         HttpStatusCode statusCode = HttpStatusCode.OK)
     {
         var cache = new MemoryCache(new MemoryCacheOptions());
-        var handler = new MockHttpMessageHandler(new HttpResponseMessage(statusCode)
-        {
-            Content = new StringContent(responseBody)
-        });
+        var handler = new MockHttpMessageHandler(new HttpResponseMessage(statusCode) { Content = new StringContent(responseBody) });
         var httpClient = new HttpClient(handler);
         var factoryMock = new Mock<IHttpClientFactory>();
         factoryMock.Setup(f => f.CreateClient("overpass")).Returns(httpClient);
@@ -45,11 +42,11 @@ public class PowerLineServiceTests
     public async Task GetGeoJsonAsync_CacheHit_ReturnsWithoutHttpCall()
     {
         var (sut, _, handler) = Build();
-        // Warm the cache with first call
+        // Warm the cache with the first call
         var first = await sut.GetGeoJsonAsync(50.85, 4.35, 50.86, 4.36);
         Assert.Equal(1, handler.CallCount);
 
-        // Second call with identical bbox must not hit the handler
+        // The second call with an identical bbox must not hit the handler
         var second = await sut.GetGeoJsonAsync(50.85, 4.35, 50.86, 4.36);
 
         Assert.Equal(1, handler.CallCount); // still 1 — no extra HTTP call
@@ -64,7 +61,7 @@ public class PowerLineServiceTests
         await sut.GetGeoJsonAsync(50.85, 4.35, 50.86, 4.36);
         await sut.GetGeoJsonAsync(50.85, 4.35, 50.86, 4.36);
 
-        // If result was cached the second call must not trigger a new HTTP request
+        // If a result was cached, the second call must not trigger a new HTTP request
         Assert.Equal(1, handler.CallCount);
     }
 
@@ -99,7 +96,7 @@ public class PowerLineServiceTests
         var result = await sut.GetGeoJsonAsync(50.85, 4.35, 50.86, 4.36);
 
         Assert.NotNull(result);
-        var doc = JsonDocument.Parse(result!);
+        var doc = JsonDocument.Parse(result);
         Assert.Equal("FeatureCollection", doc.RootElement.GetProperty("type").GetString());
         Assert.Equal(1, doc.RootElement.GetProperty("features").GetArrayLength());
     }
@@ -129,8 +126,8 @@ public class PowerLineServiceTests
             .GetProperty("features")[0]
             .GetProperty("geometry")
             .GetProperty("coordinates");
-        Assert.Equal(4.35, coords[0][0].GetDouble(), 5);   // lon first
-        Assert.Equal(50.85, coords[0][1].GetDouble(), 5);  // lat second
+        Assert.Equal(4.35, coords[0][0].GetDouble(), 5); // lon first
+        Assert.Equal(50.85, coords[0][1].GetDouble(), 5); // lat second
     }
 
     [Fact]
@@ -149,7 +146,7 @@ public class PowerLineServiceTests
     [Fact]
     public async Task GetGeoJsonAsync_HttpError_ReturnsNull()
     {
-        var (sut, _, _) = Build(responseBody: "", statusCode: HttpStatusCode.InternalServerError);
+        var (sut, _, _) = Build("", HttpStatusCode.InternalServerError);
 
         var result = await sut.GetGeoJsonAsync(50.85, 4.35, 50.86, 4.36);
 
@@ -159,7 +156,7 @@ public class PowerLineServiceTests
     [Fact]
     public async Task GetGeoJsonAsync_HttpError_DoesNotPopulateCache()
     {
-        var (sut, cache, _) = Build(responseBody: "", statusCode: HttpStatusCode.ServiceUnavailable);
+        var (sut, cache, _) = Build("", HttpStatusCode.ServiceUnavailable);
 
         await sut.GetGeoJsonAsync(50.85, 4.35, 50.86, 4.36);
 
@@ -170,12 +167,12 @@ public class PowerLineServiceTests
     public async Task GetGeoJsonAsync_NonWayElement_IsSkipped()
     {
         const string json = """
-            {
-                "elements": [
-                    { "type": "node", "id": 99, "tags": { "power": "tower" } }
-                ]
-            }
-            """;
+                            {
+                                "elements": [
+                                    { "type": "node", "id": 99, "tags": { "power": "tower" } }
+                                ]
+                            }
+                            """;
         var (sut, _, _) = Build(json);
 
         var result = await sut.GetGeoJsonAsync(50.85, 4.35, 50.86, 4.36);
@@ -188,12 +185,12 @@ public class PowerLineServiceTests
     public async Task GetGeoJsonAsync_WayWithoutGeometry_IsSkipped()
     {
         const string json = """
-            {
-                "elements": [
-                    { "type": "way", "id": 1, "tags": { "power": "line", "voltage": "380000" } }
-                ]
-            }
-            """;
+                            {
+                                "elements": [
+                                    { "type": "way", "id": 1, "tags": { "power": "line", "voltage": "380000" } }
+                                ]
+                            }
+                            """;
         var (sut, _, _) = Build(json);
 
         var result = await sut.GetGeoJsonAsync(50.85, 4.35, 50.86, 4.36);
@@ -206,25 +203,25 @@ public class PowerLineServiceTests
     public async Task GetGeoJsonAsync_WayWithoutTags_IncludedWithEmptyProperties()
     {
         const string json = """
-            {
-                "elements": [
-                    {
-                        "type": "way",
-                        "id": 1,
-                        "geometry": [
-                            {"lat": 50.85, "lon": 4.35},
-                            {"lat": 50.86, "lon": 4.36}
-                        ]
-                    }
-                ]
-            }
-            """;
+                            {
+                                "elements": [
+                                    {
+                                        "type": "way",
+                                        "id": 1,
+                                        "geometry": [
+                                            {"lat": 50.85, "lon": 4.35},
+                                            {"lat": 50.86, "lon": 4.36}
+                                        ]
+                                    }
+                                ]
+                            }
+                            """;
         var (sut, _, _) = Build(json);
 
         var result = await sut.GetGeoJsonAsync(50.85, 4.35, 50.86, 4.36);
 
         Assert.NotNull(result);
-        var doc = JsonDocument.Parse(result!);
+        var doc = JsonDocument.Parse(result);
         Assert.Equal(1, doc.RootElement.GetProperty("features").GetArrayLength());
     }
 
@@ -245,18 +242,18 @@ public class PowerLineServiceTests
     public async Task GetGeoJsonAsync_MixedElements_OnlyIncludesWaysWithGeometry()
     {
         const string json = """
-            {
-                "elements": [
-                    { "type": "node", "id": 1, "tags": {} },
-                    { "type": "way",  "id": 2, "tags": { "voltage": "220000" } },
-                    {
-                        "type": "way", "id": 3,
-                        "tags": { "voltage": "110000" },
-                        "geometry": [{"lat": 50.85, "lon": 4.35}, {"lat": 50.86, "lon": 4.36}]
-                    }
-                ]
-            }
-            """;
+                            {
+                                "elements": [
+                                    { "type": "node", "id": 1, "tags": {} },
+                                    { "type": "way",  "id": 2, "tags": { "voltage": "220000" } },
+                                    {
+                                        "type": "way", "id": 3,
+                                        "tags": { "voltage": "110000" },
+                                        "geometry": [{"lat": 50.85, "lon": 4.35}, {"lat": 50.86, "lon": 4.36}]
+                                    }
+                                ]
+                            }
+                            """;
         var (sut, _, _) = Build(json);
 
         var result = await sut.GetGeoJsonAsync(50.85, 4.35, 50.86, 4.36);

@@ -1,4 +1,4 @@
-namespace FlightPrep.Models.Trajectory;
+namespace FlightPrep.Domain.Models.Trajectory;
 
 public enum TrajectoryDataSource { Manual, OpenMeteo, Hysplit }
 

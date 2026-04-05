@@ -1,14 +1,14 @@
-using FlightPrep.Data;
-using FlightPrep.Models;
+using FlightPrep.Domain.Models;
+using FlightPrep.Domain.Services;
+using FlightPrep.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace FlightPrep.Services;
 
 /// <summary>
-/// Encapsulates all EF Core read/write operations for <see cref="FlightPreparation"/>.
-/// Pages must not inject <see cref="IDbContextFactory{AppDbContext}"/> directly;
-/// all persistence flows through this service.
+///     Encapsulates all EF Core read/write operations for <see cref="FlightPreparation" />.
+///     Pages must not inject <see cref="IDbContextFactory{AppDbContext}" /> directly;
+///     all persistence flows through this service.
 /// </summary>
 public class FlightPreparationService(
     IDbContextFactory<AppDbContext> dbFactory,
@@ -40,8 +40,8 @@ public class FlightPreparationService(
     // ── Flight preparation queries ────────────────────────────────────────────
 
     /// <summary>
-    /// Returns a lightweight summary list for the FlightList page.
-    /// No heavy navigation collections are loaded.
+    ///     Returns a lightweight summary list for the FlightList page.
+    ///     No heavy navigation collections are loaded.
     /// </summary>
     public async Task<List<FlightPreparationSummary>> GetSummariesAsync(string? userId, bool isAdmin)
     {
@@ -49,9 +49,14 @@ public class FlightPreparationService(
         var query = db.FlightPreparations.AsQueryable();
         if (!isAdmin)
         {
-            if (userId == null) return [];
+            if (userId == null)
+            {
+                return [];
+            }
+
             query = query.Where(f => f.CreatedByUserId == userId);
         }
+
         return await query
             .Select(f => new FlightPreparationSummary(
                 f.Id,
@@ -69,8 +74,8 @@ public class FlightPreparationService(
     }
 
     /// <summary>
-    /// Returns the full <see cref="FlightPreparation"/> with all navigation properties
-    /// eagerly loaded, or <c>null</c> if not found.
+    ///     Returns the full <see cref="FlightPreparation" /> with all navigation properties
+    ///     eagerly loaded, or <c>null</c> if not found.
     /// </summary>
     public async Task<FlightPreparation?> GetByIdAsync(int id)
     {
@@ -88,16 +93,16 @@ public class FlightPreparationService(
     // ── Persistence ───────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Upserts a flight preparation.
-    /// Handles the replace-passengers / replace-images / replace-wind-levels pattern.
-    /// Navigation properties on <paramref name="fp"/> are preserved across the call.
+    ///     Upserts a flight preparation.
+    ///     Handles the replace-passengers / replace-images / replace-wind-levels pattern.
+    ///     Navigation properties on <paramref name="fp" /> are preserved across the call.
     /// </summary>
     /// <returns>The persisted flight preparation id.</returns>
     public async Task<int> SaveAsync(FlightPreparation fp)
     {
         ArgumentNullException.ThrowIfNull(fp);
 
-        // Hoist nav props outside try so they are accessible in the finally block.
+        // Hoist nav props outside try so they are accessible in the final block.
         Balloon? balloon = null;
         Pilot? pilot = null;
         Location? location = null;
@@ -110,12 +115,18 @@ public class FlightPreparationService(
             await using var db = await dbFactory.CreateDbContextAsync();
 
             // Capture navigation props and detach them so EF does not try to upsert them.
-            balloon    = fp.Balloon;    fp.Balloon    = null;
-            pilot      = fp.Pilot;      fp.Pilot      = null;
-            location   = fp.Location;   fp.Location   = null;
-            passengers = fp.Passengers.ToList(); fp.Passengers.Clear();
-            images     = fp.Images.ToList();     fp.Images.Clear();
-            windLevels = fp.WindLevels.ToList(); fp.WindLevels.Clear();
+            balloon = fp.Balloon;
+            fp.Balloon = null;
+            pilot = fp.Pilot;
+            fp.Pilot = null;
+            location = fp.Location;
+            fp.Location = null;
+            passengers = fp.Passengers.ToList();
+            fp.Passengers.Clear();
+            images = fp.Images.ToList();
+            fp.Images.Clear();
+            windLevels = fp.WindLevels.ToList();
+            fp.WindLevels.Clear();
 
             await using var tx = await db.Database.BeginTransactionAsync();
             try
@@ -127,16 +138,31 @@ public class FlightPreparationService(
                     db.FlightPreparations.Add(fp);
                     await db.SaveChangesAsync(); // assigns fp.Id
 
-                    for (int i = 0; i < passengers.Count; i++)
-                    { passengers[i].FlightPreparationId = fp.Id; passengers[i].Order = i; passengers[i].Id = 0; }
+                    for (var i = 0; i < passengers.Count; i++)
+                    {
+                        passengers[i].FlightPreparationId = fp.Id;
+                        passengers[i].Order = i;
+                        passengers[i].Id = 0;
+                    }
+
                     db.Passengers.AddRange(passengers);
 
-                    for (int i = 0; i < images.Count; i++)
-                    { images[i].FlightPreparationId = fp.Id; images[i].Id = 0; images[i].Order = i; }
+                    for (var i = 0; i < images.Count; i++)
+                    {
+                        images[i].FlightPreparationId = fp.Id;
+                        images[i].Id = 0;
+                        images[i].Order = i;
+                    }
+
                     db.FlightImages.AddRange(images);
 
-                    for (int i = 0; i < windLevels.Count; i++)
-                    { windLevels[i].FlightPreparationId = fp.Id; windLevels[i].Id = 0; windLevels[i].Order = i; }
+                    for (var i = 0; i < windLevels.Count; i++)
+                    {
+                        windLevels[i].FlightPreparationId = fp.Id;
+                        windLevels[i].Id = 0;
+                        windLevels[i].Order = i;
+                    }
+
                     db.WindLevels.AddRange(windLevels);
 
                     await db.SaveChangesAsync();
@@ -155,16 +181,31 @@ public class FlightPreparationService(
 
                     db.FlightPreparations.Update(fp);
 
-                    for (int i = 0; i < passengers.Count; i++)
-                    { passengers[i].FlightPreparationId = fp.Id; passengers[i].Order = i; passengers[i].Id = 0; }
+                    for (var i = 0; i < passengers.Count; i++)
+                    {
+                        passengers[i].FlightPreparationId = fp.Id;
+                        passengers[i].Order = i;
+                        passengers[i].Id = 0;
+                    }
+
                     db.Passengers.AddRange(passengers);
 
-                    for (int i = 0; i < images.Count; i++)
-                    { images[i].FlightPreparationId = fp.Id; images[i].Id = 0; images[i].Order = i; }
+                    for (var i = 0; i < images.Count; i++)
+                    {
+                        images[i].FlightPreparationId = fp.Id;
+                        images[i].Id = 0;
+                        images[i].Order = i;
+                    }
+
                     db.FlightImages.AddRange(images);
 
-                    for (int i = 0; i < windLevels.Count; i++)
-                    { windLevels[i].FlightPreparationId = fp.Id; windLevels[i].Id = 0; windLevels[i].Order = i; }
+                    for (var i = 0; i < windLevels.Count; i++)
+                    {
+                        windLevels[i].FlightPreparationId = fp.Id;
+                        windLevels[i].Id = 0;
+                        windLevels[i].Order = i;
+                    }
+
                     db.WindLevels.AddRange(windLevels);
 
                     await db.SaveChangesAsync();
@@ -189,11 +230,11 @@ public class FlightPreparationService(
         {
             // Restore all navigation props whether save succeeded or failed,
             // so the caller's entity is never left in a half-null state.
-            fp.Balloon    = balloon;
-            fp.Pilot      = pilot;
-            fp.Location   = location;
+            fp.Balloon = balloon;
+            fp.Pilot = pilot;
+            fp.Location = location;
             fp.Passengers = passengers;
-            fp.Images     = images;
+            fp.Images = images;
             fp.WindLevels = windLevels;
         }
     }
@@ -221,8 +262,8 @@ public class FlightPreparationService(
     // ── Patch operations ──────────────────────────────────────────────────────
 
     /// <summary>
-    /// Patches only the <c>TrajectorySimulationJson</c> column — used by auto-save
-    /// after simulation without triggering a full round-trip.
+    ///     Patches only the <c>TrajectorySimulationJson</c> column — used by auto-save
+    ///     after simulation without triggering a full round-trip.
     /// </summary>
     public async Task PatchTrajectoryJsonAsync(int id, string? json)
     {
@@ -242,7 +283,7 @@ public class FlightPreparationService(
     }
 
     /// <summary>
-    /// Patches the <c>KmlTrack</c> column after a KML upload.
+    ///     Patches the <c>KmlTrack</c> column after a KML upload.
     /// </summary>
     public async Task PatchKmlTrackAsync(int id, string kml)
     {
@@ -263,7 +304,7 @@ public class FlightPreparationService(
     }
 
     /// <summary>
-    /// Marks a flight as flown and persists the post-flight report fields.
+    ///     Marks a flight as flown and persists the post-flight report fields.
     /// </summary>
     public async Task PatchFlownAsync(
         int id,
@@ -282,11 +323,11 @@ public class FlightPreparationService(
                 return;
             }
 
-            fp.IsFlown                     = isFlown;
-            fp.ActualLandingNotes          = landingNotes;
+            fp.IsFlown = isFlown;
+            fp.ActualLandingNotes = landingNotes;
             fp.ActualFlightDurationMinutes = durationMinutes;
-            fp.ActualRemarks               = remarks;
-            fp.UpdatedAt                   = DateTime.UtcNow;
+            fp.ActualRemarks = remarks;
+            fp.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
         }
         catch (Exception ex)
@@ -299,21 +340,21 @@ public class FlightPreparationService(
     // ── Additional queries ────────────────────────────────────────────────────
 
     /// <summary>
-    /// Returns aggregate flight counts for the dashboard.
+    ///     Returns aggregate flight counts for the dashboard.
     /// </summary>
     public async Task<(int Total, int ThisYear, int Flown)> GetFlightCountsAsync()
     {
         await using var db = await dbFactory.CreateDbContextAsync();
         var currentYear = DateTime.UtcNow.Year;
-        var total      = await db.FlightPreparations.CountAsync();
-        var thisYear   = await db.FlightPreparations.CountAsync(f => f.Datum.Year == currentYear);
-        var flown      = await db.FlightPreparations.CountAsync(f => f.IsFlown);
+        var total = await db.FlightPreparations.CountAsync();
+        var thisYear = await db.FlightPreparations.CountAsync(f => f.Datum.Year == currentYear);
+        var flown = await db.FlightPreparations.CountAsync(f => f.IsFlown);
         return (total, thisYear, flown);
     }
 
     /// <summary>
-    /// Returns the <paramref name="count"/> most recent flights with Balloon, Pilot, and Location
-    /// navigation properties loaded. Used by the Home dashboard.
+    ///     Returns the <paramref name="count" /> most recent flights with Balloon, Pilot, and Location
+    ///     navigation properties loaded. Used by the Home dashboard.
     /// </summary>
     public async Task<List<FlightPreparation>> GetRecentAsync(int count)
     {
@@ -330,9 +371,9 @@ public class FlightPreparationService(
     }
 
     /// <summary>
-    /// Returns all flights with Balloon, Pilot, and Location navigation properties loaded.
-    /// Used by the Logboek page for statistics and charts.
-    /// Heavy collections (Passengers, Images, WindLevels) are NOT loaded.
+    ///     Returns all flights with Balloon, Pilot, and Location navigation properties loaded.
+    ///     Used by the Logboek page for statistics and charts.
+    ///     Heavy collections (Passengers, Images, WindLevels) are NOT loaded.
     /// </summary>
     public async Task<List<FlightPreparation>> GetAllWithNavAsync(string? userId, bool isAdmin)
     {
@@ -344,9 +385,14 @@ public class FlightPreparationService(
             .AsQueryable();
         if (!isAdmin)
         {
-            if (userId == null) return [];
+            if (userId == null)
+            {
+                return [];
+            }
+
             query = query.Where(f => f.CreatedByUserId == userId);
         }
+
         return await query
             .OrderBy(f => f.Datum)
             .ToListAsync();

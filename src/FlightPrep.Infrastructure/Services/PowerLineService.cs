@@ -1,20 +1,19 @@
-using Microsoft.Extensions.Caching.Memory;
+using FlightPrep.Domain.Services;
 using System.Net;
-using System.Text.Json;
 
-namespace FlightPrep.Services;
+namespace FlightPrep.Infrastructure.Services;
 
 public class PowerLineService(IHttpClientFactory httpClientFactory, IMemoryCache cache, ILogger<PowerLineService> logger) : IPowerLineService
 {
     private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(24);
 
-    // Serialize all Overpass requests: prevents burst 429s when multiple maps load simultaneously.
+    // Serialize all Flyover requests: prevents burst 429s when multiple maps load simultaneously.
     // Combined with the in-cache re-check after acquiring, only one HTTP call is made per unique bbox.
-    private static readonly SemaphoreSlim _semaphore = new(1, 1);
+    private static readonly SemaphoreSlim Semaphore = new(1, 1);
 
     public async Task<string?> GetGeoJsonAsync(double south, double west, double north, double east)
     {
-        // Round to 2 decimal places (~1 km grid) to maximise cache hits for similar viewports
+        // Round to 2 decimal places (~1 km grid) to maximize cache hits for similar viewports
         var s = Math.Round(south, 2);
         var w = Math.Round(west, 2);
         var n = Math.Round(north, 2);
@@ -23,20 +22,24 @@ public class PowerLineService(IHttpClientFactory httpClientFactory, IMemoryCache
         var cacheKey = FormattableString.Invariant($"powerlines:{s}:{w}:{n}:{e}");
 
         if (cache.TryGetValue(cacheKey, out string? cached))
+        {
             return cached;
+        }
 
-        await _semaphore.WaitAsync();
+        await Semaphore.WaitAsync();
         try
         {
             // Re-check after acquiring — another request may have fetched this bbox while we waited
             if (cache.TryGetValue(cacheKey, out cached))
+            {
                 return cached;
+            }
 
             return await FetchWithRetryAsync(cacheKey, s, w, n, e);
         }
         finally
         {
-            _semaphore.Release();
+            Semaphore.Release();
         }
     }
 
@@ -46,7 +49,7 @@ public class PowerLineService(IHttpClientFactory httpClientFactory, IMemoryCache
         var query = FormattableString.Invariant($"[out:json][timeout:25][bbox:{s},{w},{n},{e}];")
                     + voltageFilter + "out geom;";
 
-        for (int attempt = 1; attempt <= 2; attempt++)
+        for (var attempt = 1; attempt <= 2; attempt++)
         {
             try
             {
@@ -62,6 +65,7 @@ public class PowerLineService(IHttpClientFactory httpClientFactory, IMemoryCache
                         await Task.Delay(3000);
                         continue;
                     }
+
                     logger.LogWarning("Overpass API 429 after retry, skipping power-line fetch");
                     return null;
                 }
@@ -82,6 +86,7 @@ public class PowerLineService(IHttpClientFactory httpClientFactory, IMemoryCache
                 logger.LogError(ex, "Overpass API request failed for bbox {S},{W},{N},{E}", s, w, n, e);
             }
         }
+
         return null;
     }
 
@@ -93,8 +98,15 @@ public class PowerLineService(IHttpClientFactory httpClientFactory, IMemoryCache
         var features = new List<object>();
         foreach (var element in elements.EnumerateArray())
         {
-            if (element.GetProperty("type").GetString() != "way") continue;
-            if (!element.TryGetProperty("geometry", out var geometry)) continue;
+            if (element.GetProperty("type").GetString() != "way")
+            {
+                continue;
+            }
+
+            if (!element.TryGetProperty("geometry", out var geometry))
+            {
+                continue;
+            }
 
             var tags = element.TryGetProperty("tags", out var t)
                 ? JsonSerializer.Deserialize<Dictionary<string, string>>(t.GetRawText()) ?? []
@@ -104,12 +116,7 @@ public class PowerLineService(IHttpClientFactory httpClientFactory, IMemoryCache
                 .Select(node => new[] { node.GetProperty("lon").GetDouble(), node.GetProperty("lat").GetDouble() })
                 .ToArray();
 
-            features.Add(new
-            {
-                type = "Feature",
-                properties = tags,
-                geometry = new { type = "LineString", coordinates = coords }
-            });
+            features.Add(new { type = "Feature", properties = tags, geometry = new { type = "LineString", coordinates = coords } });
         }
 
         return JsonSerializer.Serialize(new { type = "FeatureCollection", features });

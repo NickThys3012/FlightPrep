@@ -22,29 +22,30 @@
             <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>
 
             <form method="post">
-                <input type="hidden" asp-for="ReturnUrl" />
+                <input type="hidden" asp-for="ReturnUrl"/>
 
                 <div class="mb-3">
                     <label asp-for="Input.Email" class="form-label fw-medium">E-mailadres</label>
-                    <input asp-for="Input.Email" class="form-control" autocomplete="email" placeholder="naam@example.com" />
+                    <input asp-for="Input.Email" class="form-control" autocomplete="email"
+                           placeholder="naam@example.com"/>
                     <span asp-validation-for="Input.Email" class="text-danger small"></span>
                 </div>
 
                 <div class="mb-3">
                     <label asp-for="Input.Password" class="form-label fw-medium">Wachtwoord</label>
-                    <input asp-for="Input.Password" class="form-control" autocomplete="current-password" />
+                    <input asp-for="Input.Password" class="form-control" autocomplete="current-password"/>
                     <span asp-validation-for="Input.Password" class="text-danger small"></span>
                 </div>
 
                 <div class="mb-3 form-check">
-                    <input asp-for="Input.RememberMe" class="form-check-input" />
+                    <input asp-for="Input.RememberMe" class="form-check-input"/>
                     <label asp-for="Input.RememberMe" class="form-check-label">Onthoud mij</label>
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100">Inloggen</button>
             </form>
 
-            <hr />
+            <hr/>
 
             <p class="text-center mb-0 small">
                 Nog geen account? <a asp-page="/Register">Registreren</a>

@@ -1,4 +1,4 @@
-using FlightPrep.Data;
+using FlightPrep.Infrastructure.Data;
 using FlightPrep.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
@@ -9,10 +9,10 @@ using Moq;
 namespace FlightPrep.Tests;
 
 /// <summary>
-/// Unit tests for <see cref="AdminSeeder.SeedAdminAsync"/>.
-/// UserManager and RoleManager are mocked with Moq; a real ServiceProvider
-/// is built from ServiceCollection so that GetRequiredService&lt;T&gt; works
-/// through the standard extension-method path.
+///     Unit tests for <see cref="AdminSeeder.SeedAdminAsync" />.
+///     UserManager and RoleManager are mocked with Moq; a real ServiceProvider
+///     is built from ServiceCollection so that GetRequiredService&lt;T&gt; works
+///     through the standard extension-method path.
 /// </summary>
 public class AdminSeederTests
 {
@@ -22,8 +22,7 @@ public class AdminSeederTests
     {
         var store = new Mock<IUserStore<ApplicationUser>>();
         var mgr = new Mock<UserManager<ApplicationUser>>(
-            store.Object, null, null, null, null, null, null, null, null);
-        mgr.Object.Logger = NullLogger<UserManager<ApplicationUser>>.Instance;
+            store.Object, null!, null!, null!, null!, null!, null!, null!, null!) { Object = { Logger = NullLogger<UserManager<ApplicationUser>>.Instance } };
         return mgr;
     }
 
@@ -31,20 +30,28 @@ public class AdminSeederTests
     {
         var store = new Mock<IRoleStore<IdentityRole>>();
         return new Mock<RoleManager<IdentityRole>>(
-            store.Object, null, null, null, null);
+            store.Object, null!, null!, null!, null!);
     }
 
     private static IConfiguration BuildConfig(string? username, string? password)
     {
         var data = new Dictionary<string, string?>();
-        if (username != null) data["SEED_ADMIN_USERNAME"] = username;
-        if (password != null) data["SEED_ADMIN_PASSWORD"] = password;
+        if (username != null)
+        {
+            data["SEED_ADMIN_USERNAME"] = username;
+        }
+
+        if (password != null)
+        {
+            data["SEED_ADMIN_PASSWORD"] = password;
+        }
+
         return new ConfigurationBuilder().AddInMemoryCollection(data).Build();
     }
 
     /// <summary>
-    /// Builds a real <see cref="IServiceProvider"/> that returns the provided
-    /// mocked instances when <c>GetRequiredService&lt;T&gt;</c> is called.
+    ///     Builds a real <see cref="IServiceProvider" /> that returns the provided
+    ///     mocked instances when <c>GetRequiredService&lt;T&gt;</c> is called.
     /// </summary>
     private static IServiceProvider BuildProvider(
         UserManager<ApplicationUser> userManager,
@@ -65,7 +72,7 @@ public class AdminSeederTests
         var userMgr = CreateUserManagerMock();
         var roleMgr = CreateRoleManagerMock();
         roleMgr.Setup(r => r.RoleExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
-        var config = BuildConfig(username: null, password: "P@ssw0rd!");
+        var config = BuildConfig(null, "P@ssw0rd!");
         var sp = BuildProvider(userMgr.Object, roleMgr.Object, config);
 
         // Act
@@ -84,7 +91,7 @@ public class AdminSeederTests
         var userMgr = CreateUserManagerMock();
         var roleMgr = CreateRoleManagerMock();
         roleMgr.Setup(r => r.RoleExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
-        var config = BuildConfig(username: "admin@example.com", password: null);
+        var config = BuildConfig("admin@example.com", null);
         var sp = BuildProvider(userMgr.Object, roleMgr.Object, config);
 
         // Act
@@ -106,11 +113,11 @@ public class AdminSeederTests
         var roleMgr = CreateRoleManagerMock();
         roleMgr.Setup(r => r.RoleExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
         userMgr.Setup(u => u.FindByNameAsync("admin@example.com"))
-               .ReturnsAsync((ApplicationUser?)null);
+            .ReturnsAsync((ApplicationUser?)null);
         userMgr.Setup(u => u.CreateAsync(It.IsAny<ApplicationUser>(), "P@ssw0rd!"))
-               .ReturnsAsync(IdentityResult.Success);
+            .ReturnsAsync(IdentityResult.Success);
         userMgr.Setup(u => u.AddToRoleAsync(It.IsAny<ApplicationUser>(), "Admin"))
-               .ReturnsAsync(IdentityResult.Success);
+            .ReturnsAsync(IdentityResult.Success);
         var config = BuildConfig("admin@example.com", "P@ssw0rd!");
         var sp = BuildProvider(userMgr.Object, roleMgr.Object, config);
 
@@ -134,11 +141,11 @@ public class AdminSeederTests
         var roleMgr = CreateRoleManagerMock();
         roleMgr.Setup(r => r.RoleExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
         userMgr.Setup(u => u.FindByNameAsync(It.IsAny<string>()))
-               .ReturnsAsync((ApplicationUser?)null);
+            .ReturnsAsync((ApplicationUser?)null);
         userMgr.Setup(u => u.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
-               .ReturnsAsync(IdentityResult.Success);
+            .ReturnsAsync(IdentityResult.Success);
         userMgr.Setup(u => u.AddToRoleAsync(It.IsAny<ApplicationUser>(), "Admin"))
-               .ReturnsAsync(IdentityResult.Success);
+            .ReturnsAsync(IdentityResult.Success);
         var config = BuildConfig("admin@example.com", "P@ssw0rd!");
         var sp = BuildProvider(userMgr.Object, roleMgr.Object, config);
 
@@ -157,13 +164,13 @@ public class AdminSeederTests
         var roleMgr = CreateRoleManagerMock();
         roleMgr.Setup(r => r.RoleExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
         roleMgr.Setup(r => r.CreateAsync(It.IsAny<IdentityRole>()))
-               .ReturnsAsync(IdentityResult.Success);
+            .ReturnsAsync(IdentityResult.Success);
         userMgr.Setup(u => u.FindByNameAsync(It.IsAny<string>()))
-               .ReturnsAsync((ApplicationUser?)null);
+            .ReturnsAsync((ApplicationUser?)null);
         userMgr.Setup(u => u.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
-               .ReturnsAsync(IdentityResult.Success);
+            .ReturnsAsync(IdentityResult.Success);
         userMgr.Setup(u => u.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
-               .ReturnsAsync(IdentityResult.Success);
+            .ReturnsAsync(IdentityResult.Success);
         var config = BuildConfig("admin@example.com", "P@ssw0rd!");
         var sp = BuildProvider(userMgr.Object, roleMgr.Object, config);
 
@@ -181,12 +188,7 @@ public class AdminSeederTests
     public async Task SeedAdminAsync_UserAlreadyExists_DoesNotCreateDuplicate()
     {
         // Arrange
-        var existing = new ApplicationUser
-        {
-            UserName = "admin@example.com",
-            Email    = "admin@example.com",
-            IsApproved = true
-        };
+        var existing = new ApplicationUser { UserName = "admin@example.com", Email = "admin@example.com", IsApproved = true };
         var userMgr = CreateUserManagerMock();
         var roleMgr = CreateRoleManagerMock();
         roleMgr.Setup(r => r.RoleExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
@@ -211,11 +213,11 @@ public class AdminSeederTests
         var roleMgr = CreateRoleManagerMock();
         roleMgr.Setup(r => r.RoleExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
         userMgr.Setup(u => u.FindByNameAsync(It.IsAny<string>()))
-               .ReturnsAsync((ApplicationUser?)null);
+            .ReturnsAsync((ApplicationUser?)null);
         userMgr.Setup(u => u.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
-               .ReturnsAsync(IdentityResult.Success);
+            .ReturnsAsync(IdentityResult.Success);
         userMgr.Setup(u => u.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
-               .ReturnsAsync(IdentityResult.Success);
+            .ReturnsAsync(IdentityResult.Success);
         var config = BuildConfig("admin@example.com", "P@ssw0rd!");
         var sp = BuildProvider(userMgr.Object, roleMgr.Object, config);
 

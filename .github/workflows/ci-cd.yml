@@ -2,9 +2,9 @@ name: CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   build:
@@ -216,7 +216,7 @@ jobs:
         run: docker compose logs
 
   deploy:
-    needs: [build, e2e]
+    needs: [ build, e2e ]
     runs-on: ubuntu-latest
     if: |
       always() &&

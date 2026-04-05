@@ -1,4 +1,4 @@
-namespace FlightPrep.Models;
+namespace FlightPrep.Domain.Models;
 
 public class FlightPreparation
 {
@@ -54,7 +54,7 @@ public class FlightPreparation
 
     // Section 7 - Load Calculation
     public double? EnvelopeWeightKg { get; set; }
-    public List<Passenger> Passengers { get; set; } = new();
+    public List<Passenger> Passengers { get; set; } = [];
     public int? MaxAltitudeFt { get; set; }
     public double? LiftUnits { get; set; }
     public double? TotaalLiftKg { get; set; }
@@ -74,10 +74,10 @@ public class FlightPreparation
     public string? KmlTrack { get; set; }
 
     // Images (stored in separate table)
-    public List<FlightImage> Images { get; set; } = new();
+    public List<FlightImage> Images { get; set; } = [];
 
-    // Wind profile (stored in separate table)
-    public List<WindLevel> WindLevels { get; set; } = new();
+    // Wind profile (stored in a separate table)
+    public List<WindLevel> WindLevels { get; set; } = [];
 
     // Section 9 - Ballonbulletin
     public string? Ballonbulletin { get; set; }
@@ -96,10 +96,14 @@ public class FlightPreparation
     {
         get
         {
-            bool hasData = SurfaceWindSpeedKt.HasValue || ZichtbaarheidKm.HasValue || CapeJkg.HasValue;
-            if (!hasData) return "unknown";
-            bool red = (SurfaceWindSpeedKt >= 15) || (ZichtbaarheidKm < 3) || (CapeJkg > 500);
-            bool yellow = (SurfaceWindSpeedKt >= 10) || (ZichtbaarheidKm < 5) || (CapeJkg > 300);
+            var hasData = SurfaceWindSpeedKt.HasValue || ZichtbaarheidKm.HasValue || CapeJkg.HasValue;
+            if (!hasData)
+            {
+                return "unknown";
+            }
+
+            var red = SurfaceWindSpeedKt >= 15 || ZichtbaarheidKm < 3 || CapeJkg > 500;
+            var yellow = SurfaceWindSpeedKt >= 10 || ZichtbaarheidKm < 5 || CapeJkg > 300;
             return red ? "red" : yellow ? "yellow" : "green";
         }
     }

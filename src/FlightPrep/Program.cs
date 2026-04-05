@@ -1,19 +1,20 @@
-using System.Net;
 using FlightPrep.Components;
-using FlightPrep.Data;
-using Microsoft.AspNetCore.HttpOverrides;
+using FlightPrep.Domain.Services;
+using FlightPrep.Infrastructure.Data;
+using FlightPrep.Infrastructure.Services;
 using FlightPrep.Services;
 using FlightPrep.Telemetry;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
-using OpenTelemetry;
-using OpenTelemetry.Trace;
 using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Trace;
 using QuestPDF;
 using QuestPDF.Infrastructure;
 using Serilog;
-using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
+using System.Net;
+using IPNetwork = System.Net.IPNetwork;
 
 Settings.License = LicenseType.Community;
 
@@ -26,7 +27,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((ctx, cfg) =>
 {
     cfg.ReadFrom.Configuration(ctx.Configuration)
-       .WriteTo.Console();
+        .WriteTo.Console();
 
     var connStr = ctx.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
     if (!string.IsNullOrEmpty(connStr))
@@ -45,16 +46,16 @@ builder.Services.AddDbContext<AppDbContext>(opts =>
     opts.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
-{
-    options.Password.RequireDigit = true;
-    options.Password.RequiredLength = 8;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Lockout.MaxFailedAccessAttempts = 5;
-    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
-    options.User.RequireUniqueEmail = true;
-})
-.AddEntityFrameworkStores<AppDbContext>()
-.AddDefaultTokenProviders();
+    {
+        options.Password.RequireDigit = true;
+        options.Password.RequiredLength = 8;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+        options.User.RequireUniqueEmail = true;
+    })
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -76,12 +77,14 @@ builder.Services.AddScoped<IFlightPreparationService, FlightPreparationService>(
 
 // Application Insights — only active when APPLICATIONINSIGHTS_CONNECTION_STRING is set
 if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
+{
     builder.Services.AddApplicationInsightsTelemetry();
+}
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<FlightTelemetryInitializer>();
 builder.Services.AddOpenTelemetry()
-    .WithTracing(tracing => tracing.AddProcessor(
-        sp => sp.GetRequiredService<FlightTelemetryInitializer>()));
+    .WithTracing(tracing => tracing.AddProcessor(sp => sp.GetRequiredService<FlightTelemetryInitializer>()));
 builder.Services.AddSingleton<IKmlService, KmlService>();
 builder.Services.AddSingleton<ITrajectoryService, TrajectoryService>();
 builder.Services.AddScoped<IEnhancedTrajectoryService, EnhancedTrajectoryService>();
@@ -132,13 +135,10 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Must be first — rewrites Request.Scheme before UseHsts/UseHttpsRedirection read it
-var forwardedOptions = new ForwardedHeadersOptions
-{
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-};
-forwardedOptions.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("10.0.0.0"), 8));
-forwardedOptions.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("172.16.0.0"), 12));
-forwardedOptions.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("192.168.0.0"), 16));
+var forwardedOptions = new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto };
+forwardedOptions.KnownIPNetworks.Add(new IPNetwork(IPAddress.Parse("10.0.0.0"), 8));
+forwardedOptions.KnownIPNetworks.Add(new IPNetwork(IPAddress.Parse("172.16.0.0"), 12));
+forwardedOptions.KnownIPNetworks.Add(new IPNetwork(IPAddress.Parse("192.168.0.0"), 16));
 app.UseForwardedHeaders(forwardedOptions);
 
 if (!app.Environment.IsDevelopment())
@@ -146,6 +146,7 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
+
 app.UseHttpsRedirection();
 app.UseAntiforgery();
 app.UseAuthentication();
@@ -167,7 +168,9 @@ app.MapGet("/api/powerlines", async (double south, double west, double north, do
 {
     if (south >= north || west >= east ||
         south < -90 || north > 90 || west < -180 || east > 180)
+    {
         return Results.BadRequest("Ongeldige bbox");
+    }
 
     var geoJson = await powerLineService.GetGeoJsonAsync(south, west, north, east);
     return geoJson is null
@@ -178,7 +181,11 @@ app.MapGet("/api/powerlines", async (double south, double west, double north, do
 // Tile proxy — serves OSM tiles same-origin so html2canvas can capture maps for PDF
 app.MapGet("/tiles/{z}/{x}/{y}", async (int z, int x, int y, IHttpClientFactory httpFactory, HttpContext ctx) =>
 {
-    if (z is < 0 or > 19 || x < 0 || y < 0) return Results.BadRequest();
+    if (z is < 0 or > 19 || x < 0 || y < 0)
+    {
+        return Results.BadRequest();
+    }
+
     var client = httpFactory.CreateClient("staticmap");
     try
     {

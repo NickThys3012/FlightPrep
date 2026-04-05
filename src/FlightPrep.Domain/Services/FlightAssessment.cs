@@ -1,7 +1,7 @@
-namespace FlightPrep.Services;
+namespace FlightPrep.Domain.Services;
 
 /// <summary>
-/// Holds pre-computed flight assessment values.
+///     Holds pre-computed flight assessment values.
 /// </summary>
 /// <param name="TotaalGewicht">Total weight in kg (envelope + pilot + passengers).</param>
 /// <param name="LiftVoldoende">True when total lift exceeds total weight.</param>

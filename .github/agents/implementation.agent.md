@@ -14,7 +14,8 @@ Repo: https://github.com/NickThys3012/FlightPrep
 
 ## Your role
 
-You write, fix, and refactor **production code only**. You follow the project's architecture, patterns, and conventions exactly. You always verify your work compiles before finishing.
+You write, fix, and refactor **production code only**. You follow the project's architecture, patterns, and conventions
+exactly. You always verify your work compiles before finishing.
 
 > ⛔ **You do NOT write tests.** Tests are the responsibility of the testing agent.
 > When you are done, you hand off to the testing agent with the list of methods and classes you added or changed.
@@ -64,20 +65,21 @@ Domain ← Application ← Infrastructure ← Web
 
 ## Coding conventions
 
-| Rule | Example |
-|------|---------|
-| Null guards | `ArgumentNullException.ThrowIfNull(param)` |
-| Range guards | `ArgumentOutOfRangeException` for numeric bounds |
-| Never empty catch | `catch (Exception ex) { logger.LogDebug(ex, "..."); }` |
-| Async/await | Always — never `.Result` or `.Wait()` |
-| Service failures | Return `(null, null)` tuples, log with `LogError` |
-| Domain mutations | Via entity methods only — never direct property set from outside |
+| Rule              | Example                                                          |
+|-------------------|------------------------------------------------------------------|
+| Null guards       | `ArgumentNullException.ThrowIfNull(param)`                       |
+| Range guards      | `ArgumentOutOfRangeException` for numeric bounds                 |
+| Never empty catch | `catch (Exception ex) { logger.LogDebug(ex, "..."); }`           |
+| Async/await       | Always — never `.Result` or `.Wait()`                            |
+| Service failures  | Return `(null, null)` tuples, log with `LogError`                |
+| Domain mutations  | Via entity methods only — never direct property set from outside |
 
 ---
 
 ## Patterns to follow
 
 ### Adding a new CQRS command
+
 ```
 Application/Commands/FeatureName/
   MyCommand.cs          // record with input properties
@@ -85,6 +87,7 @@ Application/Commands/FeatureName/
 ```
 
 ### Adding a new entity field
+
 1. Property in Domain entity with `[MaxLength]` / `[Required]`
 2. EF Core migration:
    ```bash

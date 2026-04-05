@@ -1,10 +1,10 @@
-using FlightPrep.Models;
+using FlightPrep.Domain.Models;
 
 namespace FlightPrep.Tests;
 
 /// <summary>
-/// Exercises every property on each model so that coverlet can measure the setters/getters.
-/// These tests also verify that default values are sane.
+///     Exercises every property on each model so that the coverlet can measure the setters/getters.
+///     These tests also verify that default values are sane.
 /// </summary>
 public class ModelPropertyTests
 {
@@ -28,10 +28,7 @@ public class ModelPropertyTests
     }
 
     [Fact]
-    public void Balloon_EmptyWeightKg_IsNullByDefault()
-    {
-        Assert.Null(new Balloon().EmptyWeightKg);
-    }
+    public void Balloon_EmptyWeightKg_IsNullByDefault() => Assert.Null(new Balloon().EmptyWeightKg);
 
     [Fact]
     public void Location_Properties_SetAndGetRoundTrip()
@@ -155,12 +152,7 @@ public class ModelPropertyTests
     [Fact]
     public void Pilot_Properties_SetAndGetRoundTrip()
     {
-        var p = new Pilot
-        {
-            Id = 11,
-            Name = "Nick Thys",
-            WeightKg = 80.0
-        };
+        var p = new Pilot { Id = 11, Name = "Nick Thys", WeightKg = 80.0 };
 
         Assert.Equal(11, p.Id);
         Assert.Equal("Nick Thys", p.Name);
@@ -168,10 +160,7 @@ public class ModelPropertyTests
     }
 
     [Fact]
-    public void Pilot_WeightKg_IsNullByDefault()
-    {
-        Assert.Null(new Pilot().WeightKg);
-    }
+    public void Pilot_WeightKg_IsNullByDefault() => Assert.Null(new Pilot().WeightKg);
 
     [Fact]
     public void GoNoGoSettings_DefaultValues_AreCorrect()

@@ -1,64 +1,64 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>FlightPrep.Tests</_Parameter1>
-    </AssemblyAttribute>
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="3.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.3">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
-    <PackageReference Include="Serilog.Sinks.ApplicationInsights" Version="5.0.0" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
-  </ItemGroup>
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+            <_Parameter1>FlightPrep.Tests</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="3.0.0"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.3">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="Serilog.AspNetCore" Version="10.0.0"/>
+        <PackageReference Include="Serilog.Sinks.ApplicationInsights" Version="5.0.0"/>
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="..\..\.github\.DS_Store">
-      <Link>.github\.DS_Store</Link>
-    </Content>
-    <Content Include="..\..\.github\agents\implementation.agent.md">
-      <Link>.github\agents\implementation.agent.md</Link>
-    </Content>
-    <Content Include="..\..\.github\agents\Planning.agent.md">
-      <Link>.github\agents\Planning.agent.md</Link>
-    </Content>
-    <Content Include="..\..\.github\agents\review.agent.md">
-      <Link>.github\agents\review.agent.md</Link>
-    </Content>
-    <Content Include="..\..\.github\agents\testing.agent.md">
-      <Link>.github\agents\testing.agent.md</Link>
-    </Content>
-    <Content Include="..\..\.github\AI-DEV-CYCLE.md">
-      <Link>.github\AI-DEV-CYCLE.md</Link>
-    </Content>
-    <Content Include="..\..\.github\copilot-instructions.md">
-      <Link>.github\copilot-instructions.md</Link>
-    </Content>
-    <Content Include="..\..\.github\scripts\generate-ai-description.mjs">
-      <Link>.github\scripts\generate-ai-description.mjs</Link>
-    </Content>
-    <Content Include="..\..\.github\scripts\update-release-notes.mjs">
-      <Link>.github\scripts\update-release-notes.mjs</Link>
-    </Content>
-    <Content Include="..\..\.github\workflows\ci-cd.yml">
-      <Link>.github\workflows\ci-cd.yml</Link>
-    </Content>
-  </ItemGroup>
+    <ItemGroup>
+        <Content Include="..\..\.github\.DS_Store">
+            <Link>.github\.DS_Store</Link>
+        </Content>
+        <Content Include="..\..\.github\agents\implementation.agent.md">
+            <Link>.github\agents\implementation.agent.md</Link>
+        </Content>
+        <Content Include="..\..\.github\agents\Planning.agent.md">
+            <Link>.github\agents\Planning.agent.md</Link>
+        </Content>
+        <Content Include="..\..\.github\agents\review.agent.md">
+            <Link>.github\agents\review.agent.md</Link>
+        </Content>
+        <Content Include="..\..\.github\agents\testing.agent.md">
+            <Link>.github\agents\testing.agent.md</Link>
+        </Content>
+        <Content Include="..\..\.github\AI-DEV-CYCLE.md">
+            <Link>.github\AI-DEV-CYCLE.md</Link>
+        </Content>
+        <Content Include="..\..\.github\copilot-instructions.md">
+            <Link>.github\copilot-instructions.md</Link>
+        </Content>
+        <Content Include="..\..\.github\scripts\generate-ai-description.mjs">
+            <Link>.github\scripts\generate-ai-description.mjs</Link>
+        </Content>
+        <Content Include="..\..\.github\scripts\update-release-notes.mjs">
+            <Link>.github\scripts\update-release-notes.mjs</Link>
+        </Content>
+        <Content Include="..\..\.github\workflows\ci-cd.yml">
+            <Link>.github\workflows\ci-cd.yml</Link>
+        </Content>
+    </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\FlightPrep.Domain\FlightPrep.Domain.csproj" />
-    <ProjectReference Include="..\FlightPrep.Infrastructure\FlightPrep.Infrastructure.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\FlightPrep.Domain\FlightPrep.Domain.csproj"/>
+        <ProjectReference Include="..\FlightPrep.Infrastructure\FlightPrep.Infrastructure.csproj"/>
+    </ItemGroup>
 
 </Project>

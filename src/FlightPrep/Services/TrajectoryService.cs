@@ -1,5 +1,7 @@
-using FlightPrep.Models;
-using FlightPrep.Models.Trajectory;
+using FlightPrep.Domain.Models;
+using FlightPrep.Domain.Models.Trajectory;
+using FlightPrep.Domain.Services;
+using FlightPrep.Infrastructure.Services;
 
 namespace FlightPrep.Services;
 
@@ -23,36 +25,36 @@ public class TrajectoryService : ITrajectoryService
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(stepMinutes);
 
         var valid = windLevels
-            .Where(w => w.DirectionDeg != null && w.SpeedKt != null && w.SpeedKt > 0)
+            .Where(w => w is { DirectionDeg: not null, SpeedKt: > 0 })
             .OrderBy(w => w.AltitudeFt)
             .ToList();
 
         var result = new List<SimulatedTrajectory>();
-        int colorIndex = 0;
+        var colorIndex = 0;
 
         foreach (var wind in valid)
         {
             double bearing = (wind.DirectionDeg!.Value + 180) % 360;
-            double lat = launchLat;
-            double lon = launchLon;
+            var lat = launchLat;
+            var lon = launchLon;
 
-            int steps = durationMinutes / stepMinutes;
+            var steps = durationMinutes / stepMinutes;
             var points = new List<TrajectoryPoint> { new(lat, lon) };
 
-            for (int i = 0; i < steps; i++)
+            for (var i = 0; i < steps; i++)
             {
-                double distanceM = wind.SpeedKt!.Value * (stepMinutes / 60.0) * 1852.0;
+                var distanceM = wind.SpeedKt!.Value * (stepMinutes / 60.0) * 1852.0;
                 (lat, lon) = TrajectoryMath.HaversineDestination(lat, lon, bearing, distanceM);
                 points.Add(new TrajectoryPoint(lat, lon));
             }
 
             result.Add(new SimulatedTrajectory(
-                AltitudeFt: wind.AltitudeFt,
-                Color: Palette[colorIndex % Palette.Length],
-                Points: points,
-                DataSource: dataSource,
-                SimulatedAt: DateTime.UtcNow,
-                DurationMinutes: durationMinutes
+                wind.AltitudeFt,
+                Palette[colorIndex % Palette.Length],
+                points,
+                dataSource,
+                DateTime.UtcNow,
+                durationMinutes
             ));
 
             colorIndex++;
@@ -60,6 +62,4 @@ public class TrajectoryService : ITrajectoryService
 
         return result.OrderBy(t => t.AltitudeFt).ToList();
     }
-
-
 }

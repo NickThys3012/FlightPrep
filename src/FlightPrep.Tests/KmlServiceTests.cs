@@ -1,4 +1,5 @@
-using FlightPrep.Services;
+using FlightPrep.Domain.Services;
+using FlightPrep.Infrastructure.Services;
 
 namespace FlightPrep.Tests;
 
@@ -7,17 +8,17 @@ public class KmlServiceTests
     private readonly KmlService _sut = new();
 
     private static string BuildKml(string coordsText) => $"""
-        <?xml version="1.0" encoding="UTF-8"?>
-        <kml xmlns="http://www.opengis.net/kml/2.2">
-          <Document>
-            <Placemark>
-              <LineString>
-                <coordinates>{coordsText}</coordinates>
-              </LineString>
-            </Placemark>
-          </Document>
-        </kml>
-        """;
+                                                          <?xml version="1.0" encoding="UTF-8"?>
+                                                          <kml xmlns="http://www.opengis.net/kml/2.2">
+                                                            <Document>
+                                                              <Placemark>
+                                                                <LineString>
+                                                                  <coordinates>{coordsText}</coordinates>
+                                                                </LineString>
+                                                              </Placemark>
+                                                            </Document>
+                                                          </kml>
+                                                          """;
 
     [Fact]
     public void ParseCoordinates_ValidKml_ReturnsCorrectCountAndValues()
@@ -28,11 +29,11 @@ public class KmlServiceTests
 
         Assert.Equal(2, result.Count);
         Assert.Equal(50.85, result[0].Lat, 5);
-        Assert.Equal(4.35,  result[0].Lon, 5);
-        Assert.Equal(100,   result[0].AltM, 1);
+        Assert.Equal(4.35, result[0].Lon, 5);
+        Assert.Equal(100, result[0].AltM, 1);
         Assert.Equal(50.86, result[1].Lat, 5);
-        Assert.Equal(4.36,  result[1].Lon, 5);
-        Assert.Equal(200,   result[1].AltM, 1);
+        Assert.Equal(4.36, result[1].Lon, 5);
+        Assert.Equal(200, result[1].AltM, 1);
     }
 
     [Fact]
@@ -56,17 +57,17 @@ public class KmlServiceTests
     {
         // No xmlns="http://www.opengis.net/kml/2.2" — service won't find the element
         var kml = """
-            <?xml version="1.0"?>
-            <kml>
-              <Document>
-                <Placemark>
-                  <LineString>
-                    <coordinates>4.35,50.85,100</coordinates>
-                  </LineString>
-                </Placemark>
-              </Document>
-            </kml>
-            """;
+                  <?xml version="1.0"?>
+                  <kml>
+                    <Document>
+                      <Placemark>
+                        <LineString>
+                          <coordinates>4.35,50.85,100</coordinates>
+                        </LineString>
+                      </Placemark>
+                    </Document>
+                  </kml>
+                  """;
 
         var result = _sut.ParseCoordinates(kml);
 
@@ -86,11 +87,7 @@ public class KmlServiceTests
     [Fact]
     public void ComputeStats_TwoKnownPoints_ReturnsCorrectAltitudesAndDistance()
     {
-        var pts = new List<TrackPoint>
-        {
-            new(50.85, 4.35, 100),
-            new(51.20, 4.42, 300),
-        };
+        var pts = new List<TrackPoint> { new(50.85, 4.35, 100), new(51.20, 4.42, 300) };
 
         var (max, min, dist) = _sut.ComputeStats(pts);
 
