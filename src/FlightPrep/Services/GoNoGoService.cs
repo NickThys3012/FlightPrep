@@ -21,8 +21,11 @@ public class GoNoGoService(IDbContextFactory<AppDbContext> dbFactory) : IGoNoGoS
             .FirstOrDefaultAsync(g => g.UserId == userId);
         if (existing != null)
         {
+            var originalId     = existing.Id;
+            var originalUserId = existing.UserId;
             db.Entry(existing).CurrentValues.SetValues(s);
-            existing.UserId = userId; // preserve FK
+            existing.Id     = originalId;     // restore PK — SetValues would have overwritten it with s.Id
+            existing.UserId = originalUserId; // restore FK — preserve ownership
         }
         else
         {
