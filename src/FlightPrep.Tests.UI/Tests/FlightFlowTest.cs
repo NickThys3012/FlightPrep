@@ -6,7 +6,9 @@ namespace FlightPrep.Tests.UI;
 [TestFixture]
 [Category("E2E")]
 [NonParallelizable]
+#pragma warning disable CA1501 // Playwright base class chain is 5 levels deep; not our code
 public class FlightFlowTest : BaseTest
+#pragma warning restore CA1501
 {
     // Shared across ordered tests within the same fixture instance.
     private static int _createdFlightId = -1;
