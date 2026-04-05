@@ -1,25 +1,23 @@
 @rendermode InteractiveServer
-@inject IWeatherFetchService WeatherFetchSvc
-@inject ILogger<FlightMeteoSection> Logger
 
 @if (!string.IsNullOrEmpty(CurrentLocation?.IcaoCode))
 {
     <div class="mb-3 d-flex align-items-center gap-2">
-        <button class="btn btn-sm btn-outline-primary" @onclick="FetchWeather" disabled="@fetchingWeather">
-            @(fetchingWeather ? "Ophalen..." : "METAR/TAF ophalen")
+        <button class="btn btn-sm btn-outline-primary" @onclick="FetchWeather" disabled="@_fetchingWeather">
+            @(_fetchingWeather ? "Ophalen..." : "METAR/TAF ophalen")
         </button>
         <span class="text-muted small">@(CurrentLocation.IcaoCode)</span>
-        @if (weatherError != null)
+        @if (_weatherError != null)
         {
-            <span class="text-danger small">@weatherError</span>
+            <span class="text-danger small">@_weatherError</span>
         }
-        @if (weatherSuccess)
+        @if (_weatherSuccess)
         {
             <span class="text-success small">✅ METAR/TAF opgehaald!</span>
         }
     </div>
 }
-else if (Fp?.LocationId != null && Fp.LocationId != 0)
+else if (Fp.LocationId != null && Fp.LocationId != 0)
 {
     <div class="mb-3">
         <span class="text-muted small">⚠️ Voeg een ICAO-code toe aan deze locatie (<a href="/settings/locations">Instellingen → Locaties</a>) om METAR/TAF op te halen.</span>
@@ -28,30 +26,36 @@ else if (Fp?.LocationId != null && Fp.LocationId != 0)
 @if (CurrentLocation?.Latitude.HasValue == true && CurrentLocation.Longitude.HasValue)
 {
     <div class="mb-3">
-        <button class="btn btn-sm btn-outline-secondary" @onclick="FetchForecast" disabled="@fetchingForecast">
-            @(fetchingForecast ? "Laden..." : "Weersvoorspelling ophalen")
+        <button class="btn btn-sm btn-outline-secondary" @onclick="FetchForecast" disabled="@_fetchingForecast">
+            @(_fetchingForecast ? "Laden..." : "Weersvoorspelling ophalen")
         </button>
     </div>
-    @if (forecast.Count > 0)
+    @if (_forecast.Count > 0)
     {
         <div class="mb-3">
             <div class="fw-semibold small mb-1">Weersvoorspelling (3 dagen)</div>
             <div style="overflow-x:auto;">
                 <table class="table table-sm table-bordered small">
                     <thead class="table-secondary">
-                        <tr><th>Tijd</th><th>Temp</th><th>Wind</th><th>Richting</th><th>Neerslag</th></tr>
+                    <tr>
+                        <th>Tijd</th>
+                        <th>Temp</th>
+                        <th>Wind</th>
+                        <th>Richting</th>
+                        <th>Neerslag</th>
+                    </tr>
                     </thead>
                     <tbody>
-                        @foreach (var h in forecast.Where((_, i) => i % 3 == 0).Take(24))
-                        {
-                            <tr>
-                                <td>@h.Time.ToString("dd/MM HH:mm")</td>
-                                <td>@h.TempC.ToString("F1")°C</td>
-                                <td>@h.WindSpeedKmh.ToString("F0") km/h</td>
-                                <td>@h.WindDirDeg°</td>
-                                <td>@h.PrecipProb%</td>
-                            </tr>
-                        }
+                    @foreach (var h in _forecast.Where((_, i) => i % 3 == 0).Take(24))
+                    {
+                        <tr>
+                            <td>@h.Time.ToString("dd/MM HH:mm")</td>
+                            <td>@h.TempC.ToString("F1")°C</td>
+                            <td>@h.WindSpeedKmh.ToString("F0") km/h</td>
+                            <td>@h.WindDirDeg°</td>
+                            <td>@h.PrecipProb%</td>
+                        </tr>
+                    }
                     </tbody>
                 </table>
             </div>
@@ -73,78 +77,84 @@ else if (Fp?.LocationId != null && Fp.LocationId != 0)
     </div>
     <div class="col-md-6">
         <label class="form-label">Neerslagkans / bewolking</label>
-        <input type="text" class="form-control" @bind="Fp.Neerslag" />
+        <input type="text" class="form-control" @bind="Fp.Neerslag"/>
     </div>
     <div class="col-md-2">
         <label class="form-label">Temperatuur (°C)</label>
-        <input type="number" step="0.1" class="form-control" @bind="Fp.TemperatuurC" />
+        <input type="number" step="0.1" class="form-control" @bind="Fp.TemperatuurC"/>
     </div>
     <div class="col-md-2">
         <label class="form-label">Dauwpunt (°C)</label>
-        <input type="number" step="0.1" class="form-control" @bind="Fp.DauwpuntC" />
+        <input type="number" step="0.1" class="form-control" @bind="Fp.DauwpuntC"/>
     </div>
     <div class="col-md-2">
         <label class="form-label">QNH (hPa)</label>
-        <input type="number" step="0.1" class="form-control" @bind="Fp.QnhHpa" />
+        <input type="number" step="0.1" class="form-control" @bind="Fp.QnhHpa"/>
     </div>
     <div class="col-md-2">
         <label class="form-label">Zichtbaarheid (km)</label>
-        <input type="number" step="0.1" class="form-control" @bind="Fp.ZichtbaarheidKm" />
+        <input type="number" step="0.1" class="form-control" @bind="Fp.ZichtbaarheidKm"/>
     </div>
     <div class="col-md-2">
         <label class="form-label">CAPE (J/kg)</label>
-        <input type="number" step="1" class="form-control" @bind="Fp.CapeJkg" />
+        <input type="number" step="1" class="form-control" @bind="Fp.CapeJkg"/>
     </div>
 
     <!-- Surface wind -->
     <div class="col-md-3">
         <label class="form-label">Windrichting oppervlak (°)</label>
-        <input type="number" class="form-control" @bind="Fp.SurfaceWindDirectionDeg" />
+        <input type="number" class="form-control" @bind="Fp.SurfaceWindDirectionDeg"/>
     </div>
     <div class="col-md-3">
         <label class="form-label">Windsnelheid oppervlak (kt)</label>
-        <input type="number" step="0.5" class="form-control" @bind="Fp.SurfaceWindSpeedKt" />
+        <input type="number" step="0.5" class="form-control" @bind="Fp.SurfaceWindSpeedKt"/>
     </div>
 
     <!-- Wind profile toggle -->
     <div class="col-12 mt-2">
         <div class="form-check form-switch">
             <input class="form-check-input" type="checkbox" id="windProfileToggle"
-                checked="@showWindProfile"
-                @onchange="OnWindProfileToggleChanged" />
+                   checked="@ShowWindProfile"
+                   @onchange="OnWindProfileToggleChanged"/>
             <label class="form-check-label" for="windProfileToggle">Windprofiel per hoogte invullen</label>
         </div>
         <div class="mt-2 d-flex align-items-center gap-2">
             <button class="btn btn-sm btn-outline-info"
                     @onclick="FetchWindProfile"
-                    disabled="@fetchingWindProfile">
-                <span class="@(fetchingWindProfile ? "spinner-border spinner-border-sm" : "bi bi-cloud-download")"></span>
-                @(fetchingWindProfile ? "Ophalen..." : "Windprofiel ophalen (open-meteo)")
+                    disabled="@_fetchingWindProfile">
+                <span
+                    class="@(_fetchingWindProfile ? "spinner-border spinner-border-sm" : "bi bi-cloud-download")"></span>
+                @(_fetchingWindProfile ? "Ophalen..." : "Windprofiel ophalen (open-meteo)")
             </button>
-            @if (windProfileError != null)
+            @if (_windProfileError != null)
             {
-                <span class="text-danger small">@windProfileError</span>
+                <span class="text-danger small">@_windProfileError</span>
             }
         </div>
     </div>
 
-    @if (showWindProfile)
+    @if (ShowWindProfile)
     {
         <div class="col-12">
             <table class="table table-sm table-bordered">
                 <thead class="table-light">
-                    <tr><th>Hoogte (ft)</th><th>Richting (°)</th><th>Snelheid (kt)</th><th>Temp (°C)</th></tr>
+                <tr>
+                    <th>Hoogte (ft)</th>
+                    <th>Richting (°)</th>
+                    <th>Snelheid (kt)</th>
+                    <th>Temp (°C)</th>
+                </tr>
                 </thead>
                 <tbody>
-                    @foreach (var wl in Fp.WindLevels.OrderBy(w => w.Order))
-                    {
-                        <tr>
-                            <td><strong>@wl.AltitudeFt</strong></td>
-                            <td><input type="number" class="form-control form-control-sm" @bind="wl.DirectionDeg" /></td>
-                            <td><input type="number" class="form-control form-control-sm" @bind="wl.SpeedKt" /></td>
-                            <td><input type="number" step="0.1" class="form-control form-control-sm" @bind="wl.TempC" /></td>
-                        </tr>
-                    }
+                @foreach (var wl in Fp.WindLevels.OrderBy(w => w.Order))
+                {
+                    <tr>
+                        <td><strong>@wl.AltitudeFt</strong></td>
+                        <td><input type="number" class="form-control form-control-sm" @bind="wl.DirectionDeg"/></td>
+                        <td><input type="number" class="form-control form-control-sm" @bind="wl.SpeedKt"/></td>
+                        <td><input type="number" step="0.1" class="form-control form-control-sm" @bind="wl.TempC"/></td>
+                    </tr>
+                }
                 </tbody>
             </table>
         </div>
@@ -154,149 +164,7 @@ else if (Fp?.LocationId != null && Fp.LocationId != 0)
     <div class="col-12 mt-2">
         <FlightImageUpload Label="📷 Foto's (sonde, sounding, skew-T, ...)"
                            Section="Meteo"
-                           Images="MeteoImages" />
+                           Images="MeteoImages"/>
     </div>
 </div>
 
-@code {
-    /// <summary>The current flight being edited. Weather fields are mutated directly via this reference.</summary>
-    [Parameter] public FlightPreparation Fp { get; set; } = null!;
-
-    /// <summary>Currently selected location (used to resolve ICAO code and coordinates for weather fetching).</summary>
-    [Parameter] public Location? CurrentLocation { get; set; }
-
-    /// <summary>Meteo images list shared with the parent; mutations are applied in-place.</summary>
-    [Parameter] public List<FlightImage> MeteoImages { get; set; } = null!;
-
-    // ── Internal UI state ───────────────────────────────────────────────────
-    private bool fetchingWeather;
-    private string? weatherError;
-    private bool weatherSuccess;
-    private bool fetchingForecast;
-    private List<HourlyForecast> forecast = new();
-    private bool fetchingWindProfile;
-    private string? windProfileError;
-
-    private bool _initialized;
-    private bool _showWindProfile;
-    private bool showWindProfile
-    {
-        get => _showWindProfile;
-        set
-        {
-            if (_showWindProfile == value) return;
-            _showWindProfile = value;
-            if (!value && Fp != null)
-                Fp.WindLevels.Clear();
-        }
-    }
-
-    protected override void OnParametersSet()
-    {
-        ArgumentNullException.ThrowIfNull(Fp);
-        ArgumentNullException.ThrowIfNull(MeteoImages);
-
-        // Initialise the wind-profile toggle once, when Fp first arrives from the parent.
-        if (!_initialized)
-        {
-            _initialized = true;
-            _showWindProfile = Fp.WindLevels.Count > 0;
-        }
-    }
-
-    // ── Weather fetching ────────────────────────────────────────────────────
-
-    private async Task FetchWeather()
-    {
-        if (CurrentLocation?.IcaoCode == null || Fp == null) return;
-        weatherError = null; weatherSuccess = false;
-        fetchingWeather = true;
-        try
-        {
-            var metar = await WeatherFetchSvc.FetchMetarAsync(CurrentLocation.IcaoCode);
-            var taf = await WeatherFetchSvc.FetchTafAsync(CurrentLocation.IcaoCode);
-            if (metar != null) Fp.Metar = metar;
-            if (taf != null) Fp.Taf = taf;
-            if (metar == null && taf == null)
-                weatherError = "Geen data gevonden voor " + CurrentLocation.IcaoCode;
-            else
-                weatherSuccess = true;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "FetchWeather failed for ICAO {Icao}", CurrentLocation?.IcaoCode);
-            weatherError = ex.Message;
-        }
-        finally { fetchingWeather = false; }
-    }
-
-    private async Task FetchForecast()
-    {
-        if (CurrentLocation?.Latitude == null || CurrentLocation.Longitude == null || Fp == null) return;
-        fetchingForecast = true;
-        try
-        {
-            forecast = await WeatherFetchSvc.FetchForecastAsync(CurrentLocation.Latitude.Value, CurrentLocation.Longitude.Value);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogDebug(ex, "FetchForecast failed for flight {Id} — non-critical background fetch", Fp?.Id);
-        }
-        finally { fetchingForecast = false; }
-    }
-
-    private async Task FetchWindProfile()
-    {
-        windProfileError = null;
-        fetchingWindProfile = true;
-        StateHasChanged();
-        try
-        {
-            if (Fp?.Location?.Latitude is null || Fp.Location.Longitude is null)
-            {
-                windProfileError = "Locatie heeft geen coördinaten.";
-                return;
-            }
-            var flightDt = Fp.Datum.ToDateTime(Fp.Tijdstip);
-            var levels = await WeatherFetchSvc.FetchWindProfileAsync(
-                Fp.Location.Latitude.Value, Fp.Location.Longitude.Value, flightDt);
-            if (!levels.Any())
-            {
-                windProfileError = "Windprofiel ophalen mislukt. Probeer opnieuw.";
-                return;
-            }
-            Fp.WindLevels.Clear();
-            foreach (var lvl in levels)
-            {
-                lvl.FlightPreparationId = Fp.Id;
-                Fp.WindLevels.Add(lvl);
-            }
-            showWindProfile = true;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "FetchWindProfile failed for flight {Id}", Fp?.Id);
-            windProfileError = "Windprofiel ophalen mislukt. Probeer opnieuw.";
-        }
-        finally
-        {
-            fetchingWindProfile = false;
-        }
-    }
-
-    private void OnWindProfileToggleChanged(ChangeEventArgs e)
-    {
-        var enabled = e.Value is bool b && b;
-        if (enabled && Fp != null && Fp.WindLevels.Count == 0)
-            PopulateDefaultWindLevels();
-        showWindProfile = enabled;
-    }
-
-    private void PopulateDefaultWindLevels()
-    {
-        if (Fp == null) return;
-        int[] altitudes = { 0, 500, 1000, 1500, 2000, 3000, 5000 };
-        for (int i = 0; i < altitudes.Length; i++)
-            Fp.WindLevels.Add(new WindLevel { AltitudeFt = altitudes[i], Order = i });
-    }
-}

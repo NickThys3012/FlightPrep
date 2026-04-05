@@ -1,4 +1,6 @@
 @page "/settings/balloons"
+@using FlightPrep.Domain.Models
+@using FlightPrep.Infrastructure.Data
 @attribute [Authorize]
 @rendermode InteractiveServer
 @inject IDbContextFactory<AppDbContext> DbFactory
@@ -11,160 +13,83 @@
 
     <table class="table table-hover">
         <thead class="table-dark">
-            <tr>
-                <th>Registratie</th>
-                <th>Type</th>
-                <th>Volume (m³)</th>
-                <th>Ti (°C)</th>
-                <th>Leeggewicht (kg)</th>
-                <th>Acties</th>
-            </tr>
+        <tr>
+            <th>Registratie</th>
+            <th>Type</th>
+            <th>Volume (m³)</th>
+            <th>Ti (°C)</th>
+            <th>Leeggewicht (kg)</th>
+            <th>Acties</th>
+        </tr>
         </thead>
         <tbody>
-            @foreach (var b in balloons)
-            {
-                @if (editId == b.Id)
-                {
-                    <tr>
-                        <td><input class="form-control form-control-sm" @bind="editBalloon.Registration" /></td>
-                        <td><input class="form-control form-control-sm" @bind="editBalloon.Type" /></td>
-                        <td><input type="number" min="0" step="1" class="form-control form-control-sm" @bind="editBalloon.VolumeM3" /></td>
-                        <td><input type="number" min="0" max="100" class="form-control form-control-sm" @bind="editBalloon.InternalEnvelopeTempC" /></td>
-                        <td><input type="number" step="0.1" class="form-control form-control-sm" @bind="editBalloon.EmptyWeightKg" /></td>
-                        <td>
-                            <button class="btn btn-sm btn-success" @onclick="SaveEdit">✅ Opslaan</button>
-                            <button class="btn btn-sm btn-secondary" @onclick="CancelEdit">Annuleren</button>
-                        </td>
-                    </tr>
-                }
-                else
-                {
-                    <tr>
-                        <td>@b.Registration</td>
-                        <td>@b.Type</td>
-                        <td>@(b.VolumeM3?.ToString("F0") ?? "–")</td>
-                        <td>@(b.InternalEnvelopeTempC?.ToString("F0") ?? "–")</td>
-                        <td>@(b.EmptyWeightKg?.ToString("F1") ?? "–")</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-secondary" @onclick="() => StartEdit(b)">✏️</button>
-                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteBalloon(b.Id)">🗑️</button>
-                        </td>
-                    </tr>
-                }
-            }
-            @if (addingNew)
+        @foreach (var b in _balloons)
+        {
+            @if (_editId == b.Id)
             {
                 <tr>
-                    <td><input class="form-control form-control-sm" @bind="newBalloon.Registration" placeholder="OO-XXX" /></td>
-                    <td><input class="form-control form-control-sm" @bind="newBalloon.Type" placeholder="Type" /></td>
-                    <td><input type="number" min="0" step="1" class="form-control form-control-sm" @bind="newBalloon.VolumeM3" placeholder="2200" /></td>
-                    <td><input type="number" min="0" max="100" class="form-control form-control-sm" @bind="newBalloon.InternalEnvelopeTempC" placeholder="80" /></td>
-                    <td><input type="number" step="0.1" class="form-control form-control-sm" @bind="newBalloon.EmptyWeightKg" /></td>
+                    <td><input class="form-control form-control-sm" @bind="_editBalloon.Registration"/></td>
+                    <td><input class="form-control form-control-sm" @bind="_editBalloon.Type"/></td>
+                    <td><input type="number" min="0" step="1" class="form-control form-control-sm"
+                               @bind="_editBalloon.VolumeM3"/></td>
+                    <td><input type="number" min="0" max="100" class="form-control form-control-sm"
+                               @bind="_editBalloon.InternalEnvelopeTempC"/></td>
+                    <td><input type="number" step="0.1" class="form-control form-control-sm"
+                               @bind="_editBalloon.EmptyWeightKg"/></td>
                     <td>
-                        <button class="btn btn-sm btn-success" @onclick="SaveNew">✅ Toevoegen</button>
-                        <button class="btn btn-sm btn-secondary" @onclick="() => addingNew = false">Annuleren</button>
+                        <button class="btn btn-sm btn-success" @onclick="SaveEdit">✅ Opslaan</button>
+                        <button class="btn btn-sm btn-secondary" @onclick="CancelEdit">Annuleren</button>
                     </td>
                 </tr>
             }
+            else
+            {
+                <tr>
+                    <td>@b.Registration</td>
+                    <td>@b.Type</td>
+                    <td>@(b.VolumeM3?.ToString("F0") ?? "–")</td>
+                    <td>@(b.InternalEnvelopeTempC?.ToString("F0") ?? "–")</td>
+                    <td>@(b.EmptyWeightKg?.ToString("F1") ?? "–")</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => StartEdit(b)">✏️</button>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteBalloon(b.Id)">🗑️</button>
+                    </td>
+                </tr>
+            }
+        }
+        @if (_addingNew)
+        {
+            <tr>
+                <td><input class="form-control form-control-sm" @bind="_newBalloon.Registration" placeholder="OO-XXX"/>
+                </td>
+                <td><input class="form-control form-control-sm" @bind="_newBalloon.Type" placeholder="Type"/></td>
+                <td><input type="number" min="0" step="1" class="form-control form-control-sm"
+                           @bind="_newBalloon.VolumeM3" placeholder="2200"/></td>
+                <td><input type="number" min="0" max="100" class="form-control form-control-sm"
+                           @bind="_newBalloon.InternalEnvelopeTempC" placeholder="80"/></td>
+                <td><input type="number" step="0.1" class="form-control form-control-sm"
+                           @bind="_newBalloon.EmptyWeightKg"/></td>
+                <td>
+                    <button class="btn btn-sm btn-success" @onclick="SaveNew">✅ Toevoegen</button>
+                    <button class="btn btn-sm btn-secondary" @onclick="() => _addingNew = false">Annuleren</button>
+                </td>
+            </tr>
+        }
         </tbody>
     </table>
-    @if (!addingNew)
+    @if (!_addingNew)
     {
-        <button class="btn btn-primary" @onclick="() => { addingNew = true; newBalloon = new(); newError = null; }">➕ Ballon toevoegen</button>
+        <button class="btn btn-primary" @onclick="() => { _addingNew = true; _newBalloon = new Balloon(); _newError = null; }">➕
+            Ballon toevoegen
+        </button>
     }
-    @if (editError is not null)
+    @if (_editError is not null)
     {
-        <div class="alert alert-danger mt-2">@editError</div>
+        <div class="alert alert-danger mt-2">@_editError</div>
     }
-    @if (newError is not null)
+    @if (_newError is not null)
     {
-        <div class="alert alert-danger mt-2">@newError</div>
+        <div class="alert alert-danger mt-2">@_newError</div>
     }
 </div>
 
-@code {
-    private List<Balloon> balloons = new();
-    private int? editId;
-    private Balloon editBalloon = new();
-    private bool addingNew;
-    private Balloon newBalloon = new();
-    private string? editError;
-    private string? newError;
-    private string? _userId;
-    private bool _isAdmin;
-
-    protected override async Task OnInitializedAsync()
-    {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        _userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        _isAdmin = authState.User.IsInRole("Admin");
-        await Load();
-    }
-
-    private async Task Load()
-    {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var query = db.Balloons.AsQueryable();
-        if (!_isAdmin)
-        {
-            if (_userId == null) { balloons = []; return; }
-            query = query.Where(b => b.OwnerId == _userId);
-        }
-        balloons = await query.OrderBy(b => b.Registration).ToListAsync();
-    }
-
-    private void StartEdit(Balloon b)
-    {
-        editId = b.Id;
-        editBalloon = new Balloon { Id = b.Id, Registration = b.Registration, Type = b.Type, VolumeM3 = b.VolumeM3, InternalEnvelopeTempC = b.InternalEnvelopeTempC, EmptyWeightKg = b.EmptyWeightKg };
-    }
-
-    private void CancelEdit() => editId = null;
-
-    private async Task SaveEdit()
-    {
-        if (editBalloon.InternalEnvelopeTempC is < 0 or > 100)
-        {
-            editError = "Inwendige temperatuur (Ti) moet tussen 0 en 100°C liggen.";
-            return;
-        }
-        editError = null;
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var b = await db.Balloons.FindAsync(editBalloon.Id);
-        if (b is null || (!_isAdmin && b.OwnerId != _userId)) return;
-        var originalOwnerId = b.OwnerId;
-        db.Entry(b).CurrentValues.SetValues(editBalloon);
-        b.OwnerId = originalOwnerId;
-        await db.SaveChangesAsync();
-        editId = null;
-        await Load();
-    }
-
-    private async Task SaveNew()
-    {
-        if (newBalloon.InternalEnvelopeTempC is < 0 or > 100)
-        {
-            newError = "Inwendige temperatuur (Ti) moet tussen 0 en 100°C liggen.";
-            return;
-        }
-        newError = null;
-        newBalloon.OwnerId = _userId;
-        await using var db = await DbFactory.CreateDbContextAsync();
-        db.Balloons.Add(newBalloon);
-        await db.SaveChangesAsync();
-        addingNew = false;
-        await Load();
-    }
-
-    private async Task DeleteBalloon(int id)
-    {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var b = await db.Balloons.FindAsync(id);
-        if (b != null && (_isAdmin || b.OwnerId == _userId))
-        {
-            db.Balloons.Remove(b);
-            await db.SaveChangesAsync();
-        }
-        await Load();
-    }
-}

@@ -1,4 +1,4 @@
-using FlightPrep.Services;
+using FlightPrep.Infrastructure.Services;
 
 namespace FlightPrep.Tests;
 
@@ -13,8 +13,8 @@ public class TrajectoryMathTests
     {
         var (lat, lon) = TrajectoryMath.HaversineDestination(51.0, 3.5, 90.0, 0.0);
 
-        Assert.Equal(51.0, lat, precision: 8);
-        Assert.Equal(3.5,  lon, precision: 8);
+        Assert.Equal(51.0, lat, 8);
+        Assert.Equal(3.5, lon, 8);
     }
 
     // ── Cardinal directions ───────────────────────────────────────────────────
@@ -25,7 +25,7 @@ public class TrajectoryMathTests
         var (lat, lon) = TrajectoryMath.HaversineDestination(51.0, 3.5, 0.0, 10_000.0);
 
         Assert.True(lat > 51.0, $"North bearing should increase lat, got {lat:F6}");
-        Assert.Equal(3.5, lon, precision: 4);
+        Assert.Equal(3.5, lon, 4);
     }
 
     [Fact]
@@ -59,11 +59,11 @@ public class TrajectoryMathTests
     {
         // On a sphere of radius R, 1000 m along a meridian = 1000/(R * π/180) degrees
         const double distM = 1000.0;
-        double expectedDeltaDeg = distM / (R * Math.PI / 180.0);
+        var expectedDeltaDeg = distM / (R * Math.PI / 180.0);
 
         var (lat, _) = TrajectoryMath.HaversineDestination(51.0, 3.5, 0.0, distM);
 
-        Assert.Equal(expectedDeltaDeg, lat - 51.0, precision: 6);
+        Assert.Equal(expectedDeltaDeg, lat - 51.0, 6);
     }
 
     [Theory]
@@ -72,10 +72,10 @@ public class TrajectoryMathTests
     [InlineData(100_000.0)]
     public void HaversineDestination_NorthBearing_DistanceIsCorrect(double distM)
     {
-        var (lat2, lon2) = TrajectoryMath.HaversineDestination(51.0, 3.5, 0.0, distM);
+        var (lat2, _) = TrajectoryMath.HaversineDestination(51.0, 3.5, 0.0, distM);
 
-        // Verify round-trip: recompute distance from lat difference along meridian
-        double actualDistM = (lat2 - 51.0) * Math.PI / 180.0 * R;
+        // Verify a round-trip: recompute distance from lat difference along meridian
+        var actualDistM = (lat2 - 51.0) * Math.PI / 180.0 * R;
         Assert.Equal(distM, actualDistM, 0); // within 0.5 m
     }
 
@@ -85,9 +85,9 @@ public class TrajectoryMathTests
     public void HaversineDestination_NorthThenSouth_ReturnsToOrigin()
     {
         var (lat2, lon2) = TrajectoryMath.HaversineDestination(51.0, 3.5, 0.0, 50_000.0);
-        var (lat3, _)    = TrajectoryMath.HaversineDestination(lat2, lon2, 180.0, 50_000.0);
+        var (lat3, _) = TrajectoryMath.HaversineDestination(lat2, lon2, 180.0, 50_000.0);
 
-        double errorM = Math.Abs(lat3 - 51.0) * (R * Math.PI / 180.0);
+        var errorM = Math.Abs(lat3 - 51.0) * (R * Math.PI / 180.0);
         Assert.True(errorM < 1.0, $"Round-trip error {errorM:F3} m exceeds 1 m tolerance");
     }
 
@@ -103,8 +103,8 @@ public class TrajectoryMathTests
 
         // At the equator (lat=0) east-west IS along a great circle parallel,
         // so the round-trip should be exact.
-        double dLatM = Math.Abs(lat3 - 0.0) * (R * Math.PI / 180.0);
-        double dLonM = Math.Abs(lon3 - 3.5) * (R * Math.PI / 180.0);
+        var dLatM = Math.Abs(lat3 - 0.0) * (R * Math.PI / 180.0);
+        var dLonM = Math.Abs(lon3 - 3.5) * (R * Math.PI / 180.0);
         Assert.True(dLatM + dLonM < 1.0,
             $"Equatorial round-trip error lat={dLatM:F3} m, lon={dLonM:F3} m (>1 m)");
     }

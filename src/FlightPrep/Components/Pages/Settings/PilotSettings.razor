@@ -1,4 +1,6 @@
 @page "/settings/pilots"
+@using FlightPrep.Domain.Models
+@using FlightPrep.Infrastructure.Data
 @attribute [Authorize]
 @rendermode InteractiveServer
 @inject IDbContextFactory<AppDbContext> DbFactory
@@ -11,123 +13,56 @@
 
     <table class="table table-hover">
         <thead class="table-dark">
-            <tr>
-                <th>Naam</th>
-                <th>Gewicht (kg)</th>
-                <th>Acties</th>
-            </tr>
+        <tr>
+            <th>Naam</th>
+            <th>Gewicht (kg)</th>
+            <th>Acties</th>
+        </tr>
         </thead>
         <tbody>
-            @foreach (var p in pilots)
-            {
-                @if (editId == p.Id)
-                {
-                    <tr>
-                        <td><input class="form-control form-control-sm" @bind="editPilot.Name" /></td>
-                        <td><input type="number" step="0.1" class="form-control form-control-sm" @bind="editPilot.WeightKg" /></td>
-                        <td>
-                            <button class="btn btn-sm btn-success" @onclick="SaveEdit">✅ Opslaan</button>
-                            <button class="btn btn-sm btn-secondary" @onclick="CancelEdit">Annuleren</button>
-                        </td>
-                    </tr>
-                }
-                else
-                {
-                    <tr>
-                        <td>@p.Name</td>
-                        <td>@(p.WeightKg?.ToString("F1") ?? "–")</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-secondary" @onclick="() => StartEdit(p)">✏️</button>
-                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeletePilot(p.Id)">🗑️</button>
-                        </td>
-                    </tr>
-                }
-            }
-            @if (addingNew)
+        @foreach (var p in _pilots)
+        {
+            @if (_editId == p.Id)
             {
                 <tr>
-                    <td><input class="form-control form-control-sm" @bind="newPilot.Name" placeholder="Naam" /></td>
-                    <td><input type="number" step="0.1" class="form-control form-control-sm" @bind="newPilot.WeightKg" placeholder="Gewicht" /></td>
+                    <td><input class="form-control form-control-sm" @bind="_editPilot.Name"/></td>
+                    <td><input type="number" step="0.1" class="form-control form-control-sm"
+                               @bind="_editPilot.WeightKg"/></td>
                     <td>
-                        <button class="btn btn-sm btn-success" @onclick="SaveNew">✅ Toevoegen</button>
-                        <button class="btn btn-sm btn-secondary" @onclick="() => addingNew = false">Annuleren</button>
+                        <button class="btn btn-sm btn-success" @onclick="SaveEdit">✅ Opslaan</button>
+                        <button class="btn btn-sm btn-secondary" @onclick="CancelEdit">Annuleren</button>
                     </td>
                 </tr>
             }
+            else
+            {
+                <tr>
+                    <td>@p.Name</td>
+                    <td>@(p.WeightKg?.ToString("F1") ?? "–")</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => StartEdit(p)">✏️</button>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeletePilot(p.Id)">🗑️</button>
+                    </td>
+                </tr>
+            }
+        }
+        @if (_addingNew)
+        {
+            <tr>
+                <td><input class="form-control form-control-sm" @bind="_newPilot.Name" placeholder="Naam"/></td>
+                <td><input type="number" step="0.1" class="form-control form-control-sm" @bind="_newPilot.WeightKg"
+                           placeholder="Gewicht"/></td>
+                <td>
+                    <button class="btn btn-sm btn-success" @onclick="SaveNew">✅ Toevoegen</button>
+                    <button class="btn btn-sm btn-secondary" @onclick="() => _addingNew = false">Annuleren</button>
+                </td>
+            </tr>
+        }
         </tbody>
     </table>
-    @if (!addingNew)
+    @if (!_addingNew)
     {
-        <button class="btn btn-primary" @onclick="() => { addingNew = true; newPilot = new(); }">➕ Piloot toevoegen</button>
+        <button class="btn btn-primary" @onclick="() => { _addingNew = true; _newPilot = new Pilot(); }">➕ Piloot toevoegen
+        </button>
     }
 </div>
-
-@code {
-    private List<Pilot> pilots = [];
-    private int? editId;
-    private Pilot editPilot = new();
-    private bool addingNew;
-    private Pilot newPilot = new();
-    private string? _userId;
-    private bool _isAdmin;
-
-    protected override async Task OnInitializedAsync()
-    {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        _userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        _isAdmin = authState.User.IsInRole("Admin");
-        await Load();
-    }
-
-    private async Task Load()
-    {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var query = db.Pilots.AsQueryable();
-        if (!_isAdmin)
-        {
-            if (_userId == null) { pilots = []; return; }
-            query = query.Where(p => p.OwnerId == _userId);
-        }
-        pilots = await query.OrderBy(p => p.Name).ToListAsync();
-    }
-
-    private void StartEdit(Pilot p) =>
-        (editId, editPilot) = (p.Id, new Pilot { Id = p.Id, Name = p.Name, WeightKg = p.WeightKg });
-
-    private void CancelEdit() => editId = null;
-
-    private async Task SaveEdit()
-    {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var p = await db.Pilots.FindAsync(editPilot.Id);
-        if (p is null || (!_isAdmin && p.OwnerId != _userId)) return;
-        var originalOwnerId = p.OwnerId;
-        db.Entry(p).CurrentValues.SetValues(editPilot);
-        p.OwnerId = originalOwnerId;
-        await db.SaveChangesAsync();
-        editId = null;
-        await Load();
-    }
-
-    private async Task SaveNew()
-    {
-        newPilot.OwnerId = _userId;
-        await using var db = await DbFactory.CreateDbContextAsync();
-        db.Pilots.Add(newPilot);
-        await db.SaveChangesAsync();
-        addingNew = false;
-        await Load();
-    }
-
-    private async Task DeletePilot(int id)
-    {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var p = await db.Pilots.FindAsync(id);
-        if (p != null && (_isAdmin || p.OwnerId == _userId))
-        {
-            db.Pilots.Remove(p);
-            await db.SaveChangesAsync();
-        }
-        await Load();
-    }
-}

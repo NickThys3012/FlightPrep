@@ -1,11 +1,11 @@
-using FlightPrep.Models.Trajectory;
+using FlightPrep.Domain.Models.Trajectory;
 
-namespace FlightPrep.Services;
+namespace FlightPrep.Domain.Services;
 
 public interface IEnhancedTrajectoryService
 {
     /// <summary>
-    /// Computes a 3D time-varying balloon trajectory using hourly wind data at multiple pressure levels.
+    ///     Computes a 3D time-varying balloon trajectory using hourly wind data at multiple pressure levels.
     /// </summary>
     Task<SimulatedTrajectory> ComputeAsync(
         double launchLat,
@@ -19,8 +19,8 @@ public interface IEnhancedTrajectoryService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Computes 3D trajectories for multiple cruise altitudes simultaneously (max 5).
-    /// Each trajectory is computed in parallel and assigned a distinct colour.
+    ///     Computes 3D trajectories for multiple cruise altitudes simultaneously (max 5).
+    ///     Each trajectory is computed in parallel and assigned a distinct colour.
     /// </summary>
     Task<List<SimulatedTrajectory>> ComputeMultipleAsync(
         double launchLat,

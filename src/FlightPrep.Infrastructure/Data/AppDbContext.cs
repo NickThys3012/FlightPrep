@@ -1,8 +1,8 @@
-using FlightPrep.Models;
+using FlightPrep.Domain.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace FlightPrep.Data;
+namespace FlightPrep.Infrastructure.Data;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<ApplicationUser>(options)
 {

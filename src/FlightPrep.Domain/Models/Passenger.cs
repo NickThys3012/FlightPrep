@@ -1,4 +1,4 @@
-namespace FlightPrep.Models;
+namespace FlightPrep.Domain.Models;
 
 public class Passenger
 {

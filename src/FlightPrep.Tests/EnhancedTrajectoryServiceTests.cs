@@ -1,18 +1,17 @@
-using System.Globalization;
-using System.Net;
-using FlightPrep.Models.Trajectory;
-using FlightPrep.Services;
+using FlightPrep.Domain.Models.Trajectory;
+using FlightPrep.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
+using System.Globalization;
+using System.Net;
 
 namespace FlightPrep.Tests;
 
 public class EnhancedTrajectoryServiceTests
 {
     // A past date guarantees the archive path is used in WeatherFetchService
-    private static readonly DateTime PastLaunch =
-        new DateTime(2024, 1, 15, 6, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime PastLaunch = new(2024, 1, 15, 6, 0, 0, DateTimeKind.Utc);
 
     private static readonly int[] PressureHPa = [1000, 975, 950, 925, 900, 850, 800, 700];
 
@@ -24,13 +23,15 @@ public class EnhancedTrajectoryServiceTests
     {
         var hours = new List<DateTime>();
         for (var h = from; h <= to; h = h.AddHours(1))
+        {
             hours.Add(h);
+        }
 
-        var timeArr  = string.Join(",", hours.Select(h => $"\"{h:yyyy-MM-ddTHH:mm}\""));
-        var speed    = speedKmh.ToString("F2", CultureInfo.InvariantCulture);
-        var dir      = dirDeg.ToString("F2", CultureInfo.InvariantCulture);
+        var timeArr = string.Join(",", hours.Select(h => $"\"{h:yyyy-MM-ddTHH:mm}\""));
+        var speed = speedKmh.ToString("F2", CultureInfo.InvariantCulture);
+        var dir = dirDeg.ToString("F2", CultureInfo.InvariantCulture);
         var speedVal = string.Join(",", hours.Select(_ => speed));
-        var dirVal   = string.Join(",", hours.Select(_ => dir));
+        var dirVal = string.Join(",", hours.Select(_ => dir));
 
         var speedProps = string.Join(",", PressureHPa.Select(p =>
             $"\"windspeed_{p}hPa\":[{speedVal}]"));
@@ -57,13 +58,9 @@ public class EnhancedTrajectoryServiceTests
                 ItExpr.IsAny<CancellationToken>())
             // Create a fresh HttpResponseMessage per call so the StringContent
             // stream is not exhausted when ComputeMultipleAsync makes N parallel calls.
-            .ReturnsAsync(() => new HttpResponseMessage(statusCode)
-            {
-                Content = new StringContent(openMeteoJson),
-            });
+            .ReturnsAsync(() => new HttpResponseMessage(statusCode) { Content = new StringContent(openMeteoJson) });
 
-        var client = new HttpClient(handler.Object)
-            { BaseAddress = new Uri("https://api.open-meteo.com/") };
+        var client = new HttpClient(handler.Object) { BaseAddress = new Uri("https://api.open-meteo.com/") };
 
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(f => f.CreateClient("openmeteo")).Returns(client);
@@ -85,8 +82,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
             sut.ComputeAsync(51.0, 3.5, PastLaunch,
-                ascentRateMs: 0, cruiseAltitudeFt: 3000,
-                descentRateMs: 3.0, totalDurationMinutes: 60));
+                0, 3000,
+                3.0, 60));
     }
 
     [Fact]
@@ -95,8 +92,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
             sut.ComputeAsync(51.0, 3.5, PastLaunch,
-                ascentRateMs: -1.0, cruiseAltitudeFt: 3000,
-                descentRateMs: 3.0, totalDurationMinutes: 60));
+                -1.0, 3000,
+                3.0, 60));
     }
 
     [Fact]
@@ -105,8 +102,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
             sut.ComputeAsync(51.0, 3.5, PastLaunch,
-                ascentRateMs: 3.0, cruiseAltitudeFt: 3000,
-                descentRateMs: 0, totalDurationMinutes: 60));
+                3.0, 3000,
+                0, 60));
     }
 
     [Fact]
@@ -115,8 +112,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
             sut.ComputeAsync(51.0, 3.5, PastLaunch,
-                ascentRateMs: 3.0, cruiseAltitudeFt: 0,
-                descentRateMs: 3.0, totalDurationMinutes: 60));
+                3.0, 0,
+                3.0, 60));
     }
 
     [Fact]
@@ -125,8 +122,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
             sut.ComputeAsync(51.0, 3.5, PastLaunch,
-                ascentRateMs: 3.0, cruiseAltitudeFt: 3000,
-                descentRateMs: 3.0, totalDurationMinutes: 0));
+                3.0, 3000,
+                3.0, 0));
     }
 
     [Fact]
@@ -135,8 +132,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
             sut.ComputeAsync(51.0, 3.5, PastLaunch,
-                ascentRateMs: 3.0, cruiseAltitudeFt: 3000,
-                descentRateMs: 3.0, totalDurationMinutes: 60, stepSeconds: 0));
+                3.0, 3000,
+                3.0, 60, 0));
     }
 
     // ── Empty wind data ───────────────────────────────────────────────────────
@@ -148,8 +145,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut("{}", HttpStatusCode.InternalServerError);
 
         var result = await sut.ComputeAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudeFt: 3000,
-            descentRateMs: 3.0, totalDurationMinutes: 60);
+            3.0, 3000,
+            3.0, 60);
 
         Assert.Empty(result.Points);
     }
@@ -160,8 +157,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut("{}", HttpStatusCode.InternalServerError);
 
         var result = await sut.ComputeAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudeFt: 5000,
-            descentRateMs: 3.0, totalDurationMinutes: 90);
+            3.0, 5000,
+            3.0, 90);
 
         Assert.Equal(5000, result.AltitudeFt);
         Assert.Equal(90, result.DurationMinutes);
@@ -176,8 +173,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudeFt: 3000,
-            descentRateMs: 3.0, totalDurationMinutes: 60);
+            3.0, 3000,
+            3.0, 60);
 
         Assert.NotEmpty(result.Points);
     }
@@ -188,8 +185,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudeFt: 3000,
-            descentRateMs: 3.0, totalDurationMinutes: 60);
+            3.0, 3000,
+            3.0, 60);
 
         Assert.Equal(0, result.Points[0].ElapsedMinutes);
     }
@@ -200,8 +197,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudeFt: 3000,
-            descentRateMs: 3.0, totalDurationMinutes: 60, stepSeconds: 60);
+            3.0, 3000,
+            3.0, 60);
 
         Assert.Equal(60, result.Points.Last().ElapsedMinutes);
     }
@@ -212,8 +209,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudeFt: 3000,
-            descentRateMs: 3.0, totalDurationMinutes: 60);
+            3.0, 3000,
+            3.0, 60);
 
         Assert.Equal(TrajectoryDataSource.Hysplit, result.DataSource);
     }
@@ -224,8 +221,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudeFt: 4500,
-            descentRateMs: 3.0, totalDurationMinutes: 90);
+            3.0, 4500,
+            3.0, 90);
 
         Assert.Equal(4500, result.AltitudeFt);
     }
@@ -236,8 +233,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudeFt: 3000,
-            descentRateMs: 3.0, totalDurationMinutes: 60);
+            3.0, 3000,
+            3.0, 60);
 
         Assert.All(result.Points, p => Assert.NotNull(p.AltitudeFt));
     }
@@ -248,8 +245,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 2.5, cruiseAltitudeFt: 3000,
-            descentRateMs: 1.5, totalDurationMinutes: 60);
+            2.5, 3000,
+            1.5, 60);
 
         Assert.Equal(2.5, result.AscentRateMs);
         Assert.Equal(1.5, result.DescentRateMs);
@@ -259,11 +256,11 @@ public class EnhancedTrajectoryServiceTests
     public async Task ComputeAsync_WestWind_BalloonMovesEast()
     {
         // Wind FROM 270° (west) → bearing = (270+180)%360 = 90° (east)
-        var sut = BuildSut(DefaultJson(speedKmh: 36.0, dirDeg: 270.0));
+        var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudeFt: 3000,
-            descentRateMs: 3.0, totalDurationMinutes: 90);
+            3.0, 3000,
+            3.0, 90);
 
         var lastLon = result.Points.Last().Lon;
         Assert.True(lastLon > 3.5,
@@ -274,11 +271,11 @@ public class EnhancedTrajectoryServiceTests
     public async Task ComputeAsync_NorthWind_BalloonMovesSouth()
     {
         // Wind FROM 0° (north) → bearing = 180° (south)
-        var sut = BuildSut(DefaultJson(speedKmh: 36.0, dirDeg: 0.0));
+        var sut = BuildSut(DefaultJson(36.0, 0.0));
 
         var result = await sut.ComputeAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudeFt: 3000,
-            descentRateMs: 3.0, totalDurationMinutes: 90);
+            3.0, 3000,
+            3.0, 90);
 
         var lastLat = result.Points.Last().Lat;
         Assert.True(lastLat < 51.0,
@@ -289,16 +286,16 @@ public class EnhancedTrajectoryServiceTests
     public async Task ComputeAsync_ZeroWindSpeed_BalloonStaysAtLaunchLocation()
     {
         // Wind speed 0 → no movement; lat/lon should stay at launch
-        var sut = BuildSut(DefaultJson(speedKmh: 0.0, dirDeg: 270.0));
+        var sut = BuildSut(DefaultJson(0.0));
 
         var result = await sut.ComputeAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudeFt: 3000,
-            descentRateMs: 3.0, totalDurationMinutes: 60);
+            3.0, 3000,
+            3.0, 60);
 
         Assert.All(result.Points, p =>
         {
-            Assert.Equal(51.0, p.Lat, precision: 5);
-            Assert.Equal(3.5,  p.Lon, precision: 5);
+            Assert.Equal(51.0, p.Lat, 5);
+            Assert.Equal(3.5, p.Lon, 5);
         });
     }
 
@@ -310,8 +307,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 1.0, cruiseAltitudeFt: 1000,
-            descentRateMs: 1.0, totalDurationMinutes: 9);
+            1.0, 1000,
+            1.0, 9);
 
         Assert.NotEmpty(result.Points);
     }
@@ -322,12 +319,12 @@ public class EnhancedTrajectoryServiceTests
         // Provide valid JSON so the loop is entered (CT checked inside loop)
         var sut = BuildSut(DefaultJson());
         using var cts = new CancellationTokenSource();
-        cts.Cancel();
+        await cts.CancelAsync();
 
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
             sut.ComputeAsync(51.0, 3.5, PastLaunch,
-                ascentRateMs: 3.0, cruiseAltitudeFt: 3000,
-                descentRateMs: 3.0, totalDurationMinutes: 60,
+                3.0, 3000,
+                3.0, 60,
                 cancellationToken: cts.Token));
     }
 
@@ -339,8 +336,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeMultipleAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudesFt: [],
-            descentRateMs: 3.0, totalDurationMinutes: 60);
+            3.0, [],
+            3.0, 60);
 
         Assert.Empty(result);
     }
@@ -351,8 +348,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeMultipleAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudesFt: [3000],
-            descentRateMs: 3.0, totalDurationMinutes: 60);
+            3.0, [3000],
+            3.0, 60);
 
         Assert.Single(result);
         Assert.Equal(3000, result[0].AltitudeFt);
@@ -364,8 +361,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeMultipleAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudesFt: [1000, 3000, 5000],
-            descentRateMs: 3.0, totalDurationMinutes: 60);
+            3.0, [1000, 3000, 5000],
+            3.0, 60);
 
         Assert.Equal(3, result.Count);
     }
@@ -376,8 +373,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeMultipleAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudesFt: [500, 1000, 2000, 3000, 4000, 5000, 6000],
-            descentRateMs: 3.0, totalDurationMinutes: 60);
+            3.0, [500, 1000, 2000, 3000, 4000, 5000, 6000],
+            3.0, 60);
 
         Assert.Equal(5, result.Count);
     }
@@ -388,8 +385,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeMultipleAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudesFt: [3000, 3000, 3000],
-            descentRateMs: 3.0, totalDurationMinutes: 60);
+            3.0, [3000, 3000, 3000],
+            3.0, 60);
 
         Assert.Single(result);
         Assert.Equal(3000, result[0].AltitudeFt);
@@ -401,8 +398,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeMultipleAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudesFt: [5000, 1000, 3000],
-            descentRateMs: 3.0, totalDurationMinutes: 60);
+            3.0, [5000, 1000, 3000],
+            3.0, 60);
 
         Assert.Equal(1000, result[0].AltitudeFt);
         Assert.Equal(3000, result[1].AltitudeFt);
@@ -415,8 +412,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeMultipleAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudesFt: [1000, 3000, 5000],
-            descentRateMs: 3.0, totalDurationMinutes: 60);
+            3.0, [1000, 3000, 5000],
+            3.0, 60);
 
         var colors = result.Select(t => t.Color).ToList();
         Assert.Equal(colors.Count, colors.Distinct().Count());
@@ -428,8 +425,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeMultipleAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudesFt: [1000, 3000],
-            descentRateMs: 3.0, totalDurationMinutes: 75);
+            3.0, [1000, 3000],
+            3.0, 75);
 
         Assert.All(result, t => Assert.Equal(75, t.DurationMinutes));
     }
@@ -440,8 +437,8 @@ public class EnhancedTrajectoryServiceTests
         var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeMultipleAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudesFt: [1000, 3000, 5000],
-            descentRateMs: 3.0, totalDurationMinutes: 60);
+            3.0, [1000, 3000, 5000],
+            3.0, 60);
 
         Assert.All(result, t =>
             Assert.Equal(TrajectoryDataSource.Hysplit, t.DataSource));
@@ -452,11 +449,11 @@ public class EnhancedTrajectoryServiceTests
     {
         // Both altitudes should produce non-empty trajectories when wind data is available.
         // With constant wind at all levels the paths are identical, so just verify count & points.
-        var sut = BuildSut(DefaultJson(speedKmh: 36.0, dirDeg: 270.0));
+        var sut = BuildSut(DefaultJson());
 
         var result = await sut.ComputeMultipleAsync(51.0, 3.5, PastLaunch,
-            ascentRateMs: 3.0, cruiseAltitudesFt: [1000, 5000],
-            descentRateMs: 3.0, totalDurationMinutes: 90);
+            3.0, [1000, 5000],
+            3.0, 90);
 
         Assert.Equal(2, result.Count);
         Assert.All(result, t => Assert.NotEmpty(t.Points));

@@ -1,4 +1,4 @@
-using FlightPrep.Models;
+using FlightPrep.Domain.Models;
 using FlightPrep.Services;
 
 namespace FlightPrep.Tests;
@@ -8,12 +8,7 @@ public class GoNoGoServiceComputeTests
     private static readonly GoNoGoSettings DefaultSettings = new();
 
     private static FlightPreparation FpWith(
-        double? wind = null, double? vis = null, double? cape = null) => new()
-    {
-        SurfaceWindSpeedKt = wind,
-        ZichtbaarheidKm = vis,
-        CapeJkg = cape
-    };
+        double? wind = null, double? vis = null, double? cape = null) => new() { SurfaceWindSpeedKt = wind, ZichtbaarheidKm = vis, CapeJkg = cape };
 
     [Fact]
     public void Compute_NoMeteoData_ReturnsUnknown()
@@ -28,7 +23,7 @@ public class GoNoGoServiceComputeTests
     public void Compute_WindAtRedThreshold_ReturnsRed()
     {
         var sut = new GoNoGoService(null!);
-        var fp = FpWith(wind: 15);
+        var fp = FpWith(15);
 
         Assert.Equal("red", sut.Compute(fp, DefaultSettings));
     }
@@ -37,7 +32,7 @@ public class GoNoGoServiceComputeTests
     public void Compute_WindAboveRedThreshold_ReturnsRed()
     {
         var sut = new GoNoGoService(null!);
-        var fp = FpWith(wind: 25);
+        var fp = FpWith(25);
 
         Assert.Equal("red", sut.Compute(fp, DefaultSettings));
     }
@@ -74,7 +69,7 @@ public class GoNoGoServiceComputeTests
     public void Compute_WindAtYellowThreshold_ReturnsYellow()
     {
         var sut = new GoNoGoService(null!);
-        var fp = FpWith(wind: 10);
+        var fp = FpWith(10);
 
         Assert.Equal("yellow", sut.Compute(fp, DefaultSettings));
     }
@@ -101,7 +96,7 @@ public class GoNoGoServiceComputeTests
     public void Compute_AllConditionsGood_ReturnsGreen()
     {
         var sut = new GoNoGoService(null!);
-        var fp = FpWith(wind: 5, vis: 10, cape: 50);
+        var fp = FpWith(5, 10, 50);
 
         Assert.Equal("green", sut.Compute(fp, DefaultSettings));
     }
@@ -111,7 +106,7 @@ public class GoNoGoServiceComputeTests
     {
         var sut = new GoNoGoService(null!);
         var custom = new GoNoGoSettings { WindRedKt = 20, VisRedKm = 1, CapeRedJkg = 1000 };
-        var fp = FpWith(wind: 18);
+        var fp = FpWith(18);
 
         // wind 18 < custom red 20 → not red
         Assert.NotEqual("red", sut.Compute(fp, custom));
@@ -121,8 +116,8 @@ public class GoNoGoServiceComputeTests
     public void Compute_RedTakesPriorityOverYellow()
     {
         var sut = new GoNoGoService(null!);
-        // wind is in yellow zone, CAPE is in red zone
-        var fp = FpWith(wind: 12, cape: 600);
+        // wind is in the yellow zone, CAPE is in the red zone
+        var fp = FpWith(12, cape: 600);
 
         Assert.Equal("red", sut.Compute(fp, DefaultSettings));
     }
@@ -130,9 +125,9 @@ public class GoNoGoServiceComputeTests
     // ── Regression: #23 ───────────────────────────────────────────────────────
 
     /// <summary>
-    /// Regression: bug #23 — GoNoGo was using hardcoded thresholds (WindRedKt=15),
-    /// ignoring GoNoGoSettings. Pilot sets wind red threshold to 20 kt.
-    /// Wind = 17 kt. Must be green/yellow, NOT red.
+    ///     Regression: bug #23 — GoNoGo was using hardcoded thresholds (WindRedKt=15),
+    ///     ignoring GoNoGoSettings. Pilot sets a wind red threshold to 20 kt.
+    ///     Wind = 17 kt. Must be green/yellow, NOT red.
     /// </summary>
     [Fact]
     public void Compute_CustomWindRedThreshold_RespectsSettingNotHardcodedValue()
@@ -141,7 +136,7 @@ public class GoNoGoServiceComputeTests
         // Pilot raised the red threshold to 20 kt
         var customSettings = new GoNoGoSettings { WindYellowKt = 14, WindRedKt = 20 };
         // Wind is 17 kt — above the old hardcoded 15, but below the pilot's 20
-        var fp = FpWith(wind: 17);
+        var fp = FpWith(17);
 
         var result = sut.Compute(fp, customSettings);
 
@@ -156,7 +151,7 @@ public class GoNoGoServiceComputeTests
     {
         var sut = new GoNoGoService(null!);
         var customSettings = new GoNoGoSettings { WindYellowKt = 14, WindRedKt = 20 };
-        var fp = FpWith(wind: 21); // above the custom 20 kt threshold
+        var fp = FpWith(21); // above the custom 20 kt threshold
 
         Assert.Equal("red", sut.Compute(fp, customSettings));
     }
@@ -167,7 +162,7 @@ public class GoNoGoServiceComputeTests
     public void Compute_WindBelowYellowThreshold_OnlyWindDataPresent_ReturnsGreen()
     {
         var sut = new GoNoGoService(null!);
-        var fp = FpWith(wind: 5); // 5 < WindYellowKt(10)
+        var fp = FpWith(5); // 5 < WindYellowKt(10)
 
         Assert.Equal("green", sut.Compute(fp, DefaultSettings));
     }
@@ -207,7 +202,7 @@ public class GoNoGoServiceComputeTests
     {
         var sut = new GoNoGoService(null!);
         // SurfaceWindSpeedKt >= WindRedKt(15) when wind == 15 → red
-        var fp = FpWith(wind: 15);
+        var fp = FpWith(15);
 
         Assert.Equal("red", sut.Compute(fp, DefaultSettings));
     }
@@ -216,27 +211,27 @@ public class GoNoGoServiceComputeTests
     public void Compute_CustomYellowThresholds_AppliesCustomValues()
     {
         var sut = new GoNoGoService(null!);
-        // Raise yellow thresholds so a normally-yellow reading becomes green
+        // Raise yellow thresholds so a normally yellow reading becomes green
         var relaxed = new GoNoGoSettings { WindYellowKt = 18, WindRedKt = 25 };
-        var fp = FpWith(wind: 12); // 12 < custom yellow 18 → green
+        var fp = FpWith(12); // 12 < custom yellow 18 → green
 
         Assert.Equal("green", sut.Compute(fp, relaxed));
     }
 
     [Theory]
-    [InlineData(15.0,  null,  null,  "red")]    // wind at red
-    [InlineData(25.0,  null,  null,  "red")]    // wind above red
-    [InlineData(null,  2.0,   null,  "red")]    // vis below red
-    [InlineData(null,  null,  500.0, "red")]    // cape at red
-    [InlineData(10.0,  null,  null,  "yellow")] // wind at yellow
-    [InlineData(null,  4.0,   null,  "yellow")] // vis below yellow
-    [InlineData(null,  null,  300.0, "yellow")] // cape at yellow
-    [InlineData(5.0,   10.0,  50.0,  "green")]  // all conditions good
+    [InlineData(15.0, null, null, "red")] // wind at red
+    [InlineData(25.0, null, null, "red")] // wind above red
+    [InlineData(null, 2.0, null, "red")] // vis below red
+    [InlineData(null, null, 500.0, "red")] // cape at red
+    [InlineData(10.0, null, null, "yellow")] // wind at yellow
+    [InlineData(null, 4.0, null, "yellow")] // vis below yellow
+    [InlineData(null, null, 300.0, "yellow")] // cape at yellow
+    [InlineData(5.0, 10.0, 50.0, "green")] // all conditions good
     public void Compute_VariousConditions_ReturnsExpectedResult(
         double? wind, double? vis, double? cape, string expected)
     {
         var sut = new GoNoGoService(null!);
-        var fp = FpWith(wind: wind, vis: vis, cape: cape);
+        var fp = FpWith(wind, vis, cape);
 
         Assert.Equal(expected, sut.Compute(fp, DefaultSettings));
     }

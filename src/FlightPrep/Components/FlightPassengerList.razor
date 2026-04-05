@@ -1,27 +1,28 @@
+@using System.Globalization
 @rendermode InteractiveServer
-@using FlightPrep.Services
 
 <div class="row g-3 mb-3">
     <div class="col-md-4">
         <label class="form-label">Gewicht envelop+brander+mand+flessen (kg)</label>
-        <input type="number" step="0.1" class="form-control" @bind="Fp.EnvelopeWeightKg" />
+        <input type="number" step="0.1" class="form-control" @bind="Fp.EnvelopeWeightKg"/>
     </div>
     <div class="col-md-3">
         <label class="form-label">Max Altitude (ft)</label>
-        <input type="number" class="form-control" @bind="Fp.MaxAltitudeFt" />
+        <input type="number" class="form-control" @bind="Fp.MaxAltitudeFt"/>
     </div>
     <div class="col-md-2">
         <label class="form-label">Lift units</label>
-        <input type="number" step="1" class="form-control" @bind="Fp.LiftUnits" />
+        <input type="number" step="1" class="form-control" @bind="Fp.LiftUnits"/>
     </div>
     <div class="col-md-3">
         <label class="form-label">Totaal lift (kg)</label>
         <div class="input-group">
-            <input type="number" step="0.1" class="form-control" @bind="Fp.TotaalLiftKg" />
+            <input type="number" step="0.1" class="form-control" @bind="Fp.TotaalLiftKg"/>
             <button class="btn btn-outline-primary" type="button"
                     disabled="@(!CanCalculateLift)"
                     @onclick="BerekenLift"
-                    title="Bereken lift via ISA formule">🧮 Bereken lift</button>
+                    title="Bereken lift via ISA formule">🧮 Bereken lift
+            </button>
         </div>
     </div>
 </div>
@@ -46,22 +47,26 @@
 
 @if (_liftResult is not null && CanCalculateLift)
 {
-    var _altM = Fp.MaxAltitudeFt!.Value * 0.3048;
-    var _Eg   = Fp.Location!.ElevationM!.Value;
-    var _Tg   = Fp.TemperatuurC!.Value;
-    var _Ti   = Fp.Balloon!.InternalEnvelopeTempC!.Value;
-    var _V    = Fp.Balloon!.VolumeM3!.Value;
+    var altM = Fp.MaxAltitudeFt!.Value * 0.3048;
+    var eg = Fp.Location!.ElevationM!.Value;
+    var tg = Fp.TemperatuurC!.Value;
+    var ti = Fp.Balloon!.InternalEnvelopeTempC!.Value;
+    var v = Fp.Balloon!.VolumeM3!.Value;
     <div class="alert alert-info py-2 mb-3 small">
-        🧮 ISA: Ta = @_liftResult.AmbientTempAtAltC.ToString("F1")°C  |  P = @_liftResult.PressureHpa.ToString("F1") hPa  →  <strong>@_liftResult.TotalLiftKg.ToString("F1") kg</strong>
+        🧮 ISA: Ta = @_liftResult.AmbientTempAtAltC.ToString("F1")°C | P = @_liftResult.PressureHpa.ToString("F1") hPa →
+        <strong>@_liftResult.TotalLiftKg.ToString("F1") kg</strong>
         <div class="fp-calc-steps mt-1">
             <small class="text-muted font-monospace d-block">
-                Stap 1 — Ta = @_Tg.ToString("F1")°C − (0,0065 × (@_altM.ToString("F0") − @_Eg.ToString("F0"))) = @_liftResult.AmbientTempAtAltC.ToString("F1")°C
+                Stap 1 — Ta = @tg.ToString("F1")°C − (0,0065 × (@altM.ToString("F0") − @eg.ToString("F0")))
+                = @_liftResult.AmbientTempAtAltC.ToString("F1")°C
             </small>
             <small class="text-muted font-monospace d-block">
-                Stap 2 — P = 1013,25 × (1 − (0,0065 × @_altM.ToString("F0")) / 288,15)^5,256 = @_liftResult.PressureHpa.ToString("F1") hPa
+                Stap 2 — P = 1013,25 × (1 − (0,0065 × @altM.ToString("F0")) / 288,15)^5,256
+                = @_liftResult.PressureHpa.ToString("F1") hPa
             </small>
             <small class="text-muted font-monospace d-block">
-                Stap 3 — L = 0,3484 × @_V.ToString("F0") × @_liftResult.PressureHpa.ToString("F1") × (1/(Ta+273,15) − 1/(@_Ti.ToString("F0")+273,15)) = @_liftResult.TotalLiftKg.ToString("F1") kg
+                Stap 3 — L = 0,3484 × @v.ToString("F0") × @_liftResult.PressureHpa.ToString("F1") × (1/(Ta+273,15) −
+                1/(@ti.ToString("F0")+273,15)) = @_liftResult.TotalLiftKg.ToString("F1") kg
             </small>
             <small class="text-muted fst-italic d-block mt-1">
                 ¹ Formule: Hot Air Balloon Flight Manual, Amendment 18, Appendix 2, p. A2-1 (Cameron Balloons Ltd.)
@@ -73,53 +78,53 @@
 <h6>Gewichten</h6>
 <table class="table table-sm table-bordered">
     <thead class="table-secondary">
-        <tr>
-            <th>Naam</th>
-            <th style="width:150px">Gewicht (kg)</th>
-            <th style="width:60px"></th>
-        </tr>
+    <tr>
+        <th>Naam</th>
+        <th style="width:150px">Gewicht (kg)</th>
+        <th style="width:60px"></th>
+    </tr>
     </thead>
     <tbody>
-        <!-- Pilot row (read-only) -->
-        <tr class="table-light">
+    <!-- Pilot row (read-only) -->
+    <tr class="table-light">
+        <td>
+            <em>Piloot: @(CurrentPilot?.Name ?? "–")</em>
+        </td>
+        <td>@(CurrentPilot?.WeightKg?.ToString("F1") ?? "–")</td>
+        <td></td>
+    </tr>
+    @for (var i = 0; i < Fp.Passengers.Count; i++)
+    {
+        var idx = i;
+        <tr>
             <td>
-                <em>Piloot: @(CurrentPilot?.Name ?? "–")</em>
+                <input type="text" class="form-control form-control-sm"
+                       placeholder="Naam passagier"
+                       value="@Fp.Passengers[idx].Name"
+                       @onchange="e => Fp.Passengers[idx].Name = e.Value?.ToString() ?? string.Empty"/>
             </td>
-            <td>@(CurrentPilot?.WeightKg?.ToString("F1") ?? "–")</td>
-            <td></td>
+            <td>
+                <input type="number" step="0.1" class="form-control form-control-sm"
+                       @bind="Fp.Passengers[idx].WeightKg"
+                       @bind:culture="System.Globalization.CultureInfo.InvariantCulture"/>
+            </td>
+            <td>
+                <button class="btn btn-sm btn-outline-danger" @onclick="() => RemovePassenger(idx)">✕</button>
+            </td>
         </tr>
-        @for (int i = 0; i < Fp.Passengers.Count; i++)
-        {
-            var idx = i;
-            <tr>
-                <td>
-                    <input type="text" class="form-control form-control-sm"
-                        placeholder="Naam passagier"
-                        value="@Fp.Passengers[idx].Name"
-                        @onchange="e => Fp.Passengers[idx].Name = e.Value?.ToString() ?? string.Empty" />
-                </td>
-                <td>
-                    <input type="number" step="0.1" class="form-control form-control-sm"
-                        @bind="Fp.Passengers[idx].WeightKg"
-                        @bind:culture="System.Globalization.CultureInfo.InvariantCulture" />
-                </td>
-                <td>
-                    <button class="btn btn-sm btn-outline-danger" @onclick="() => RemovePassenger(idx)">✕</button>
-                </td>
-            </tr>
-        }
+    }
     </tbody>
     <tfoot>
-        <tr>
-            <td colspan="3">
-                <button class="btn btn-sm btn-outline-success" @onclick="AddPassenger">+ Passagier toevoegen</button>
-            </td>
-        </tr>
-        <tr class="table-secondary fw-bold">
-            <td>Totaal gewicht</td>
-            <td>@(CalcTotalWeight().ToString("F1")) kg</td>
-            <td></td>
-        </tr>
+    <tr>
+        <td colspan="3">
+            <button class="btn btn-sm btn-outline-success" @onclick="AddPassenger">+ Passagier toevoegen</button>
+        </td>
+    </tr>
+    <tr class="table-secondary fw-bold">
+        <td>Totaal gewicht</td>
+        <td>@(CalcTotalWeight().ToString("F1")) kg</td>
+        <td></td>
+    </tr>
     </tfoot>
 </table>
 
@@ -137,7 +142,7 @@
             </div>
             <div class="fp-load-bar-wrap">
                 <div class="fp-load-bar @(liftOk ? "fp-load-bar-ok" : "fp-load-bar-warn")"
-                     style="width:@pct.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)%"></div>
+                     style="width:@pct.ToString("F0", CultureInfo.InvariantCulture)%"></div>
             </div>
         </div>
         @if (liftOk)
@@ -155,54 +160,3 @@
     <label class="form-label">Notities</label>
     <textarea class="form-control" rows="3" @bind="Fp.LoadNotes"></textarea>
 </div>
-
-@code {
-    /// <summary>The current flight being edited. Mutations are applied directly to this reference.</summary>
-    [Parameter] public FlightPreparation Fp { get; set; } = null!;
-
-    /// <summary>The currently selected pilot (for the read-only pilot weight row).</summary>
-    [Parameter] public Pilot? CurrentPilot { get; set; }
-
-    protected override void OnParametersSet() => ArgumentNullException.ThrowIfNull(Fp);
-
-    private void AddPassenger() =>
-        Fp.Passengers.Add(new Passenger { Order = Fp.Passengers.Count });
-
-    private void RemovePassenger(int index)
-    {
-        if (index >= 0 && index < Fp.Passengers.Count)
-            Fp.Passengers.RemoveAt(index);
-    }
-
-    /// <summary>Computes the total weight: envelope + pilot + all passengers.</summary>
-    public double CalcTotalWeight() =>
-        (Fp.EnvelopeWeightKg ?? 0)
-        + (CurrentPilot?.WeightKg ?? 0)
-        + (Fp.Passengers.Sum(p => p.WeightKg));
-
-    private LiftResult? _liftResult;
-
-    private bool CanCalculateLift =>
-        Fp.Balloon?.VolumeM3 > 0 &&
-        Fp.Balloon?.InternalEnvelopeTempC is >= 0 and <= 100 &&
-        Fp.Location?.ElevationM.HasValue == true &&
-        Fp.TemperatuurC.HasValue &&
-        Fp.MaxAltitudeFt.HasValue &&
-        Fp.MaxAltitudeFt * 0.3048 > Fp.Location!.ElevationM;
-
-    /// <summary>
-    /// Calculates total lift using the ISA formula (Cameron Flight Manual, Appendix 2)
-    /// and writes the result to Fp.TotaalLiftKg.
-    /// </summary>
-    private void BerekenLift()
-    {
-        if (!CanCalculateLift) return;
-        var A  = Fp.MaxAltitudeFt!.Value * 0.3048;
-        var Eg = Fp.Location!.ElevationM!.Value;
-        var Tg = Fp.TemperatuurC!.Value;
-        var Ti = Fp.Balloon!.InternalEnvelopeTempC!.Value;
-        var V  = Fp.Balloon!.VolumeM3!.Value;
-        _liftResult = LiftCalculator.Calculate(A, Eg, Tg, Ti, V);
-        Fp.TotaalLiftKg = _liftResult.TotalLiftKg;
-    }
-}

@@ -1,8 +1,8 @@
 @page "/settings/gonogo"
+@using FlightPrep.Domain.Models
+@using FlightPrep.Domain.Services
 @attribute [Authorize]
 @rendermode InteractiveServer
-@using FlightPrep.Models
-@using FlightPrep.Services
 @inject IGoNoGoService GoNoGoSvc
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthStateProvider
@@ -12,17 +12,17 @@
 <div class="container py-4" style="max-width:640px">
     <h3>⚙️ Go/No-Go Instellingen</h3>
     <p class="text-muted small">
-        Stel de drempelwaarden in voor de automatische Go/No-Go indicator. 
+        Stel de drempelwaarden in voor de automatische Go/No-Go indicator.
         De indicator wordt bepaald op basis van windsnelheid, zichtbaarheid en CAPE.
         De <strong>slechtste</strong> parameter wint.
     </p>
 
-    @if (saved)
+    @if (_saved)
     {
         <div class="alert alert-success py-2">✅ Instellingen opgeslagen.</div>
     }
 
-    @if (settings != null)
+    @if (_settings != null)
     {
         <div class="card mb-4">
             <div class="card-header fw-bold">💨 Windsnelheid (kt)</div>
@@ -31,13 +31,13 @@
                     <div class="col-sm-6">
                         <label class="form-label">🟡 Geel vanaf (kt)</label>
                         <input type="number" step="0.5" min="0" class="form-control"
-                               @bind="settings.WindYellowKt" />
+                               @bind="_settings.WindYellowKt"/>
                         <div class="form-text">Voorzichtig — verhoogd risico</div>
                     </div>
                     <div class="col-sm-6">
                         <label class="form-label">🔴 Rood vanaf (kt)</label>
                         <input type="number" step="0.5" min="0" class="form-control"
-                               @bind="settings.WindRedKt" />
+                               @bind="_settings.WindRedKt"/>
                         <div class="form-text">No-Go — te winderig</div>
                     </div>
                 </div>
@@ -51,13 +51,13 @@
                     <div class="col-sm-6">
                         <label class="form-label">🟡 Geel onder (km)</label>
                         <input type="number" step="0.5" min="0" class="form-control"
-                               @bind="settings.VisYellowKm" />
+                               @bind="_settings.VisYellowKm"/>
                         <div class="form-text">Voorzichtig</div>
                     </div>
                     <div class="col-sm-6">
                         <label class="form-label">🔴 Rood onder (km)</label>
                         <input type="number" step="0.5" min="0" class="form-control"
-                               @bind="settings.VisRedKm" />
+                               @bind="_settings.VisRedKm"/>
                         <div class="form-text">No-Go — te weinig zicht</div>
                     </div>
                 </div>
@@ -71,13 +71,13 @@
                     <div class="col-sm-6">
                         <label class="form-label">🟡 Geel vanaf (J/kg)</label>
                         <input type="number" step="10" min="0" class="form-control"
-                               @bind="settings.CapeYellowJkg" />
+                               @bind="_settings.CapeYellowJkg"/>
                         <div class="form-text">Verhoogd convectierisico</div>
                     </div>
                     <div class="col-sm-6">
                         <label class="form-label">🔴 Rood vanaf (J/kg)</label>
                         <input type="number" step="10" min="0" class="form-control"
-                               @bind="settings.CapeRedJkg" />
+                               @bind="_settings.CapeRedJkg"/>
                         <div class="form-text">No-Go — onweer risico</div>
                     </div>
                 </div>
@@ -90,27 +90,32 @@
             <div class="card-body p-0">
                 <table class="table table-sm mb-0">
                     <thead class="table-light">
-                        <tr><th>Parameter</th><th>🟢 GO</th><th>🟡 Caution</th><th>🔴 No-Go</th></tr>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>🟢 GO</th>
+                        <th>🟡 Caution</th>
+                        <th>🔴 No-Go</th>
+                    </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>Wind</td>
-                            <td>&lt; @settings.WindYellowKt kt</td>
-                            <td>@settings.WindYellowKt – @settings.WindRedKt kt</td>
-                            <td>≥ @settings.WindRedKt kt</td>
-                        </tr>
-                        <tr>
-                            <td>Zichtbaarheid</td>
-                            <td>≥ @settings.VisYellowKm km</td>
-                            <td>@settings.VisRedKm – @settings.VisYellowKm km</td>
-                            <td>&lt; @settings.VisRedKm km</td>
-                        </tr>
-                        <tr>
-                            <td>CAPE</td>
-                            <td>≤ @settings.CapeYellowJkg J/kg</td>
-                            <td>@settings.CapeYellowJkg – @settings.CapeRedJkg J/kg</td>
-                            <td>&gt; @settings.CapeRedJkg J/kg</td>
-                        </tr>
+                    <tr>
+                        <td>Wind</td>
+                        <td>&lt; @_settings.WindYellowKt kt</td>
+                        <td>@_settings.WindYellowKt – @_settings.WindRedKt kt</td>
+                        <td>≥ @_settings.WindRedKt kt</td>
+                    </tr>
+                    <tr>
+                        <td>Zichtbaarheid</td>
+                        <td>≥ @_settings.VisYellowKm km</td>
+                        <td>@_settings.VisRedKm – @_settings.VisYellowKm km</td>
+                        <td>&lt; @_settings.VisRedKm km</td>
+                    </tr>
+                    <tr>
+                        <td>CAPE</td>
+                        <td>≤ @_settings.CapeYellowJkg J/kg</td>
+                        <td>@_settings.CapeYellowJkg – @_settings.CapeRedJkg J/kg</td>
+                        <td>&gt; @_settings.CapeRedJkg J/kg</td>
+                    </tr>
                     </tbody>
                 </table>
             </div>
@@ -122,32 +127,3 @@
         </div>
     }
 </div>
-
-@code {
-    private GoNoGoSettings? settings;
-    private bool saved;
-    private string? _userId;
-
-    protected override async Task OnInitializedAsync()
-    {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        _userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        settings = await GoNoGoSvc.GetSettingsAsync(_userId);
-    }
-
-    private async Task Save()
-    {
-        if (settings == null || _userId == null) return;
-        await GoNoGoSvc.SaveSettingsAsync(settings, _userId);
-        saved = true;
-        StateHasChanged();
-        await Task.Delay(2500);
-        saved = false;
-    }
-
-    private void Reset()
-    {
-        settings = new GoNoGoSettings();
-        saved = false;
-    }
-}

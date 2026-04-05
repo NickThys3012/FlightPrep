@@ -1,4 +1,4 @@
-using FlightPrep.Data;
+using FlightPrep.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -9,15 +9,9 @@ public class LogoutModel : PageModel
 {
     private readonly SignInManager<ApplicationUser> _signInManager;
 
-    public LogoutModel(SignInManager<ApplicationUser> signInManager)
-    {
-        _signInManager = signInManager;
-    }
+    public LogoutModel(SignInManager<ApplicationUser> signInManager) => _signInManager = signInManager;
 
-    public IActionResult OnGet()
-    {
-        return LocalRedirect("/");
-    }
+    public IActionResult OnGet() => LocalRedirect("/");
 
     public async Task<IActionResult> OnPostAsync()
     {

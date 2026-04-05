@@ -1,4 +1,6 @@
-namespace FlightPrep.Services;
+using FlightPrep.Domain.Services;
+
+namespace FlightPrep.Infrastructure.Services;
 
 public class WeatherService(HttpClient http) : IWeatherService
 {

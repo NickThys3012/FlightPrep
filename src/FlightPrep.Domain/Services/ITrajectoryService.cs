@@ -1,7 +1,7 @@
-using FlightPrep.Models;
-using FlightPrep.Models.Trajectory;
+using FlightPrep.Domain.Models;
+using FlightPrep.Domain.Models.Trajectory;
 
-namespace FlightPrep.Services;
+namespace FlightPrep.Domain.Services;
 
 public interface ITrajectoryService
 {

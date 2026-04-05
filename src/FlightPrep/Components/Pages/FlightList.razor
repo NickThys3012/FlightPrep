@@ -1,9 +1,9 @@
 @page "/flights"
+@using FlightPrep.Domain.Services
 @attribute [Authorize]
 @rendermode InteractiveServer
 @inject IFlightPreparationService FpSvc
 @inject AuthenticationStateProvider AuthStateProvider
-@inject NavigationManager Nav
 @inject IGoNoGoService GoNoGoSvc
 
 <PageTitle>Vaarten – FlightPrep</PageTitle>
@@ -13,11 +13,11 @@
     <a href="/flights/new" class="btn btn-primary">✈️ Nieuwe Vaart</a>
 </div>
 
-@if (flights == null)
+@if (_flights == null)
 {
     <p class="text-muted"><em>Laden...</em></p>
 }
-else if (!flights.Any())
+else if (!_flights.Any())
 {
     <div class="fp-card">
         <div class="fp-empty-state">
@@ -33,43 +33,44 @@ else
     <div class="fp-card p-0 overflow-hidden">
         <table class="table mb-0">
             <thead>
-                <tr>
-                    <th style="cursor:pointer" @onclick="() => ToggleSort()">
-                        Datum @(sortDesc ? "▼" : "▲")
-                    </th>
-                    <th>Tijdstip</th>
-                    <th>Ballon</th>
-                    <th>Piloot</th>
-                    <th>Locatie</th>
-                    <th>Status</th>
-                    <th>Acties</th>
-                </tr>
+            <tr>
+                <th style="cursor:pointer" @onclick="ToggleSort">
+                    Datum @(_sortDesc ? "▼" : "▲")
+                </th>
+                <th>Tijdstip</th>
+                <th>Ballon</th>
+                <th>Piloot</th>
+                <th>Locatie</th>
+                <th>Status</th>
+                <th>Acties</th>
+            </tr>
             </thead>
             <tbody>
-                @foreach (var f in PagedFlights)
-                {
-                    <tr>
-                        <td class="fw-semibold">@f.Datum.ToString("dd/MM/yyyy")</td>
-                        <td>@f.Tijdstip.ToString("HH:mm")</td>
-                        <td>@(f.BalloonRegistration ?? "–")</td>
-                        <td>@(f.PilotName ?? "–")</td>
-                        <td>@(f.LocationName ?? "–")</td>
-                        <td>
-                            <FlightGoNoGoBadge GoNoGoResult="@GetGoNoGo(f)" />
-                            @if (f.IsFlown)
-                            {
-                                <span class="badge bg-success ms-1">Gevlogen</span>
-                            }
-                        </td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <a href="/flights/@f.Id" class="btn btn-outline-primary">Bekijken</a>
-                                <a href="/flights/@f.Id/edit" class="btn btn-outline-secondary">Bewerken</a>
-                                <button class="btn btn-outline-danger" @onclick="() => ConfirmDelete(f.Id)">Verwijder</button>
-                            </div>
-                        </td>
-                    </tr>
-                }
+            @foreach (var f in PagedFlights)
+            {
+                <tr>
+                    <td class="fw-semibold">@f.Datum.ToString("dd/MM/yyyy")</td>
+                    <td>@f.Tijdstip.ToString("HH:mm")</td>
+                    <td>@(f.BalloonRegistration ?? "–")</td>
+                    <td>@(f.PilotName ?? "–")</td>
+                    <td>@(f.LocationName ?? "–")</td>
+                    <td>
+                        <FlightGoNoGoBadge GoNoGoResult="@GetGoNoGo(f)"/>
+                        @if (f.IsFlown)
+                        {
+                            <span class="badge bg-success ms-1">Gevlogen</span>
+                        }
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="/flights/@f.Id" class="btn btn-outline-primary">Bekijken</a>
+                            <a href="/flights/@f.Id/edit" class="btn btn-outline-secondary">Bewerken</a>
+                            <button class="btn btn-outline-danger" @onclick="() => ConfirmDelete(f.Id)">Verwijder
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            }
             </tbody>
         </table>
     </div>
@@ -78,25 +79,25 @@ else
     {
         <nav class="mt-3 d-flex justify-content-center">
             <ul class="pagination pagination-sm">
-                <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                    <button class="page-link" @onclick="() => currentPage--">‹</button>
+                <li class="page-item @(_currentPage == 1 ? "disabled" : "")">
+                    <button class="page-link" @onclick="() => _currentPage--">‹</button>
                 </li>
-                @for (int p = 1; p <= TotalPages; p++)
+                @for (var p = 1; p <= TotalPages; p++)
                 {
                     var pg = p;
-                    <li class="page-item @(currentPage == pg ? "active" : "")">
-                        <button class="page-link" @onclick="() => currentPage = pg">@pg</button>
+                    <li class="page-item @(_currentPage == pg ? "active" : "")">
+                        <button class="page-link" @onclick="() => _currentPage = pg">@pg</button>
                     </li>
                 }
-                <li class="page-item @(currentPage == TotalPages ? "disabled" : "")">
-                    <button class="page-link" @onclick="() => currentPage++">›</button>
+                <li class="page-item @(_currentPage == TotalPages ? "disabled" : "")">
+                    <button class="page-link" @onclick="() => _currentPage++">›</button>
                 </li>
             </ul>
         </nav>
     }
 }
 
-@if (deleteId.HasValue)
+@if (_deleteId.HasValue)
 {
     <div class="modal d-block" tabindex="-1">
         <div class="modal-dialog">
@@ -109,63 +110,10 @@ else
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-danger" @onclick="DeleteFlight">Verwijderen</button>
-                    <button class="btn btn-secondary" @onclick="() => deleteId = null">Annuleren</button>
+                    <button class="btn btn-secondary" @onclick="() => _deleteId = null">Annuleren</button>
                 </div>
             </div>
         </div>
     </div>
     <div class="modal-backdrop fade show"></div>
-}
-
-@code {
-    private List<FlightPreparationSummary>? flights;
-    private GoNoGoSettings _goNoGoSettings = new();
-    private int? deleteId;
-    private bool sortDesc = true;
-    private int currentPage = 1;
-    private const int PageSize = 20;
-    private string? _userId;
-    private bool _isAdmin;
-
-    private IEnumerable<FlightPreparationSummary> SortedFlights =>
-        sortDesc
-            ? flights!.OrderByDescending(f => f.Datum).ThenByDescending(f => f.Tijdstip)
-            : flights!.OrderBy(f => f.Datum).ThenBy(f => f.Tijdstip);
-
-    private int TotalPages => (int)Math.Ceiling((flights?.Count ?? 0) / (double)PageSize);
-
-    private IEnumerable<FlightPreparationSummary> PagedFlights =>
-        SortedFlights.Skip((currentPage - 1) * PageSize).Take(PageSize);
-
-    private void ToggleSort()
-    {
-        sortDesc = !sortDesc;
-        currentPage = 1;
-    }
-
-    protected override async Task OnInitializedAsync() => await LoadFlights();
-
-    private string GetGoNoGo(FlightPreparationSummary f) =>
-        GoNoGoSvc.Compute(f.SurfaceWindSpeedKt, f.ZichtbaarheidKm, f.CapeJkg, _goNoGoSettings);
-
-    private async Task LoadFlights()
-    {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        _userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        _isAdmin = authState.User.IsInRole("Admin");
-
-        _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync(_userId);
-
-        flights = await FpSvc.GetSummariesAsync(_userId, _isAdmin);
-    }
-
-    private void ConfirmDelete(int id) => deleteId = id;
-
-    private async Task DeleteFlight()
-    {
-        if (!deleteId.HasValue) return;
-        await FpSvc.DeleteAsync(deleteId.Value);
-        deleteId = null;
-        await LoadFlights();
-    }
 }

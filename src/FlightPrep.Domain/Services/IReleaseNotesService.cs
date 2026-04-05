@@ -1,6 +1,6 @@
-using FlightPrep.Models.ReleaseNotes;
+using FlightPrep.Domain.Models.ReleaseNotes;
 
-namespace FlightPrep.Services;
+namespace FlightPrep.Domain.Services;
 
 public interface IReleaseNotesService
 {

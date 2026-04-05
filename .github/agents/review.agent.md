@@ -37,23 +37,23 @@ Review the open PR on this branch for breaking changes and security issues.
 
 ### 🔴 Must fix before merge
 
-| Category | What to look for |
-|----------|-----------------|
-| **Crashes** | Unguarded `.First()` / `.Last()` on runtime data (API responses, DB results) |
-| **Divide-by-zero** | Any division where the divisor comes from user input or config |
-| **Null dereference** | `!` null-forgiving operators on values that could be null at runtime |
-| **Security** | Credentials, API keys, passwords in any committed file |
-| **Silent data loss** | Missing `await` on async calls, fire-and-forget writes to DB |
+| Category             | What to look for                                                             |
+|----------------------|------------------------------------------------------------------------------|
+| **Crashes**          | Unguarded `.First()` / `.Last()` on runtime data (API responses, DB results) |
+| **Divide-by-zero**   | Any division where the divisor comes from user input or config               |
+| **Null dereference** | `!` null-forgiving operators on values that could be null at runtime         |
+| **Security**         | Credentials, API keys, passwords in any committed file                       |
+| **Silent data loss** | Missing `await` on async calls, fire-and-forget writes to DB                 |
 
 ### 🟡 Should fix (flag but don't block)
 
-| Category | What to look for |
-|----------|-----------------|
-| **Swallowed exceptions** | Empty `catch {}` or `catch { return false; }` without logging |
-| **Fragile selectors** | Hardcoded CSS selectors in `SkeyesBulletinService.cs` |
-| **Missing validation** | Numeric inputs not checked for sensible bounds before use |
-| **Async misuse** | `.Result`, `.Wait()`, `Task.Run` wrapping sync code unnecessarily |
-| **EF Core risks** | `.FirstAsync()` without a null check on the result |
+| Category                 | What to look for                                                  |
+|--------------------------|-------------------------------------------------------------------|
+| **Swallowed exceptions** | Empty `catch {}` or `catch { return false; }` without logging     |
+| **Fragile selectors**    | Hardcoded CSS selectors in `SkeyesBulletinService.cs`             |
+| **Missing validation**   | Numeric inputs not checked for sensible bounds before use         |
+| **Async misuse**         | `.Result`, `.Wait()`, `Task.Run` wrapping sync code unnecessarily |
+| **EF Core risks**        | `.FirstAsync()` without a null check on the result                |
 
 ---
 
@@ -84,6 +84,7 @@ Fix: <concrete code suggestion>
 ```
 
 If the review is clean:
+
 ```
 ✅ No issues found. Safe to merge.
 ```
@@ -96,6 +97,7 @@ If the review is clean:
 - If clean: **"Ready to test? Run `copilot` from `agents/testing/`."**
 
 For PRs, you can post the review directly:
+
 ```bash
 gh pr review --repo NickThys3012/FlightPrep --comment --body "..."
 gh pr review --repo NickThys3012/FlightPrep --approve

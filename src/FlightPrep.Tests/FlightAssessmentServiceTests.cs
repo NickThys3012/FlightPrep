@@ -1,5 +1,6 @@
-using FlightPrep.Data;
-using FlightPrep.Models;
+using FlightPrep.Domain.Models;
+using FlightPrep.Domain.Services;
+using FlightPrep.Infrastructure.Data;
 using FlightPrep.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -9,18 +10,18 @@ using Moq;
 namespace FlightPrep.Tests;
 
 /// <summary>
-/// Tests for <see cref="FlightAssessmentService"/> — both the synchronous
-/// <c>Compute(fp, settings)</c> overload and the async <c>ComputeAsync(fp)</c>
-/// overload that loads settings from the database.
+///     Tests for <see cref="FlightAssessmentService" /> — both the synchronous
+///     <c>Compute(fp, settings)</c> overload and the async <c>ComputeAsync(fp)</c>
+///     overload that loads settings from the database.
 /// </summary>
 public class FlightAssessmentServiceTests
 {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Builds a <see cref="FlightAssessmentService"/> backed by a mock
-    /// <see cref="IGoNoGoService"/> whose <c>Compute</c> overload returns
-    /// the supplied <paramref name="goNoGoResult"/>.
+    ///     Builds a <see cref="FlightAssessmentService" /> backed by a mock
+    ///     <see cref="IGoNoGoService" /> whose <c>Compute</c> overload returns
+    ///     the supplied <paramref name="goNoGoResult" />.
     /// </summary>
     private static FlightAssessmentService BuildSut(string goNoGoResult = "green")
     {
@@ -35,9 +36,9 @@ public class FlightAssessmentServiceTests
     }
 
     /// <summary>
-    /// Builds a <see cref="FlightAssessmentService"/> backed by the real
-    /// <see cref="GoNoGoService"/> with a null db factory (safe because only
-    /// the synchronous <c>Compute</c> path is exercised).
+    ///     Builds a <see cref="FlightAssessmentService" /> backed by the real
+    ///     <see cref="GoNoGoService" /> with a null db factory (safe because only
+    ///     the synchronous <c>Compute</c> path is exercised).
     /// </summary>
     private static FlightAssessmentService BuildSutWithRealGoNoGo()
         => new(new GoNoGoService(null!));
@@ -51,9 +52,9 @@ public class FlightAssessmentServiceTests
         var services = new ServiceCollection();
         services.AddDbContextFactory<AppDbContext>(o =>
             o.UseInMemoryDatabase(dbName)
-             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
         return services.BuildServiceProvider()
-                       .GetRequiredService<IDbContextFactory<AppDbContext>>();
+            .GetRequiredService<IDbContextFactory<AppDbContext>>();
     }
 
     // ── TotaalGewicht: sync Compute ───────────────────────────────────────────
@@ -63,12 +64,7 @@ public class FlightAssessmentServiceTests
     {
         // Arrange
         var sut = BuildSut();
-        var fp = new FlightPreparation
-        {
-            EnvelopeWeightKg = 200,
-            Pilot            = new Pilot { WeightKg = 80 },
-            TotaalLiftKg     = 1000
-        };
+        var fp = new FlightPreparation { EnvelopeWeightKg = 200, Pilot = new Pilot { WeightKg = 80 }, TotaalLiftKg = 1000 };
         fp.Passengers.Add(new Passenger { WeightKg = 70 });
         fp.Passengers.Add(new Passenger { WeightKg = 65 });
 
@@ -111,14 +107,9 @@ public class FlightAssessmentServiceTests
     [Fact]
     public void Compute_PilotWithNullWeight_TreatsAsPilotWeightZero()
     {
-        // Arrange — pilot exists but WeightKg is null
+        // Arrange — pilot exists, but WeightKg is null
         var sut = BuildSut();
-        var fp = new FlightPreparation
-        {
-            EnvelopeWeightKg = 100,
-            Pilot            = new Pilot { WeightKg = null },
-            TotaalLiftKg     = 500
-        };
+        var fp = new FlightPreparation { EnvelopeWeightKg = 100, Pilot = new Pilot { WeightKg = null }, TotaalLiftKg = 500 };
 
         // Act
         var result = sut.Compute(fp, DefaultSettings());
@@ -134,11 +125,7 @@ public class FlightAssessmentServiceTests
     {
         // Arrange
         var sut = BuildSut();
-        var fp = new FlightPreparation
-        {
-            EnvelopeWeightKg = 100,
-            TotaalLiftKg     = 500
-        };
+        var fp = new FlightPreparation { EnvelopeWeightKg = 100, TotaalLiftKg = 500 };
 
         // Act
         var result = sut.Compute(fp, DefaultSettings());
@@ -152,11 +139,7 @@ public class FlightAssessmentServiceTests
     {
         // Arrange
         var sut = BuildSut();
-        var fp = new FlightPreparation
-        {
-            EnvelopeWeightKg = 600,
-            TotaalLiftKg     = 400
-        };
+        var fp = new FlightPreparation { EnvelopeWeightKg = 600, TotaalLiftKg = 400 };
 
         // Act
         var result = sut.Compute(fp, DefaultSettings());
@@ -168,13 +151,9 @@ public class FlightAssessmentServiceTests
     [Fact]
     public void Compute_LiftEqualToWeight_ReturnsLiftVoldoendeFalse()
     {
-        // Arrange — strict greater-than: equal is NOT sufficient
+        // Arrange — strict greater-than: equal is NOT enough
         var sut = BuildSut();
-        var fp = new FlightPreparation
-        {
-            EnvelopeWeightKg = 300,
-            TotaalLiftKg     = 300
-        };
+        var fp = new FlightPreparation { EnvelopeWeightKg = 300, TotaalLiftKg = 300 };
 
         // Act
         var result = sut.Compute(fp, DefaultSettings());
@@ -188,11 +167,7 @@ public class FlightAssessmentServiceTests
     {
         // Arrange
         var sut = BuildSut();
-        var fp = new FlightPreparation
-        {
-            EnvelopeWeightKg = 100,
-            TotaalLiftKg     = null
-        };
+        var fp = new FlightPreparation { EnvelopeWeightKg = 100, TotaalLiftKg = null };
 
         // Act
         var result = sut.Compute(fp, DefaultSettings());
@@ -208,7 +183,7 @@ public class FlightAssessmentServiceTests
     {
         // Arrange — real GoNoGoService, wind 20 > default red (15 kt)
         var sut = BuildSutWithRealGoNoGo();
-        var fp  = new FlightPreparation { SurfaceWindSpeedKt = 20, TotaalLiftKg = 1000 };
+        var fp = new FlightPreparation { SurfaceWindSpeedKt = 20, TotaalLiftKg = 1000 };
 
         // Act
         var result = sut.Compute(fp, DefaultSettings());
@@ -222,7 +197,7 @@ public class FlightAssessmentServiceTests
     {
         // Arrange — wind 12 is between yellow (10) and red (15)
         var sut = BuildSutWithRealGoNoGo();
-        var fp  = new FlightPreparation { SurfaceWindSpeedKt = 12, TotaalLiftKg = 1000 };
+        var fp = new FlightPreparation { SurfaceWindSpeedKt = 12, TotaalLiftKg = 1000 };
 
         // Act
         var result = sut.Compute(fp, DefaultSettings());
@@ -236,13 +211,7 @@ public class FlightAssessmentServiceTests
     {
         // Arrange
         var sut = BuildSutWithRealGoNoGo();
-        var fp  = new FlightPreparation
-        {
-            SurfaceWindSpeedKt = 5,
-            ZichtbaarheidKm    = 15,
-            CapeJkg            = 50,
-            TotaalLiftKg       = 1000
-        };
+        var fp = new FlightPreparation { SurfaceWindSpeedKt = 5, ZichtbaarheidKm = 15, CapeJkg = 50, TotaalLiftKg = 1000 };
 
         // Act
         var result = sut.Compute(fp, DefaultSettings());
@@ -256,7 +225,7 @@ public class FlightAssessmentServiceTests
     {
         // Arrange
         var sut = BuildSutWithRealGoNoGo();
-        var fp  = new FlightPreparation { TotaalLiftKg = 1000 };
+        var fp = new FlightPreparation { TotaalLiftKg = 1000 };
 
         // Act
         var result = sut.Compute(fp, DefaultSettings());
@@ -269,8 +238,8 @@ public class FlightAssessmentServiceTests
     public void Compute_MockedGoNoGoReturnsRed_AssessmentReflectsRed()
     {
         // Arrange — mock ensures GoNoGo == "red" regardless of inputs
-        var sut = BuildSut(goNoGoResult: "red");
-        var fp  = new FlightPreparation { TotaalLiftKg = 500, EnvelopeWeightKg = 100 };
+        var sut = BuildSut("red");
+        var fp = new FlightPreparation { TotaalLiftKg = 500, EnvelopeWeightKg = 100 };
 
         // Act
         var result = sut.Compute(fp, DefaultSettings());
@@ -297,7 +266,7 @@ public class FlightAssessmentServiceTests
     {
         // Arrange
         var sut = BuildSut();
-        var fp  = new FlightPreparation();
+        var fp = new FlightPreparation();
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
@@ -307,9 +276,9 @@ public class FlightAssessmentServiceTests
     // ── Custom settings: sync Compute ─────────────────────────────────────────
 
     /// <summary>
-    /// Regression for bug #23 — GoNoGo was ignoring pilot-configured
-    /// GoNoGoSettings and using hardcoded thresholds.
-    /// Wind = 10 kt must be "red" with a custom red threshold of 8 kt.
+    ///     Regression for bug #23 — GoNoGo was ignoring pilot-configured
+    ///     GoNoGoSettings and using hardcoded thresholds.
+    ///     Wind = 10 kt must be "red" with a custom red threshold of 8 kt.
     /// </summary>
     [Fact]
     public void Compute_CustomSettings_RespectsCustomThresholds()
@@ -317,15 +286,15 @@ public class FlightAssessmentServiceTests
         // Arrange — custom red at 8 kt (stricter than default 15 kt)
         var customSettings = new GoNoGoSettings
         {
-            WindYellowKt  = 5,
-            WindRedKt     = 8,
-            VisYellowKm   = 10,
-            VisRedKm      = 5,
+            WindYellowKt = 5,
+            WindRedKt = 8,
+            VisYellowKm = 10,
+            VisRedKm = 5,
             CapeYellowJkg = 200,
-            CapeRedJkg    = 400
+            CapeRedJkg = 400
         };
         var sut = BuildSutWithRealGoNoGo();
-        var fp  = new FlightPreparation { SurfaceWindSpeedKt = 10, TotaalLiftKg = 1000 };
+        var fp = new FlightPreparation { SurfaceWindSpeedKt = 10, TotaalLiftKg = 1000 };
 
         // Act
         var result = sut.Compute(fp, customSettings);
@@ -341,7 +310,7 @@ public class FlightAssessmentServiceTests
     {
         // Arrange — use a real GoNoGoService backed by an in-memory DB
         var factory = CreateDbFactory(nameof(ComputeAsync_NullFlightPreparation_Throws));
-        var sut     = new FlightAssessmentService(new GoNoGoService(factory));
+        var sut = new FlightAssessmentService(new GoNoGoService(factory));
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(() =>
@@ -353,15 +322,15 @@ public class FlightAssessmentServiceTests
     {
         // Arrange — empty DB; GoNoGoService.GetSettingsAsync returns new GoNoGoSettings()
         var factory = CreateDbFactory(nameof(ComputeAsync_NoSettingsInDb_UsesDefaultSettings));
-        var sut     = new FlightAssessmentService(new GoNoGoService(factory));
-        var fp      = new FlightPreparation
+        var sut = new FlightAssessmentService(new GoNoGoService(factory));
+        var fp = new FlightPreparation
         {
-            EnvelopeWeightKg   = 100,
-            Pilot              = new Pilot { WeightKg = 80 },
+            EnvelopeWeightKg = 100,
+            Pilot = new Pilot { WeightKg = 80 },
             SurfaceWindSpeedKt = 5,
-            ZichtbaarheidKm    = 20,
-            CapeJkg            = 50,
-            TotaalLiftKg       = 1000
+            ZichtbaarheidKm = 20,
+            CapeJkg = 50,
+            TotaalLiftKg = 1000
         };
         fp.Passengers.Add(new Passenger { WeightKg = 60 });
 
@@ -377,28 +346,23 @@ public class FlightAssessmentServiceTests
     [Fact]
     public async Task ComputeAsync_WithSettingsInDb_UsesPersistedSettings()
     {
-        // Arrange — save custom thresholds so red threshold is 8 kt
-        var factory    = CreateDbFactory(nameof(ComputeAsync_WithSettingsInDb_UsesPersistedSettings));
-        var goNoGoSvc  = new GoNoGoService(factory);
-        var sut        = new FlightAssessmentService(goNoGoSvc);
+        // Arrange — save custom thresholds so a red threshold is 8 kt
+        var factory = CreateDbFactory(nameof(ComputeAsync_WithSettingsInDb_UsesPersistedSettings));
+        var goNoGoSvc = new GoNoGoService(factory);
+        var sut = new FlightAssessmentService(goNoGoSvc);
 
         await goNoGoSvc.SaveSettingsAsync(new GoNoGoSettings
         {
-            WindYellowKt  = 5,
-            WindRedKt     = 8,
-            VisYellowKm   = 10,
-            VisRedKm      = 5,
+            WindYellowKt = 5,
+            WindRedKt = 8,
+            VisYellowKm = 10,
+            VisRedKm = 5,
             CapeYellowJkg = 200,
             CapeRedJkg    = 400
         }, null);
 
         // Wind = 10 kt exceeds custom red (8) → should be "red"
-        var fp = new FlightPreparation
-        {
-            SurfaceWindSpeedKt = 10,
-            TotaalLiftKg       = 500,
-            EnvelopeWeightKg   = 100
-        };
+        var fp = new FlightPreparation { SurfaceWindSpeedKt = 10, TotaalLiftKg = 500, EnvelopeWeightKg = 100 };
 
         // Act
         var result = await sut.ComputeAsync(fp);
@@ -412,12 +376,8 @@ public class FlightAssessmentServiceTests
     {
         // Arrange
         var factory = CreateDbFactory(nameof(ComputeAsync_NullLift_ReturnsLiftVoldoendeFalse));
-        var sut     = new FlightAssessmentService(new GoNoGoService(factory));
-        var fp      = new FlightPreparation
-        {
-            EnvelopeWeightKg = 100,
-            TotaalLiftKg     = null
-        };
+        var sut = new FlightAssessmentService(new GoNoGoService(factory));
+        var fp = new FlightPreparation { EnvelopeWeightKg = 100, TotaalLiftKg = null };
 
         // Act
         var result = await sut.ComputeAsync(fp);
@@ -434,18 +394,13 @@ public class FlightAssessmentServiceTests
         var goNoGoSvc = new GoNoGoService(factory);
         var sut = new FlightAssessmentService(goNoGoSvc);
 
-        var fp = new FlightPreparation
-        {
-            EnvelopeWeightKg = 180,
-            Pilot            = new Pilot { WeightKg = 75 },
-            TotaalLiftKg     = 800
-        };
+        var fp = new FlightPreparation { EnvelopeWeightKg = 180, Pilot = new Pilot { WeightKg = 75 }, TotaalLiftKg = 800 };
         fp.Passengers.Add(new Passenger { WeightKg = 70 });
         fp.Passengers.Add(new Passenger { WeightKg = 55 });
 
         // Act
         var asyncResult = await sut.ComputeAsync(fp);
-        var syncResult  = sut.Compute(fp, new GoNoGoSettings());
+        var syncResult = sut.Compute(fp, new GoNoGoSettings());
 
         // Assert — same weight regardless of overload
         Assert.Equal(syncResult.TotaalGewicht, asyncResult.TotaalGewicht);
@@ -456,8 +411,8 @@ public class FlightAssessmentServiceTests
     {
         // Arrange — no wind/vis/cape → "unknown"
         var factory = CreateDbFactory(nameof(ComputeAsync_NoMeteoData_ReturnsGoNoGoUnknown));
-        var sut     = new FlightAssessmentService(new GoNoGoService(factory));
-        var fp      = new FlightPreparation { TotaalLiftKg = 500, EnvelopeWeightKg = 100 };
+        var sut = new FlightAssessmentService(new GoNoGoService(factory));
+        var fp = new FlightPreparation { TotaalLiftKg = 500, EnvelopeWeightKg = 100 };
 
         // Act
         var result = await sut.ComputeAsync(fp);

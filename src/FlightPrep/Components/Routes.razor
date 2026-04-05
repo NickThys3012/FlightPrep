@@ -1,15 +1,16 @@
-﻿<CascadingAuthenticationState>
-    <Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+﻿@using FlightPrep.Components.Pages
+<CascadingAuthenticationState>
+    <Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(NotFound)">
         <Found Context="routeData">
-            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)">
                 <NotAuthorized>
-                    <RedirectToLogin />
+                    <RedirectToLogin/>
                 </NotAuthorized>
                 <Authorizing>
                     <p>Checking authorization…</p>
                 </Authorizing>
             </AuthorizeRouteView>
-            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+            <FocusOnNavigate RouteData="routeData" Selector="h1"/>
         </Found>
     </Router>
 </CascadingAuthenticationState>

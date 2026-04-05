@@ -1,6 +1,5 @@
+using FlightPrep.Infrastructure.Services;
 using System.Net;
-using FlightPrep.Services;
-using Moq;
 
 namespace FlightPrep.Tests;
 
@@ -16,8 +15,8 @@ public class WeatherServiceTests
     public async Task FetchAsync_ValidIcao_ReturnsTrimmedMetarAndTaf()
     {
         var handler = new MockWeatherHandler(
-            metar: "  EBBR 261020Z 22010KT  ",
-            taf: "  TAF EBBR 261000Z  ");
+            "  EBBR 261020Z 22010KT  ",
+            "  TAF EBBR 261000Z  ");
         var sut = BuildWithHandler(handler);
 
         var (metar, taf) = await sut.FetchAsync("EBBR");
@@ -29,7 +28,7 @@ public class WeatherServiceTests
     [Fact]
     public async Task FetchAsync_EmptyMetarResponse_ReturnsNullMetar()
     {
-        var handler = new MockWeatherHandler(metar: "   ", taf: "TAF EBBR");
+        var handler = new MockWeatherHandler("   ", "TAF EBBR");
         var sut = BuildWithHandler(handler);
 
         var (metar, _) = await sut.FetchAsync("EBBR");
@@ -40,7 +39,7 @@ public class WeatherServiceTests
     [Fact]
     public async Task FetchAsync_EmptyTafResponse_ReturnsNullTaf()
     {
-        var handler = new MockWeatherHandler(metar: "EBBR 261020Z", taf: "");
+        var handler = new MockWeatherHandler("EBBR 261020Z", "");
         var sut = BuildWithHandler(handler);
 
         var (_, taf) = await sut.FetchAsync("EBBR");
@@ -83,18 +82,19 @@ public class MockWeatherHandler(
         HttpRequestMessage request, CancellationToken cancellationToken)
     {
         if (throwException)
+        {
             throw new HttpRequestException("Simulated network error");
+        }
 
         if (statusCode != HttpStatusCode.OK)
+        {
             return Task.FromResult(new HttpResponseMessage(statusCode));
+        }
 
         var body = request.RequestUri?.PathAndQuery.Contains("metar") == true
             ? metar ?? ""
             : taf ?? "";
 
-        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(body)
-        });
+        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) });
     }
 }

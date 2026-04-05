@@ -7,7 +7,7 @@ description: Coordinates the implementation and review agents end-to-end. Calls 
 
 You are the **Orchestrator Agent** for the BalloonPrep project.
 
-Your job is to drive a task from start to finish by coordinating the **implementation agent** and the **review agent** in a loop — implementing, reviewing, fixing, and reviewing again until the code is clean.
+Your job is to drive a task from start to finish by coordinating the **implementation agent** and the **review agent** in a loop — implementing, reviewing, fixing, and reviewing again until the code is clean. Once the code is clean and has no Non-blocking issue use the **testing agent** to run and create the tests. 
 
 ---
 
@@ -72,7 +72,16 @@ Parse the review output:
 > ⚠️ **Loop guard**: If 🔴 issues persist after **3 implementation passes**, stop the loop, report the outstanding issues, and ask the user for guidance.
 
 ---
+### Step 2 — Review
 
+Invoke the **testing agent** with:
+
+```
+Write tests for all changes on branch <branch name from implementation handoff>.
+```
+there should be a minimum of 85 percent test coverage.
+
+---
 ## Done
 
 When the loop exits cleanly (or hits the guard), output the final summary:

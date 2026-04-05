@@ -1,13 +1,13 @@
-using FlightPrep.Data;
-using FlightPrep.Models;
+using FlightPrep.Domain.Models;
+using FlightPrep.Infrastructure.Data;
 using FlightPrep.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace FlightPrep.Tests;
 
 /// <summary>
-/// Integration tests for GoNoGoService.GetSettingsAsync and SaveSettingsAsync
-/// using an EF Core InMemory database.
+///     Integration tests for GoNoGoService.GetSettingsAsync and SaveSettingsAsync
+///     using an EF Core InMemory database.
 /// </summary>
 public class GoNoGoServiceAsyncTests
 {
@@ -17,12 +17,6 @@ public class GoNoGoServiceAsyncTests
             .UseInMemoryDatabase(dbName)
             .Options;
         return new TestDbContextFactory(opts);
-    }
-
-    private sealed class TestDbContextFactory(DbContextOptions<AppDbContext> opts)
-        : IDbContextFactory<AppDbContext>
-    {
-        public AppDbContext CreateDbContext() => new(opts);
     }
 
     [Fact]
@@ -85,12 +79,12 @@ public class GoNoGoServiceAsyncTests
         var sut = new GoNoGoService(factory);
         var input = new GoNoGoSettings
         {
-            WindYellowKt  = 8,
-            WindRedKt     = 14,
-            VisYellowKm   = 6,
-            VisRedKm      = 3,
+            WindYellowKt = 8,
+            WindRedKt = 14,
+            VisYellowKm = 6,
+            VisRedKm = 3,
             CapeYellowJkg = 400,
-            CapeRedJkg    = 700
+            CapeRedJkg = 700
         };
 
         // Act
@@ -98,11 +92,17 @@ public class GoNoGoServiceAsyncTests
         var result = await sut.GetSettingsAsync("user-1");
 
         // Assert
-        Assert.Equal(8,   result.WindYellowKt);
-        Assert.Equal(14,  result.WindRedKt);
-        Assert.Equal(6,   result.VisYellowKm);
-        Assert.Equal(3,   result.VisRedKm);
+        Assert.Equal(8, result.WindYellowKt);
+        Assert.Equal(14, result.WindRedKt);
+        Assert.Equal(6, result.VisYellowKm);
+        Assert.Equal(3, result.VisRedKm);
         Assert.Equal(400, result.CapeYellowJkg);
         Assert.Equal(700, result.CapeRedJkg);
+    }
+
+    private sealed class TestDbContextFactory(DbContextOptions<AppDbContext> opts)
+        : IDbContextFactory<AppDbContext>
+    {
+        public AppDbContext CreateDbContext() => new(opts);
     }
 }

@@ -1,5 +1,5 @@
-using FlightPrep.Data;
-using FlightPrep.Models;
+using FlightPrep.Domain.Models;
+using FlightPrep.Infrastructure.Data;
 using FlightPrep.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -9,26 +9,26 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace FlightPrep.Tests;
 
 /// <summary>
-/// Integration tests for <see cref="FlightPreparationService"/> using the EF Core
-/// in-memory provider.  Each test gets a unique named database so tests are fully
-/// isolated even when running in parallel.
+///     Integration tests for <see cref="FlightPreparationService" /> using the EF Core
+///     in-memory provider.  Each test gets a unique named database, so tests are fully
+///     isolated even when running in parallel.
 /// </summary>
 public class FlightPreparationServiceTests
 {
     // ── Factory helpers ───────────────────────────────────────────────────────
 
     /// <summary>
-    /// Creates an <see cref="IDbContextFactory{AppDbContext}"/> backed by a unique
-    /// EF Core in-memory database so each test is fully isolated.
+    ///     Creates an <see cref="IDbContextFactory{AppDbContext}" /> backed by a unique
+    ///     EF Core in-memory database so each test is fully isolated.
     /// </summary>
     private static IDbContextFactory<AppDbContext> CreateFactory(string dbName)
     {
         var services = new ServiceCollection();
         services.AddDbContextFactory<AppDbContext>(o =>
             o.UseInMemoryDatabase(dbName)
-             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
         return services.BuildServiceProvider()
-                       .GetRequiredService<IDbContextFactory<AppDbContext>>();
+            .GetRequiredService<IDbContextFactory<AppDbContext>>();
     }
 
     private static FlightPreparationService BuildSut(IDbContextFactory<AppDbContext> factory)
@@ -36,33 +36,21 @@ public class FlightPreparationServiceTests
 
     // ── Seed helpers ──────────────────────────────────────────────────────────
 
-    private static Balloon SeedBalloon() => new()
-    {
-        Registration = "OO-TST",
-        Type         = "BB20N",
-        VolumeM3     = 2000
-    };
+    private static Balloon SeedBalloon() => new() { Registration = "OO-TST", Type = "BB20N", VolumeM3 = 2000 };
 
-    private static Pilot SeedPilot() => new()
-    {
-        Name     = "Test Pilot",
-        WeightKg = 80
-    };
+    private static Pilot SeedPilot() => new() { Name = "Test Pilot", WeightKg = 80 };
 
-    private static Location SeedLocation() => new()
-    {
-        Name = "Test Field"
-    };
+    private static Location SeedLocation() => new() { Name = "Test Field" };
 
     private static FlightPreparation SeedFlight(
-        Balloon?  balloon  = null,
-        Pilot?    pilot    = null,
+        Balloon? balloon = null,
+        Pilot? pilot = null,
         Location? location = null) => new()
     {
-        Datum    = DateOnly.FromDateTime(DateTime.Today),
+        Datum = DateOnly.FromDateTime(DateTime.Today),
         Tijdstip = TimeOnly.FromDateTime(DateTime.Now),
-        Balloon  = balloon,
-        Pilot    = pilot,
+        Balloon = balloon,
+        Pilot = pilot,
         Location = location
     };
 
@@ -73,7 +61,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(GetBalloonsAsync_EmptyDatabase_ReturnsEmptyList));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         // Act
         var result = await sut.GetBalloonsAsync();
@@ -87,7 +75,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(GetBalloonsAsync_TwoBalloons_ReturnsOrderedByRegistration));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         await using var db = await factory.CreateDbContextAsync();
         db.Balloons.AddRange(
@@ -111,7 +99,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(GetPilotsAsync_EmptyDatabase_ReturnsEmptyList));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         // Act
         var result = await sut.GetPilotsAsync();
@@ -125,7 +113,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(GetPilotsAsync_TwoPilots_ReturnsOrderedByName));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         await using var db = await factory.CreateDbContextAsync();
         db.Pilots.AddRange(
@@ -139,7 +127,7 @@ public class FlightPreparationServiceTests
         // Assert
         Assert.Equal(2, result.Count);
         Assert.Equal("Alice", result[0].Name);
-        Assert.Equal("Zara",  result[1].Name);
+        Assert.Equal("Zara", result[1].Name);
     }
 
     // ── GetLocationsAsync ─────────────────────────────────────────────────────
@@ -149,7 +137,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(GetLocationsAsync_EmptyDatabase_ReturnsEmptyList));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         // Act
         var result = await sut.GetLocationsAsync();
@@ -163,7 +151,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(GetLocationsAsync_TwoLocations_ReturnsOrderedByName));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         await using var db = await factory.CreateDbContextAsync();
         db.Locations.AddRange(
@@ -176,7 +164,7 @@ public class FlightPreparationServiceTests
 
         // Assert
         Assert.Equal(2, result.Count);
-        Assert.Equal("Aalst",    result[0].Name);
+        Assert.Equal("Aalst", result[0].Name);
         Assert.Equal("Zottegem", result[1].Name);
     }
 
@@ -187,7 +175,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(GetSummariesAsync_EmptyDatabase_ReturnsEmptyList));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         // Act
         var result = await sut.GetSummariesAsync(null, true);
@@ -201,7 +189,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(GetSummariesAsync_WithFlights_ReturnsCorrectCount));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         await sut.SaveAsync(SeedFlight());
         await sut.SaveAsync(SeedFlight());
@@ -219,7 +207,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange — flight has no balloon/pilot/location FK
         var factory = CreateFactory(nameof(GetSummariesAsync_FlightWithNavProps_NullsReturnedWhenNotLinked));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
         await sut.SaveAsync(SeedFlight());
 
         // Act
@@ -239,11 +227,11 @@ public class FlightPreparationServiceTests
     {
         // Arrange — seed reference data, then link via FK
         var factory = CreateFactory(nameof(GetByIdAsync_ExistingId_ReturnsFlightWithNavProps));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         await using var db = await factory.CreateDbContextAsync();
-        var balloon  = SeedBalloon();
-        var pilot    = SeedPilot();
+        var balloon = SeedBalloon();
+        var pilot = SeedPilot();
         var location = SeedLocation();
         db.Balloons.Add(balloon);
         db.Pilots.Add(pilot);
@@ -251,8 +239,8 @@ public class FlightPreparationServiceTests
         await db.SaveChangesAsync();
 
         var fp = SeedFlight();
-        fp.BalloonId  = balloon.Id;
-        fp.PilotId    = pilot.Id;
+        fp.BalloonId = balloon.Id;
+        fp.PilotId = pilot.Id;
         fp.LocationId = location.Id;
         fp.Passengers.Add(new Passenger { Name = "Alice", WeightKg = 65 });
         fp.WindLevels.Add(new WindLevel { AltitudeFt = 1000, SpeedKt = 10, DirectionDeg = 270 });
@@ -278,7 +266,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(GetByIdAsync_NonExistingId_ReturnsNull));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         // Act
         var result = await sut.GetByIdAsync(99999);
@@ -294,8 +282,8 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(SaveAsync_NewFlight_AssignsPositiveId));
-        var sut     = BuildSut(factory);
-        var fp      = SeedFlight();
+        var sut = BuildSut(factory);
+        var fp = SeedFlight();
 
         // Act
         var id = await sut.SaveAsync(fp);
@@ -309,7 +297,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(SaveAsync_NullArgument_Throws));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(() => sut.SaveAsync(null!));
@@ -320,14 +308,14 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(SaveAsync_WithPassengers_PersistsPassengers));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         var fp = SeedFlight();
-        fp.Passengers.Add(new Passenger { Name = "Bob",   WeightKg = 70 });
+        fp.Passengers.Add(new Passenger { Name = "Bob", WeightKg = 70 });
         fp.Passengers.Add(new Passenger { Name = "Carol", WeightKg = 55 });
 
         // Act
-        var id     = await sut.SaveAsync(fp);
+        var id = await sut.SaveAsync(fp);
         var loaded = await sut.GetByIdAsync(id);
 
         // Assert
@@ -342,14 +330,14 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(SaveAsync_WithWindLevels_PersistsWindLevels));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         var fp = SeedFlight();
-        fp.WindLevels.Add(new WindLevel { AltitudeFt = 0,    SpeedKt = 8,  DirectionDeg = 270 });
+        fp.WindLevels.Add(new WindLevel { AltitudeFt = 0, SpeedKt = 8, DirectionDeg = 270 });
         fp.WindLevels.Add(new WindLevel { AltitudeFt = 2000, SpeedKt = 12, DirectionDeg = 280 });
 
         // Act
-        var id     = await sut.SaveAsync(fp);
+        var id = await sut.SaveAsync(fp);
         var loaded = await sut.GetByIdAsync(id);
 
         // Assert
@@ -362,11 +350,11 @@ public class FlightPreparationServiceTests
     {
         // Arrange — verify the finally-block restores nav props on the caller's entity
         var factory = CreateFactory(nameof(SaveAsync_NewFlight_NavPropsRestoredAfterSave));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         var pilot = SeedPilot();
-        var fp    = SeedFlight();
-        fp.Pilot  = pilot;
+        var fp = SeedFlight();
+        fp.Pilot = pilot;
         fp.Passengers.Add(new Passenger { Name = "X", WeightKg = 70 });
 
         // Act
@@ -384,7 +372,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(SaveAsync_ExistingFlight_UpdatesFields));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         var fp = SeedFlight();
         var id = await sut.SaveAsync(fp);
@@ -408,10 +396,10 @@ public class FlightPreparationServiceTests
     {
         // Arrange — save with two passengers
         var factory = CreateFactory(nameof(SaveAsync_UpdateReplacesPassengers_OldPassengersRemoved));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         var fp = SeedFlight();
-        fp.Passengers.Add(new Passenger { Name = "Dan",   WeightKg = 80 });
+        fp.Passengers.Add(new Passenger { Name = "Dan", WeightKg = 80 });
         fp.Passengers.Add(new Passenger { Name = "Emily", WeightKg = 60 });
         var id = await sut.SaveAsync(fp);
 
@@ -436,10 +424,10 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(SaveAsync_UpdateReplacesWindLevels_OldLevelsRemoved));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         var fp = SeedFlight();
-        fp.WindLevels.Add(new WindLevel { AltitudeFt = 0,    SpeedKt = 5, DirectionDeg = 90 });
+        fp.WindLevels.Add(new WindLevel { AltitudeFt = 0, SpeedKt = 5, DirectionDeg = 90 });
         fp.WindLevels.Add(new WindLevel { AltitudeFt = 1000, SpeedKt = 8, DirectionDeg = 180 });
         var id = await sut.SaveAsync(fp);
 
@@ -463,7 +451,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(SaveAsync_ExistingFlight_NavPropsRestoredAfterUpdate));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         var fp = SeedFlight();
         fp.Passengers.Add(new Passenger { Name = "G", WeightKg = 60 });
@@ -487,8 +475,8 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(DeleteAsync_ExistingFlight_RemovesFromDatabase));
-        var sut     = BuildSut(factory);
-        var id      = await sut.SaveAsync(SeedFlight());
+        var sut = BuildSut(factory);
+        var id = await sut.SaveAsync(SeedFlight());
         Assert.NotNull(await sut.GetByIdAsync(id));
 
         // Act
@@ -503,7 +491,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(DeleteAsync_NonExistingId_DoesNotThrow));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         // Act & Assert
         var ex = await Record.ExceptionAsync(() => sut.DeleteAsync(99999));
@@ -517,7 +505,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(GetFlightCountsAsync_EmptyDatabase_ReturnsAllZeros));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         // Act
         var (total, thisYear, flown) = await sut.GetFlightCountsAsync();
@@ -533,12 +521,16 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(GetFlightCountsAsync_MixedFlights_ReturnsCorrectCounts));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
-        // 2 flights this year (1 flown), 1 flight from past year
-        var fp1 = SeedFlight(); fp1.IsFlown = true;
-        var fp2 = SeedFlight(); fp2.IsFlown = false;
-        var fp3 = SeedFlight(); fp3.Datum = new DateOnly(2020, 1, 1); fp3.IsFlown = false;
+        // 2 flights this year (1 flown), 1 flight from the past year
+        var fp1 = SeedFlight();
+        fp1.IsFlown = true;
+        var fp2 = SeedFlight();
+        fp2.IsFlown = false;
+        var fp3 = SeedFlight();
+        fp3.Datum = new DateOnly(2020, 1, 1);
+        fp3.IsFlown = false;
 
         await sut.SaveAsync(fp1);
         await sut.SaveAsync(fp2);
@@ -560,11 +552,14 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(GetRecentAsync_ReturnsLatestN_OrderedByDateDescending));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
-        var oldest = SeedFlight(); oldest.Datum = new DateOnly(2024, 1, 1);
-        var middle = SeedFlight(); middle.Datum = new DateOnly(2024, 6, 1);
-        var newest = SeedFlight(); newest.Datum = new DateOnly(2025, 1, 1);
+        var oldest = SeedFlight();
+        oldest.Datum = new DateOnly(2024, 1, 1);
+        var middle = SeedFlight();
+        middle.Datum = new DateOnly(2024, 6, 1);
+        var newest = SeedFlight();
+        newest.Datum = new DateOnly(2025, 1, 1);
 
         await sut.SaveAsync(oldest);
         await sut.SaveAsync(middle);
@@ -584,7 +579,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(GetRecentAsync_ZeroCount_Throws));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
@@ -596,7 +591,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(GetRecentAsync_NegativeCount_Throws));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
@@ -610,11 +605,14 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(GetAllWithNavAsync_OrderedByDatumAscending));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
-        var fp1 = SeedFlight(); fp1.Datum = new DateOnly(2025, 3, 1);
-        var fp2 = SeedFlight(); fp2.Datum = new DateOnly(2024, 1, 15);
-        var fp3 = SeedFlight(); fp3.Datum = new DateOnly(2025, 1, 10);
+        var fp1 = SeedFlight();
+        fp1.Datum = new DateOnly(2025, 3, 1);
+        var fp2 = SeedFlight();
+        fp2.Datum = new DateOnly(2024, 1, 15);
+        var fp3 = SeedFlight();
+        fp3.Datum = new DateOnly(2025, 1, 10);
 
         await sut.SaveAsync(fp1);
         await sut.SaveAsync(fp2);
@@ -634,7 +632,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(GetAllWithNavAsync_EmptyDatabase_ReturnsEmptyList));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         // Act
         var result = await sut.GetAllWithNavAsync(null, true);
@@ -650,8 +648,8 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(PatchTrajectoryJsonAsync_UpdatesJsonField));
-        var sut     = BuildSut(factory);
-        var id      = await sut.SaveAsync(SeedFlight());
+        var sut = BuildSut(factory);
+        var id = await sut.SaveAsync(SeedFlight());
         const string json = """{"points":[]}""";
 
         // Act
@@ -668,8 +666,8 @@ public class FlightPreparationServiceTests
     {
         // Arrange — set then clear
         var factory = CreateFactory(nameof(PatchTrajectoryJsonAsync_NullJson_ClearsField));
-        var sut     = BuildSut(factory);
-        var id      = await sut.SaveAsync(SeedFlight());
+        var sut = BuildSut(factory);
+        var id = await sut.SaveAsync(SeedFlight());
         await sut.PatchTrajectoryJsonAsync(id, """{"points":[1]}""");
 
         // Act
@@ -688,8 +686,8 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(PatchKmlTrackAsync_UpdatesKmlField));
-        var sut     = BuildSut(factory);
-        var id      = await sut.SaveAsync(SeedFlight());
+        var sut = BuildSut(factory);
+        var id = await sut.SaveAsync(SeedFlight());
         const string kml = "<kml/>";
 
         // Act
@@ -706,8 +704,8 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(PatchKmlTrackAsync_NullArgument_Throws));
-        var sut     = BuildSut(factory);
-        var id      = await sut.SaveAsync(SeedFlight());
+        var sut = BuildSut(factory);
+        var id = await sut.SaveAsync(SeedFlight());
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(() =>
@@ -721,16 +719,16 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(PatchFlownAsync_SetsFlownAndReportFields));
-        var sut     = BuildSut(factory);
-        var id      = await sut.SaveAsync(SeedFlight());
+        var sut = BuildSut(factory);
+        var id = await sut.SaveAsync(SeedFlight());
 
         // Act
         await sut.PatchFlownAsync(
             id,
-            isFlown:         true,
-            landingNotes:    "Smooth landing",
-            durationMinutes: 45,
-            remarks:         "Great flight");
+            true,
+            "Smooth landing",
+            45,
+            "Great flight");
 
         var loaded = await sut.GetByIdAsync(id);
 
@@ -738,8 +736,8 @@ public class FlightPreparationServiceTests
         Assert.NotNull(loaded);
         Assert.True(loaded.IsFlown);
         Assert.Equal("Smooth landing", loaded.ActualLandingNotes);
-        Assert.Equal(45,               loaded.ActualFlightDurationMinutes);
-        Assert.Equal("Great flight",   loaded.ActualRemarks);
+        Assert.Equal(45, loaded.ActualFlightDurationMinutes);
+        Assert.Equal("Great flight", loaded.ActualRemarks);
     }
 
     [Fact]
@@ -747,7 +745,7 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(PatchFlownAsync_NonExistingId_DoesNotThrow));
-        var sut     = BuildSut(factory);
+        var sut = BuildSut(factory);
 
         // Act & Assert — must complete gracefully (logs warning, returns)
         var ex = await Record.ExceptionAsync(() =>
@@ -760,11 +758,11 @@ public class FlightPreparationServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(PatchFlownAsync_NullNotes_SetsNullFields));
-        var sut     = BuildSut(factory);
-        var id      = await sut.SaveAsync(SeedFlight());
+        var sut = BuildSut(factory);
+        var id = await sut.SaveAsync(SeedFlight());
 
         // Act — patch with null notes/duration/remarks
-        await sut.PatchFlownAsync(id, isFlown: false, null, null, null);
+        await sut.PatchFlownAsync(id, false, null, null, null);
         var loaded = await sut.GetByIdAsync(id);
 
         // Assert
@@ -773,5 +771,68 @@ public class FlightPreparationServiceTests
         Assert.Null(loaded.ActualLandingNotes);
         Assert.Null(loaded.ActualFlightDurationMinutes);
         Assert.Null(loaded.ActualRemarks);
+    }
+
+    // ── GetSummariesAsync — null userId guard ─────────────────────────────────
+
+    [Fact]
+    public async Task GetSummariesAsync_NullUserId_NonAdmin_ReturnsEmptyList()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(GetSummariesAsync_NullUserId_NonAdmin_ReturnsEmptyList));
+        var sut = BuildSut(factory);
+        await using var db = await factory.CreateDbContextAsync();
+        db.FlightPreparations.Add(SeedFlight());
+        await db.SaveChangesAsync();
+
+        // Act
+        var result = await sut.GetSummariesAsync(null, isAdmin: false);
+
+        // Assert — null userId non-admin always returns empty, regardless of stored flights
+        Assert.Empty(result);
+    }
+
+    // ── GetAllWithNavAsync — null userId guard ────────────────────────────────
+
+    [Fact]
+    public async Task GetAllWithNavAsync_NullUserId_NonAdmin_ReturnsEmptyList()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(GetAllWithNavAsync_NullUserId_NonAdmin_ReturnsEmptyList));
+        var sut = BuildSut(factory);
+        await using var db = await factory.CreateDbContextAsync();
+        db.FlightPreparations.Add(SeedFlight());
+        await db.SaveChangesAsync();
+
+        // Act
+        var result = await sut.GetAllWithNavAsync(null, isAdmin: false);
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    // ── SaveAsync — UPDATE path with images ───────────────────────────────────
+
+    [Fact]
+    public async Task SaveAsync_UpdateExistingFlight_ReplacesImages()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(SaveAsync_UpdateExistingFlight_ReplacesImages));
+        var sut = BuildSut(factory);
+        var fp = SeedFlight();
+        fp.Images = [new FlightImage { FileName = "before.jpg", ContentType = "image/jpeg", Data = [1, 2] }];
+        var id = await sut.SaveAsync(fp);
+
+        // Act — update with a different image
+        var saved = await sut.GetByIdAsync(id);
+        Assert.NotNull(saved);
+        saved.Images = [new FlightImage { FileName = "after.jpg", ContentType = "image/jpeg", Data = [3, 4] }];
+        await sut.SaveAsync(saved);
+
+        // Assert — only the new image should be present
+        var loaded = await sut.GetByIdAsync(id);
+        Assert.NotNull(loaded);
+        Assert.Single(loaded.Images);
+        Assert.Equal("after.jpg", loaded.Images[0].FileName);
     }
 }

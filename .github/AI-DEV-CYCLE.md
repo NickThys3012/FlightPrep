@@ -44,11 +44,11 @@ On first launch, run `/login` and follow the prompts. You need an active GitHub 
 
 ### Modes
 
-| Mode | How to activate | What it does |
-|------|----------------|-------------|
-| **Interactive** | Default | Chat back and forth with Copilot |
-| **Plan** | `Shift+Tab` | Copilot creates a plan before writing any code |
-| **Autopilot** | `Shift+Tab` again | Copilot works uninterrupted until done |
+| Mode            | How to activate   | What it does                                   |
+|-----------------|-------------------|------------------------------------------------|
+| **Interactive** | Default           | Chat back and forth with Copilot               |
+| **Plan**        | `Shift+Tab`       | Copilot creates a plan before writing any code |
+| **Autopilot**   | `Shift+Tab` again | Copilot works uninterrupted until done         |
 
 ---
 
@@ -70,20 +70,22 @@ On first launch, run `/login` and follow the prompts. You need an active GitHub 
 └─────────────────────────────────────────────────────────────┘
 ```
 
-Each cycle uses a different **agent type** — lightweight specialised sub-processes that Copilot CLI can spawn in parallel. Agents run in separate context windows so they stay fast and focused.
+Each cycle uses a different **agent type** — lightweight specialised sub-processes that Copilot CLI can spawn in
+parallel. Agents run in separate context windows so they stay fast and focused.
 
-| Agent Type | Best for | Speed |
-|-----------|---------|-------|
-| `explore` | Reading code, answering questions, analysis | ⚡ Fast |
-| `task` | Running builds, tests, linters | ⚡ Fast |
-| `code-review` | High-signal bug & security review | ⚡ Fast |
-| `general-purpose` | Complex multi-file implementations | 🐢 Thorough |
+| Agent Type        | Best for                                    | Speed       |
+|-------------------|---------------------------------------------|-------------|
+| `explore`         | Reading code, answering questions, analysis | ⚡ Fast      |
+| `task`            | Running builds, tests, linters              | ⚡ Fast      |
+| `code-review`     | High-signal bug & security review           | ⚡ Fast      |
+| `general-purpose` | Complex multi-file implementations          | 🐢 Thorough |
 
 ---
 
 ## Cycle 1 — Planning & Analysis
 
-**Goal:** Understand the codebase, identify problems, and create a structured backlog before writing a single line of code.
+**Goal:** Understand the codebase, identify problems, and create a structured backlog before writing a single line of
+code.
 
 ### How to use it
 
@@ -98,7 +100,8 @@ Analyse the BalloonPrep codebase. I want to:
 - Produce a prioritised backlog of improvements
 ```
 
-Copilot will explore the code, summarise findings, and generate a `plan.md` for you to review and edit before implementation starts.
+Copilot will explore the code, summarise findings, and generate a `plan.md` for you to review and edit before
+implementation starts.
 
 #### Option B — Targeted exploration prompts
 
@@ -132,17 +135,19 @@ Investigate these two things in parallel:
 
 ### What to look for in Planning
 
-| Area | Questions to ask Copilot |
-|------|--------------------------|
-| **Architecture** | "Does this follow DDD correctly? Where are the layer violations?" |
-| **Security** | "Are there hardcoded secrets, exposed endpoints, or SQL injection risks?" |
-| **Test coverage** | "Which files have zero test coverage? Which have the most risk?" |
-| **Performance** | "Are there N+1 queries or blocking async calls?" |
-| **Edge cases** | "What happens if the Open-Meteo API is down? What is the fallback?" |
+| Area              | Questions to ask Copilot                                                  |
+|-------------------|---------------------------------------------------------------------------|
+| **Architecture**  | "Does this follow DDD correctly? Where are the layer violations?"         |
+| **Security**      | "Are there hardcoded secrets, exposed endpoints, or SQL injection risks?" |
+| **Test coverage** | "Which files have zero test coverage? Which have the most risk?"          |
+| **Performance**   | "Are there N+1 queries or blocking async calls?"                          |
+| **Edge cases**    | "What happens if the Open-Meteo API is down? What is the fallback?"       |
 
 ### Output — GitHub Issues (automatic)
 
-After analysis, the planning agent automatically creates one GitHub issue per finding in [`NickThys3012/FlightPrep`](https://github.com/NickThys3012/FlightPrep/issues) using the `gh` CLI. Each issue includes:
+After analysis, the planning agent automatically creates one GitHub issue per finding in [
+`NickThys3012/FlightPrep`](https://github.com/NickThys3012/FlightPrep/issues) using the `gh` CLI. Each issue includes:
+
 - Exact file + line reference
 - Severity label (`bug`, `security`, `testing`, `enhancement`)
 - A concrete suggested fix
@@ -155,6 +160,7 @@ for each finding in NickThys3012/FlightPrep with the appropriate labels.
 ```
 
 Reference issue numbers in all commits and PRs:
+
 ```bash
 git commit -m "fix: guard zero ascent rate in TrajectoryService (#12)"
 ```
@@ -171,7 +177,8 @@ Save it to .github/SPRINT.md
 
 ## Cycle 2 — Implementation
 
-**Goal:** Write, fix, or refactor code with AI assistance. Copilot handles the repetitive scaffolding so you focus on the logic.
+**Goal:** Write, fix, or refactor code with AI assistance. Copilot handles the repetitive scaffolding so you focus on
+the logic.
 
 ### How to use it
 
@@ -237,7 +244,8 @@ Analyse the save flow and propose a fix.
 
 ## Cycle 3 — Code Review
 
-**Goal:** Catch bugs, security issues, and logic errors before they reach `main`. AI review is fast, tireless, and has no ego.
+**Goal:** Catch bugs, security issues, and logic errors before they reach `main`. AI review is fast, tireless, and has
+no ego.
 
 ### How to use it
 
@@ -247,7 +255,8 @@ Analyse the save flow and propose a fix.
 /review
 ```
 
-This runs the `code-review` agent on your current unstaged + staged changes. It only surfaces issues that matter — bugs, security vulnerabilities, logic errors. It will not comment on style.
+This runs the `code-review` agent on your current unstaged + staged changes. It only surfaces issues that matter — bugs,
+security vulnerabilities, logic errors. It will not comment on style.
 
 #### Option B — Review a specific file or PR
 
@@ -288,17 +297,18 @@ The `code-review` agent intentionally skips style/formatting and only flags:
 
 ### Review output interpretation
 
-| Severity | Meaning | Action |
-|----------|---------|--------|
-| 🔴 High | Real bug or security issue | Fix before merging |
-| 🟡 Medium | Risk or fragile code | Fix or document as known debt |
-| ℹ️ Info | Worth knowing | Decide per case |
+| Severity  | Meaning                    | Action                        |
+|-----------|----------------------------|-------------------------------|
+| 🔴 High   | Real bug or security issue | Fix before merging            |
+| 🟡 Medium | Risk or fragile code       | Fix or document as known debt |
+| ℹ️ Info   | Worth knowing              | Decide per case               |
 
 ---
 
 ## Cycle 4 — Testing
 
-**Goal:** Add test coverage for critical logic. AI generates tests faster than writing them by hand, and it won't forget the edge cases.
+**Goal:** Add test coverage for critical logic. AI generates tests faster than writing them by hand, and it won't forget
+the edge cases.
 
 ### How to use it
 
@@ -367,16 +377,17 @@ Write a regression test that proves the fix works.
 
 ## Custom Agent Instructions
 
-You can teach Copilot about your project so every agent starts with the right context. Instructions are picked up automatically from these files:
+You can teach Copilot about your project so every agent starts with the right context. Instructions are picked up
+automatically from these files:
 
-| File | Scope |
-|------|-------|
-| `.github/copilot-instructions.md` | Global project context |
-| `.github/instructions/planning.instructions.md` | Planning-specific rules |
-| `.github/instructions/implementation.instructions.md` | Implementation rules |
-| `.github/instructions/review.instructions.md` | Review checklist |
-| `.github/instructions/testing.instructions.md` | Test conventions |
-| `AGENTS.md` (repo root) | Shared instructions for all agents |
+| File                                                  | Scope                              |
+|-------------------------------------------------------|------------------------------------|
+| `.github/copilot-instructions.md`                     | Global project context             |
+| `.github/instructions/planning.instructions.md`       | Planning-specific rules            |
+| `.github/instructions/implementation.instructions.md` | Implementation rules               |
+| `.github/instructions/review.instructions.md`         | Review checklist                   |
+| `.github/instructions/testing.instructions.md`        | Test conventions                   |
+| `AGENTS.md` (repo root)                               | Shared instructions for all agents |
 
 These files are **already set up** for BalloonPrep — see `.github/instructions/` and `.github/copilot-instructions.md`.
 
@@ -412,23 +423,23 @@ Keep instructions short and specific. Focus on:
 
 ## Slash Command Cheatsheet
 
-| Command | When to use |
-|---------|------------|
-| `Shift+Tab` | Switch to Plan mode (Copilot drafts a plan before coding) |
-| `Shift+Tab` ×2 | Switch to Autopilot (Copilot works uninterrupted) |
-| `/plan` | Explicitly ask Copilot to write out a plan |
-| `/review` | Run code-review agent on current changes |
-| `/diff` | See all changes made so far this session |
-| `/pr` | Work with the current branch's pull request |
-| `/delegate` | Hand off a task to GitHub's cloud agent (creates a PR) |
-| `/fleet` | Run parallel sub-agents simultaneously |
-| `/tasks` | View all background agents and their status |
-| `/rewind` | Undo last turn and revert file changes |
-| `/research` | Deep research using GitHub search + web sources |
-| `/instructions` | View/toggle active instruction files |
-| `/context` | See how much context window is used |
-| `/compact` | Summarise history to free up context |
-| `/share` | Export session to markdown or GitHub Gist |
+| Command         | When to use                                               |
+|-----------------|-----------------------------------------------------------|
+| `Shift+Tab`     | Switch to Plan mode (Copilot drafts a plan before coding) |
+| `Shift+Tab` ×2  | Switch to Autopilot (Copilot works uninterrupted)         |
+| `/plan`         | Explicitly ask Copilot to write out a plan                |
+| `/review`       | Run code-review agent on current changes                  |
+| `/diff`         | See all changes made so far this session                  |
+| `/pr`           | Work with the current branch's pull request               |
+| `/delegate`     | Hand off a task to GitHub's cloud agent (creates a PR)    |
+| `/fleet`        | Run parallel sub-agents simultaneously                    |
+| `/tasks`        | View all background agents and their status               |
+| `/rewind`       | Undo last turn and revert file changes                    |
+| `/research`     | Deep research using GitHub search + web sources           |
+| `/instructions` | View/toggle active instruction files                      |
+| `/context`      | See how much context window is used                       |
+| `/compact`      | Summarise history to free up context                      |
+| `/share`        | Export session to markdown or GitHub Gist                 |
 
 ---
 
@@ -450,7 +461,8 @@ Then create a GitHub issue for each finding in NickThys3012/FlightPrep
 with the correct labels (bug, security, testing).
 ```
 
-Copilot will produce a plan **and** open issues in the repo. You'll see issue numbers (e.g. `#12`, `#13`) that you can reference in every subsequent commit.
+Copilot will produce a plan **and** open issues in the repo. You'll see issue numbers (e.g. `#12`, `#13`) that you can
+reference in every subsequent commit.
 
 ### Step 2 — Branch
 

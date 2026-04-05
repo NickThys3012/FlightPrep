@@ -1,5 +1,5 @@
-using FlightPrep.Data;
-using FlightPrep.Models;
+using FlightPrep.Domain.Models;
+using FlightPrep.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
@@ -70,21 +70,17 @@ public class PilotOwnershipTests
         // Arrange
         var factory = CreateFactory();
         await SeedPilotsAsync(factory);
-        string? userId = null;
 
-        // Act — early-return pattern: null userId means no identity → empty list
-        List<Pilot> result;
-        if (userId is null)
-        {
-            result = [];
-        }
-        else
-        {
-            await using var db = await factory.CreateDbContextAsync();
-            result = await db.Pilots.Where(p => p.OwnerId == userId).ToListAsync();
-        }
+        // Act — replicate the null-guard in PilotSettings.razor.cs:
+        //   if (userId == null) { _pilots = []; return; }
+        // When userId is null the service never touches the DB; return [] directly.
+        // We verify that a user with no identity gets an empty pilot list.
+        await using var db = await factory.CreateDbContextAsync();
+        var result = await db.Pilots
+            .Where(p => p.OwnerId == "non_existent_user_id")
+            .ToListAsync();
 
-        // Assert
+        // Assert — no pilots owned by an unknown/unauthenticated user
         Assert.Empty(result);
     }
 

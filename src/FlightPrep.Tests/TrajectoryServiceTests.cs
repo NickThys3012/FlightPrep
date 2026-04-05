@@ -1,8 +1,6 @@
-using FlightPrep.Models;
-using FlightPrep.Models.Trajectory;
+using FlightPrep.Domain.Models;
+using FlightPrep.Domain.Models.Trajectory;
 using FlightPrep.Services;
-using Microsoft.Extensions.Logging;
-using Moq;
 
 namespace FlightPrep.Tests;
 
@@ -12,43 +10,25 @@ public class TrajectoryServiceTests
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private static WindLevel Wind(int altFt, int dirDeg, int speedKt) => new()
-    {
-        AltitudeFt   = altFt,
-        DirectionDeg = dirDeg,
-        SpeedKt      = speedKt,
-        Order        = 1,
-    };
+    private static WindLevel Wind(int altFt, int dirDeg, int speedKt) => new() { AltitudeFt = altFt, DirectionDeg = dirDeg, SpeedKt = speedKt, Order = 1 };
 
-    private static WindLevel WindNullSpeed(int altFt, int dirDeg) => new()
-    {
-        AltitudeFt   = altFt,
-        DirectionDeg = dirDeg,
-        SpeedKt      = null,
-        Order        = 1,
-    };
+    private static WindLevel WindNullSpeed(int altFt, int dirDeg) => new() { AltitudeFt = altFt, DirectionDeg = dirDeg, SpeedKt = null, Order = 1 };
 
-    private static WindLevel WindNullDir(int altFt, int speedKt) => new()
-    {
-        AltitudeFt   = altFt,
-        DirectionDeg = null,
-        SpeedKt      = speedKt,
-        Order        = 1,
-    };
+    private static WindLevel WindNullDir(int altFt, int speedKt) => new() { AltitudeFt = altFt, DirectionDeg = null, SpeedKt = speedKt, Order = 1 };
 
     /// <summary>
-    /// Haversine great-circle distance in metres between two lat/lon points.
+    ///     Haversine great-circle distance in metres between two lat/lon points.
     /// </summary>
     private static double HaversineDistanceM(
         double lat1, double lon1, double lat2, double lon2)
     {
-        const double R = 6_371_000;
-        double dLat = (lat2 - lat1) * Math.PI / 180;
-        double dLon = (lon2 - lon1) * Math.PI / 180;
-        double a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2)
-                 + Math.Cos(lat1 * Math.PI / 180) * Math.Cos(lat2 * Math.PI / 180)
-                 * Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
-        return R * 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+        const double r = 6_371_000;
+        var dLat = (lat2 - lat1) * Math.PI / 180;
+        var dLon = (lon2 - lon1) * Math.PI / 180;
+        var a = (Math.Sin(dLat / 2) * Math.Sin(dLat / 2))
+                + (Math.Cos(lat1 * Math.PI / 180) * Math.Cos(lat2 * Math.PI / 180)
+                                                  * Math.Sin(dLon / 2) * Math.Sin(dLon / 2));
+        return r * 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -62,7 +42,7 @@ public class TrajectoryServiceTests
         var levels = new[] { Wind(1000, 270, 10) };
 
         // Act
-        var result = Sut.Compute(50.85, 4.35, levels, durationMinutes: 60, stepMinutes: 5);
+        var result = Sut.Compute(50.85, 4.35, levels, 60, 5);
 
         // Assert – 60/5 = 12 steps + 1 origin = 13 points
         Assert.Single(result);
@@ -80,12 +60,14 @@ public class TrajectoryServiceTests
         var levels = new[] { Wind(1000, 270, 10) };
 
         // Act
-        var points = Sut.Compute(50.85, 4.35, levels, 60, 5)[0].Points;
+        var points = Sut.Compute(50.85, 4.35, levels, 60)[0].Points;
 
         // Assert – every successive point has a greater longitude
-        for (int i = 1; i < points.Count; i++)
+        for (var i = 1; i < points.Count; i++)
+        {
             Assert.True(points[i].Lon > points[i - 1].Lon,
-                $"Expected lon[{i}] > lon[{i-1}], got {points[i].Lon} vs {points[i-1].Lon}");
+                $"Expected lon[{i}] > lon[{i - 1}], got {points[i].Lon} vs {points[i - 1].Lon}");
+        }
     }
 
     [Fact]
@@ -95,12 +77,14 @@ public class TrajectoryServiceTests
         var levels = new[] { Wind(1000, 360, 10) };
 
         // Act
-        var points = Sut.Compute(50.85, 4.35, levels, 60, 5)[0].Points;
+        var points = Sut.Compute(50.85, 4.35, levels, 60)[0].Points;
 
         // Assert
-        for (int i = 1; i < points.Count; i++)
+        for (var i = 1; i < points.Count; i++)
+        {
             Assert.True(points[i].Lat < points[i - 1].Lat,
-                $"Expected lat[{i}] < lat[{i-1}], got {points[i].Lat} vs {points[i-1].Lat}");
+                $"Expected lat[{i}] < lat[{i - 1}], got {points[i].Lat} vs {points[i - 1].Lat}");
+        }
     }
 
     [Fact]
@@ -110,12 +94,14 @@ public class TrajectoryServiceTests
         var levels = new[] { Wind(1000, 90, 10) };
 
         // Act
-        var points = Sut.Compute(50.85, 4.35, levels, 60, 5)[0].Points;
+        var points = Sut.Compute(50.85, 4.35, levels, 60)[0].Points;
 
         // Assert
-        for (int i = 1; i < points.Count; i++)
+        for (var i = 1; i < points.Count; i++)
+        {
             Assert.True(points[i].Lon < points[i - 1].Lon,
-                $"Expected lon[{i}] < lon[{i-1}], got {points[i].Lon} vs {points[i-1].Lon}");
+                $"Expected lon[{i}] < lon[{i - 1}], got {points[i].Lon} vs {points[i - 1].Lon}");
+        }
     }
 
     [Fact]
@@ -125,12 +111,14 @@ public class TrajectoryServiceTests
         var levels = new[] { Wind(1000, 180, 10) };
 
         // Act
-        var points = Sut.Compute(50.85, 4.35, levels, 60, 5)[0].Points;
+        var points = Sut.Compute(50.85, 4.35, levels, 60)[0].Points;
 
         // Assert
-        for (int i = 1; i < points.Count; i++)
+        for (var i = 1; i < points.Count; i++)
+        {
             Assert.True(points[i].Lat > points[i - 1].Lat,
-                $"Expected lat[{i}] > lat[{i-1}], got {points[i].Lat} vs {points[i-1].Lat}");
+                $"Expected lat[{i}] > lat[{i - 1}], got {points[i].Lat} vs {points[i - 1].Lat}");
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -184,12 +172,7 @@ public class TrajectoryServiceTests
     public void Compute_TwoValidOneMixedInvalidWindLevels_ReturnsOnlyValid()
     {
         // Arrange – level 2 has null SpeedKt (invalid)
-        var levels = new[]
-        {
-            Wind(1000, 270, 10),
-            WindNullSpeed(2000, 180),
-            Wind(3000, 90, 15),
-        };
+        var levels = new[] { Wind(1000, 270, 10), WindNullSpeed(2000, 180), Wind(3000, 90, 15) };
 
         // Act
         var result = Sut.Compute(50.85, 4.35, levels, 60);
@@ -202,12 +185,7 @@ public class TrajectoryServiceTests
     public void Compute_ThreeValidWindLevels_ReturnsThreeTrajectories()
     {
         // Arrange
-        var levels = new[]
-        {
-            Wind(1000, 270, 10),
-            Wind(2000, 180, 15),
-            Wind(3000,  90, 20),
-        };
+        var levels = new[] { Wind(1000, 270, 10), Wind(2000, 180, 15), Wind(3000, 90, 20) };
 
         // Act
         var result = Sut.Compute(50.85, 4.35, levels, 60);
@@ -224,18 +202,13 @@ public class TrajectoryServiceTests
     public void Compute_ResultOrderedByAltitudeAscending()
     {
         // Arrange – supply in descending order
-        var levels = new[]
-        {
-            Wind(9840, 270, 20),
-            Wind(4920,  90, 15),
-            Wind( 360, 180, 10),
-        };
+        var levels = new[] { Wind(9840, 270, 20), Wind(4920, 90, 15), Wind(360, 180, 10) };
 
         // Act
         var result = Sut.Compute(50.85, 4.35, levels, 60);
 
         // Assert
-        Assert.Equal(360,  result[0].AltitudeFt);
+        Assert.Equal(360, result[0].AltitudeFt);
         Assert.Equal(4920, result[1].AltitudeFt);
         Assert.Equal(9840, result[2].AltitudeFt);
     }
@@ -249,7 +222,7 @@ public class TrajectoryServiceTests
     {
         // Arrange – exactly 7 levels (palette size)
         var levels = Enumerable.Range(0, 7)
-            .Select(i => Wind(1000 + i * 500, 270, 10 + i))
+            .Select(i => Wind(1000 + (i * 500), 270, 10 + i))
             .ToArray();
 
         // Act
@@ -264,17 +237,17 @@ public class TrajectoryServiceTests
     {
         // Arrange – 8 levels forces wrap-around
         var levels = Enumerable.Range(0, 8)
-            .Select(i => Wind(1000 + i * 500, 270, 10 + i))
+            .Select(i => Wind(1000 + (i * 500), 270, 10 + i))
             .ToArray();
 
         // Act
         // Result is ordered by altitude, so result[0] == lowest alt, result[7] == highest.
-        // Colors are assigned in order of AltitudeFt (sorted ascending by the service),
+        // Colours are assigned in order of AltitudeFt (sorted ascending by the service),
         // so colorIndex 0 → result[0], colorIndex 7 → result[7].
-        // Palette has 7 entries; index 7 % 7 == 0 → same as index 0.
+        // Palette has 7 entries; index 7 % 7 == 0 → the same as index 0.
         var result = Sut.Compute(50.85, 4.35, levels, 60);
 
-        // Assert – 8th trajectory (index 7) gets same color as 1st (index 0)
+        // Assert – 8th trajectory (index 7) gets the same colour as 1st (index 0)
         Assert.Equal(result[0].Color, result[7].Color);
     }
 
@@ -303,7 +276,7 @@ public class TrajectoryServiceTests
         var levels = new[] { Wind(1000, 270, 10), Wind(2000, 180, 15) };
 
         // Act
-        var result = Sut.Compute(50.85, 4.35, levels, durationMinutes: 45);
+        var result = Sut.Compute(50.85, 4.35, levels, 45);
 
         // Assert
         Assert.All(result, t => Assert.Equal(45, t.DurationMinutes));
@@ -317,7 +290,7 @@ public class TrajectoryServiceTests
     public void Compute_EmptyWindLevels_ReturnsEmptyList()
     {
         // Act
-        var result = Sut.Compute(50.85, 4.35, Array.Empty<WindLevel>(), 60);
+        var result = Sut.Compute(50.85, 4.35, [], 60);
 
         // Assert
         Assert.Empty(result);
@@ -333,13 +306,13 @@ public class TrajectoryServiceTests
         // Arrange – 10 kt wind due north, 60-min flight, 5-min steps
         // Expected total distance = 10 kt × 1852 m/kt = 18 520 m
         var levels = new[] { Wind(1000, 180, 10) }; // FROM south → bearing 0° (north)
-        const double expectedM = 10 * 1852.0;        // 18 520 m
+        const double expectedM = 10 * 1852.0; // 18 520 m
 
         // Act
-        var points = Sut.Compute(50.0, 4.35, levels, 60, 5)[0].Points;
-        var first  = points.First();
-        var last   = points.Last();
-        double actualM = HaversineDistanceM(first.Lat, first.Lon, last.Lat, last.Lon);
+        var points = Sut.Compute(50.0, 4.35, levels, 60)[0].Points;
+        var first = points.First();
+        var last = points.Last();
+        var actualM = HaversineDistanceM(first.Lat, first.Lon, last.Lat, last.Lon);
 
         // Assert – within 100 m tolerance (floating-point accumulation over 12 steps)
         Assert.InRange(actualM, expectedM - 100, expectedM + 100);

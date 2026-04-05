@@ -1,5 +1,5 @@
-using FlightPrep.Data;
-using FlightPrep.Models;
+using FlightPrep.Domain.Models;
+using FlightPrep.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;

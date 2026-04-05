@@ -1,13 +1,13 @@
-using System.Text.Json;
-using FlightPrep.Models.Trajectory;
+using FlightPrep.Domain.Models.Trajectory;
+using FlightPrep.Domain.Services;
 using SkiaSharp;
 
-namespace FlightPrep.Services;
+namespace FlightPrep.Infrastructure.Services;
 
 /// <summary>
-/// Generates a static JPEG map of trajectory simulations by fetching OSM tiles
-/// server-side and compositing coloured polylines on top with shadow, legend,
-/// and start/landing markers. Ported from BalloonPrep reference implementation.
+///     Generates a static JPEG map of trajectory simulations by fetching OSM tiles
+///     server-side and compositing coloured polylines on top with shadow, legend,
+///     and start/landing markers. Ported from BalloonPrep reference implementation.
 /// </summary>
 public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService> logger) : ITrajectoryMapService
 {
@@ -17,7 +17,9 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
     public async Task<byte[]?> RenderAsync(string? trajectorySimulationJson)
     {
         if (string.IsNullOrWhiteSpace(trajectorySimulationJson))
+        {
             return null;
+        }
 
         try
         {
@@ -25,19 +27,25 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
                 trajectorySimulationJson,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            if (trajs is null || trajs.Count == 0) return null;
+            if (trajs is null || trajs.Count == 0)
+            {
+                return null;
+            }
 
-            // Build series from trajectories that have at least 2 points
+            // Build a series from trajectories that have at least 2 points
             var series = trajs
                 .Where(t => t.Points.Count >= 2)
                 .Select(t => (
-                    Label:  $"{t.AltitudeFt} ft",
+                    Label: $"{t.AltitudeFt} ft",
                     Colour: ParseSkColor(t.Color),
-                    Pts:    t.Points.Select(p => (p.Lat, p.Lon)).ToList()
+                    Pts: t.Points.Select(p => (p.Lat, p.Lon)).ToList()
                 ))
                 .ToList();
 
-            if (series.Count == 0) return null;
+            if (series.Count == 0)
+            {
+                return null;
+            }
 
             // Bounding box
             var allLats = series.SelectMany(s => s.Pts.Select(p => p.Lat)).ToList();
@@ -46,32 +54,39 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
             double minLon = allLons.Min(), maxLon = allLons.Max();
             var latPad = Math.Max(maxLat - minLat, 0.03) * 0.25;
             var lonPad = Math.Max(maxLon - minLon, 0.03) * 0.25;
-            minLat -= latPad; maxLat += latPad;
-            minLon -= lonPad; maxLon += lonPad;
+            minLat -= latPad;
+            maxLat += latPad;
+            minLon -= lonPad;
+            maxLon += lonPad;
 
             var zoom = Math.Clamp(ChooseZoom(minLon, maxLon, 5), 7, 12);
 
             var (txMin, tyMin) = LatLonToTile(maxLat, minLon, zoom); // NW corner
             var (txMax, tyMax) = LatLonToTile(minLat, maxLon, zoom); // SE corner
-            int txCount = Math.Min(txMax - txMin + 1, 8);
-            int tyCount = Math.Min(tyMax - tyMin + 1, 8);
+            var txCount = Math.Min(txMax - txMin + 1, 8);
+            var tyCount = Math.Min(tyMax - tyMin + 1, 8);
 
-            // Enforce minimum 4:3 landscape aspect ratio, expanding symmetrically so
+            // Enforce a minimum 4:3 landscape aspect ratio, expanding symmetrically so
             // the trajectory stays centred. A north-south flight can produce txCount=1,
             // tyCount=5 (ratio 0.2) which QuestPDF cannot fit even on a full A4 page.
-            int targetTxCount = Math.Min((int)Math.Ceiling(tyCount * 4.0 / 3.0), 8);
+            var targetTxCount = Math.Min((int)Math.Ceiling(tyCount * 4.0 / 3.0), 8);
             if (txCount < targetTxCount)
             {
-                int extra = targetTxCount - txCount;
-                txMin -= extra / 2;     // half the padding on the left (floor)
+                var extra = targetTxCount - txCount;
+                txMin -= extra / 2; // half the padding on the left (floor)
                 txCount = targetTxCount; // remaining padding on the right (ceiling)
             }
-            int imgW = txCount * TileSize;
-            int imgH = tyCount * TileSize;
+
+            var imgW = txCount * TileSize;
+            var imgH = tyCount * TileSize;
 
             // Fetch OSM base tiles in parallel (max 6 concurrent)
-            var tileImages = new SKBitmap?[txCount, tyCount];
-            int fetchedCount = 0;
+            var tileImages = new SKBitmap?[txCount][];
+            for (var col = 0; col < txCount; col++)
+            {
+                tileImages[col] = new SKBitmap?[tyCount];
+            }
+            var fetchedCount = 0;
             await Parallel.ForEachAsync(
                 Enumerable.Range(0, txCount * tyCount),
                 new ParallelOptions { MaxDegreeOfParallelism = 6 },
@@ -79,8 +94,11 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
                 {
                     int col = idx % txCount, row = idx / txCount;
                     var bmp = await FetchTileAsync(zoom, txMin + col, tyMin + row);
-                    tileImages[col, row] = bmp;
-                    if (bmp != null) Interlocked.Increment(ref fetchedCount);
+                    tileImages[col][row] = bmp;
+                    if (bmp != null)
+                    {
+                        Interlocked.Increment(ref fetchedCount);
+                    }
                 });
 
             logger.LogInformation("Trajectory map: {Ok}/{Total} OSM tiles at zoom {Z}",
@@ -92,37 +110,39 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
             var canvas = surface.Canvas;
             canvas.Clear(new SKColor(200, 220, 240)); // fallback ocean blue
 
-            for (int col = 0; col < txCount; col++)
-                for (int row = 0; row < tyCount; row++)
-                    if (tileImages[col, row] is { } bmp)
-                    {
-                        canvas.DrawBitmap(bmp, col * TileSize, row * TileSize);
-                        bmp.Dispose();
-                    }
+            for (var col = 0; col < txCount; col++)
+            for (var row = 0; row < tyCount; row++)
+            {
+                if (tileImages[col][row] is not { } bmp)
+                {
+                    continue;
+                }
 
-            // Coordinate → pixel helpers (capture zoom/offset in closure)
-            float ToX(double lon) => (float)((LonToFrac(lon, zoom) - txMin) * TileSize);
-            float ToY(double lat) => (float)((LatToFrac(lat, zoom) - tyMin) * TileSize);
+                canvas.DrawBitmap(bmp, col * TileSize, row * TileSize);
+                bmp.Dispose();
+            }
 
             // Draw each trajectory
             foreach (var (_, colour, pts) in series)
+            {
                 DrawTrajectory(canvas, pts, colour, ToX, ToY);
+            }
 
             DrawLegend(canvas, series, imgW, imgH);
 
             // Resize if needed, export as JPEG
             using var snap = surface.Snapshot();
-            const int MaxW = 1200, MaxH = 900;
+            const int maxW = 1200, maxH = 900;
             byte[] result;
-            if (imgW > MaxW || imgH > MaxH)
+            if (imgW > maxW || imgH > maxH)
             {
-                float scale = Math.Min((float)MaxW / imgW, (float)MaxH / imgH);
-                int sw = Math.Max(1, (int)(imgW * scale));
-                int sh = Math.Max(1, (int)(imgH * scale));
-                using var bmp    = SKBitmap.FromImage(snap);
+                var scale = Math.Min((float)maxW / imgW, (float)maxH / imgH);
+                var sw = Math.Max(1, (int)(imgW * scale));
+                var sh = Math.Max(1, (int)(imgH * scale));
+                using var bmp = SKBitmap.FromImage(snap);
                 using var scaled = bmp.Resize(new SKImageInfo(sw, sh), SKFilterQuality.High);
-                using var sImg   = SKImage.FromBitmap(scaled);
-                using var data   = sImg.Encode(SKEncodedImageFormat.Jpeg, 88);
+                using var sImg = SKImage.FromBitmap(scaled);
+                using var data = sImg.Encode(SKEncodedImageFormat.Jpeg, 88);
                 result = data.ToArray();
             }
             else
@@ -133,6 +153,11 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
 
             logger.LogInformation("Trajectory map rendered: {Bytes} bytes", result.Length);
             return result;
+
+            float ToY(double lat) => (float)((LatToFrac(lat, zoom) - tyMin) * TileSize);
+
+            // Coordinate → pixel helpers (capture zoom/offset in closure)
+            float ToX(double lon) => (float)((LonToFrac(lon, zoom) - txMin) * TileSize);
         }
         catch (Exception ex)
         {
@@ -145,8 +170,8 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
 
     private async Task<SKBitmap?> FetchTileAsync(int zoom, int x, int y)
     {
-        int n = 1 << zoom;
-        x = (x % n + n) % n; // wrap around anti-meridian
+        var n = 1 << zoom;
+        x = ((x % n) + n) % n; // wrap around anti-meridian
         var url = $"https://tile.openstreetmap.org/{zoom}/{x}/{y}.png";
         try
         {
@@ -169,38 +194,41 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
         Func<double, float> toX,
         Func<double, float> toY)
     {
-        using var shadowPaint = new SKPaint
-        {
-            Color = new SKColor(0, 0, 0, 110),
-            Style = SKPaintStyle.Stroke,
-            StrokeWidth = 5f,
-            StrokeCap = SKStrokeCap.Round,
-            StrokeJoin = SKStrokeJoin.Round,
-            IsAntialias = true
-        };
-        using var linePaint = new SKPaint
-        {
-            Color = colour,
-            Style = SKPaintStyle.Stroke,
-            StrokeWidth = 3f,
-            StrokeCap = SKStrokeCap.Round,
-            StrokeJoin = SKStrokeJoin.Round,
-            IsAntialias = true
-        };
+        using var shadowPaint = new SKPaint();
+        shadowPaint.Color = new SKColor(0, 0, 0, 110);
+        shadowPaint.Style = SKPaintStyle.Stroke;
+        shadowPaint.StrokeWidth = 5f;
+        shadowPaint.StrokeCap = SKStrokeCap.Round;
+        shadowPaint.StrokeJoin = SKStrokeJoin.Round;
+        shadowPaint.IsAntialias = true;
+        using var linePaint = new SKPaint();
+        linePaint.Color = colour;
+        linePaint.Style = SKPaintStyle.Stroke;
+        linePaint.StrokeWidth = 3f;
+        linePaint.StrokeCap = SKStrokeCap.Round;
+        linePaint.StrokeJoin = SKStrokeJoin.Round;
+        linePaint.IsAntialias = true;
 
         using var path = new SKPath();
         path.MoveTo(toX(pts[0].Lon), toY(pts[0].Lat));
-        for (int i = 1; i < pts.Count; i++)
+        for (var i = 1; i < pts.Count; i++)
+        {
             path.LineTo(toX(pts[i].Lon), toY(pts[i].Lat));
+        }
 
         canvas.DrawPath(path, shadowPaint);
         canvas.DrawPath(path, linePaint);
 
         // Intermediate dots every 3 points
-        using var dotFill = new SKPaint { Color = colour, IsAntialias = true };
-        using var dotRing = new SKPaint
-            { Color = SKColors.White, Style = SKPaintStyle.Stroke, StrokeWidth = 1.5f, IsAntialias = true };
-        for (int i = 3; i < pts.Count - 1; i += 3)
+        using var dotFill = new SKPaint();
+        dotFill.Color = colour;
+        dotFill.IsAntialias = true;
+        using var dotRing = new SKPaint();
+        dotRing.Color = SKColors.White;
+        dotRing.Style = SKPaintStyle.Stroke;
+        dotRing.StrokeWidth = 1.5f;
+        dotRing.IsAntialias = true;
+        for (var i = 3; i < pts.Count - 1; i += 3)
         {
             float x = toX(pts[i].Lon), y = toY(pts[i].Lat);
             canvas.DrawCircle(x, y, 4f, dotFill);
@@ -209,17 +237,27 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
 
         // Start marker (green)
         float sx = toX(pts[0].Lon), sy = toY(pts[0].Lat);
-        using var startFill = new SKPaint { Color = new SKColor(25, 135, 84), IsAntialias = true };
-        using var startRing = new SKPaint
-            { Color = SKColors.White, Style = SKPaintStyle.Stroke, StrokeWidth = 2f, IsAntialias = true };
+        using var startFill = new SKPaint();
+        startFill.Color = new SKColor(25, 135, 84);
+        startFill.IsAntialias = true;
+        using var startRing = new SKPaint();
+        startRing.Color = SKColors.White;
+        startRing.Style = SKPaintStyle.Stroke;
+        startRing.StrokeWidth = 2f;
+        startRing.IsAntialias = true;
         canvas.DrawCircle(sx, sy, 7f, startFill);
         canvas.DrawCircle(sx, sy, 7f, startRing);
 
         // Landing marker (red)
         float ex = toX(pts[^1].Lon), ey = toY(pts[^1].Lat);
-        using var endFill = new SKPaint { Color = new SKColor(220, 53, 69), IsAntialias = true };
-        using var endRing = new SKPaint
-            { Color = SKColors.White, Style = SKPaintStyle.Stroke, StrokeWidth = 2f, IsAntialias = true };
+        using var endFill = new SKPaint();
+        endFill.Color = new SKColor(220, 53, 69);
+        endFill.IsAntialias = true;
+        using var endRing = new SKPaint();
+        endRing.Color = SKColors.White;
+        endRing.Style = SKPaintStyle.Stroke;
+        endRing.StrokeWidth = 2f;
+        endRing.IsAntialias = true;
         canvas.DrawCircle(ex, ey, 7f, endFill);
         canvas.DrawCircle(ex, ey, 7f, endRing);
     }
@@ -230,26 +268,37 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
         int imgW, int imgH)
     {
         const float rowH = 18f, boxW = 100f;
-        float boxH = series.Count * rowH + 10f;
-        float lx = imgW - boxW - LegendPad;
-        float ly = LegendPad;
+        var boxH = (series.Count * rowH) + 10f;
+        var lx = imgW - boxW - LegendPad;
+        const float ly = LegendPad;
 
-        using var bg     = new SKPaint { Color = new SKColor(255, 255, 255, 210) };
-        using var border = new SKPaint
-            { Color = new SKColor(100, 100, 100, 160), Style = SKPaintStyle.Stroke, StrokeWidth = 0.8f };
+        using var bg = new SKPaint();
+        bg.Color = new SKColor(255, 255, 255, 210);
+        using var border = new SKPaint();
+        border.Color = new SKColor(100, 100, 100, 160);
+        border.Style = SKPaintStyle.Stroke;
+        border.StrokeWidth = 0.8f;
         canvas.DrawRoundRect(lx, ly, boxW, boxH, 5, 5, bg);
         canvas.DrawRoundRect(lx, ly, boxW, boxH, 5, 5, border);
 
-        for (int i = 0; i < series.Count; i++)
+        for (var i = 0; i < series.Count; i++)
         {
             var (label, colour, _) = series[i];
-            float y = ly + 8f + i * rowH + rowH / 2f;
-            using var lp = new SKPaint
-                { Color = colour, Style = SKPaintStyle.Stroke, StrokeWidth = 3f, IsAntialias = true };
+            var y = ly + 8f + (i * rowH) + (rowH / 2f);
+            using var lp = new SKPaint();
+            lp.Color = colour;
+            lp.Style = SKPaintStyle.Stroke;
+            lp.StrokeWidth = 3f;
+            lp.IsAntialias = true;
             canvas.DrawLine(lx + 6f, y, lx + 24f, y, lp);
-            using var dp = new SKPaint { Color = colour, IsAntialias = true };
+            using var dp = new SKPaint();
+            dp.Color = colour;
+            dp.IsAntialias = true;
             canvas.DrawCircle(lx + 15f, y, 4f, dp);
-            using var tp = new SKPaint { Color = SKColors.Black, TextSize = 11f, IsAntialias = true };
+            using var tp = new SKPaint();
+            tp.Color = SKColors.Black;
+            tp.TextSize = 11f;
+            tp.IsAntialias = true;
             canvas.DrawText(label, lx + 28f, y + 4f, tp);
         }
     }
@@ -265,13 +314,17 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
     private static double LatToFrac(double lat, int zoom)
     {
         var r = lat * Math.PI / 180.0;
-        return (1.0 - Math.Log(Math.Tan(r) + 1.0 / Math.Cos(r)) / Math.PI) / 2.0 * (1 << zoom);
+        return (1.0 - (Math.Log(Math.Tan(r) + (1.0 / Math.Cos(r))) / Math.PI)) / 2.0 * (1 << zoom);
     }
 
     private static int ChooseZoom(double minLon, double maxLon, int targetTiles)
     {
         var lonRange = maxLon - minLon;
-        if (lonRange <= 0) return 10;
+        if (lonRange <= 0)
+        {
+            return 10;
+        }
+
         return (int)Math.Round(Math.Log2(targetTiles * 360.0 / lonRange));
     }
 
@@ -280,7 +333,7 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
         try
         {
             hex = hex.TrimStart('#');
-            uint v = Convert.ToUInt32(hex, 16);
+            var v = Convert.ToUInt32(hex, 16);
             return hex.Length == 6
                 ? new SKColor((byte)(v >> 16), (byte)(v >> 8), (byte)v)
                 : new SKColor((byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v);

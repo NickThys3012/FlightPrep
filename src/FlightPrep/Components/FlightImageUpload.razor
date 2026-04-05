@@ -2,66 +2,23 @@
 
 <div>
     <label class="form-label fw-semibold">@Label</label>
-    <InputFile OnChange="HandleUpload" multiple accept="image/*" class="form-control" />
-    @if (Images != null && Images.Count > 0)
+    <InputFile OnChange="HandleUpload" multiple accept="image/*" class="form-control"/>
+    @if (Images.Count > 0)
     {
         <div class="d-flex flex-wrap gap-2 mt-2">
             @foreach (var img in Images)
             {
                 <div class="position-relative" style="width:140px">
                     <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)"
-                        class="img-thumbnail" style="width:140px;height:105px;object-fit:cover" />
+                         class="img-thumbnail" style="width:140px;height:105px;object-fit:cover"/>
                     <span class="position-absolute top-0 end-0 p-1 text-truncate w-100 small text-muted"
-                        style="font-size:.65rem;background:rgba(255,255,255,.8)">@img.FileName</span>
+                          style="font-size:.65rem;background:rgba(255,255,255,.8)">@img.FileName</span>
                     <button type="button" class="btn btn-danger btn-sm position-absolute top-0 start-0"
-                        style="padding:1px 5px;font-size:.7rem"
-                        @onclick="() => RemoveImage(img)">✕</button>
+                            style="padding:1px 5px;font-size:.7rem"
+                            @onclick="() => RemoveImage(img)">✕
+                    </button>
                 </div>
             }
         </div>
     }
 </div>
-
-@code {
-    /// <summary>Human-readable label shown above the file picker.</summary>
-    [Parameter] public string Label { get; set; } = "";
-
-    /// <summary>Section name stored on the <see cref="FlightImage.Section"/> property (e.g. "Meteo" or "Traject").</summary>
-    [Parameter] public string Section { get; set; } = "";
-
-    /// <summary>The image list this component manages. Mutations (add/remove) are applied in-place.</summary>
-    [Parameter] public List<FlightImage> Images { get; set; } = null!;
-
-    /// <summary>Raised after any add or remove so the parent can call StateHasChanged if needed.</summary>
-    [Parameter] public EventCallback ImagesChanged { get; set; }
-
-    private const long MaxImageBytes = 15 * 1024 * 1024; // 15 MB per image
-
-    protected override void OnParametersSet() => ArgumentNullException.ThrowIfNull(Images);
-
-    private async Task HandleUpload(InputFileChangeEventArgs e)
-    {
-        ArgumentNullException.ThrowIfNull(Images);
-        foreach (var file in e.GetMultipleFiles(20))
-        {
-            if (file.Size > MaxImageBytes) continue;
-            using var ms = new System.IO.MemoryStream();
-            await file.OpenReadStream(MaxImageBytes).CopyToAsync(ms);
-            Images.Add(new FlightImage
-            {
-                Section     = Section,
-                FileName    = file.Name,
-                ContentType = file.ContentType,
-                Data        = ms.ToArray(),
-                Order       = Images.Count
-            });
-        }
-        await ImagesChanged.InvokeAsync();
-    }
-
-    private async Task RemoveImage(FlightImage img)
-    {
-        Images?.Remove(img);
-        await ImagesChanged.InvokeAsync();
-    }
-}

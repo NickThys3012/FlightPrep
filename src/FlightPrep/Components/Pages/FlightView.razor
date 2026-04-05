@@ -1,4 +1,8 @@
 @page "/flights/{Id:int}"
+@using System.Text.Json
+@using FlightPrep.Domain.Models
+@using FlightPrep.Domain.Models.Trajectory
+@using FlightPrep.Domain.Services
 @attribute [Authorize]
 @rendermode InteractiveServer
 @inject IFlightPreparationService FpSvc
@@ -7,21 +11,20 @@
 @inject IFlightAssessmentService AssessmentSvc
 @inject IPdfService PdfSvc
 @inject ISunriseService SunriseSvc
-@inject IJSRuntime JS
+@inject IJSRuntime Js
 @inject IKmlService KmlSvc
 @inject ILogger<FlightView> Logger
-@using FlightPrep.Models.Trajectory
 
 <PageTitle>Vaart Bekijken – FlightPrep</PageTitle>
 
-@if (fp == null)
+@if (_fp == null)
 {
     <p><em>Laden...</em></p>
 }
 else
 {
     <div class="container-fluid mt-3">
-        @if (fp.IsFlown)
+        @if (_fp.IsFlown)
         {
             <div class="fp-flown-banner">
                 ✈️ Deze vaart is gevlogen
@@ -31,16 +34,17 @@ else
         <div class="fp-page-header">
             <div>
                 <h2 class="mb-1">
-                    @fp.Datum.ToString("dd MMMM yyyy") &nbsp;
-                    <span class="text-muted fw-normal fs-5">@fp.Tijdstip.ToString("HH:mm")</span>
+                    @_fp.Datum.ToString("dd MMMM yyyy") &nbsp;
+                    <span class="text-muted fw-normal fs-5">@_fp.Tijdstip.ToString("HH:mm")</span>
                 </h2>
                 @{ var gng = _assessment?.GoNoGo ?? "unknown"; }
-                <FlightGoNoGoBadge GoNoGoResult="@gng" ShowEmoji="true" />
+                <FlightGoNoGoBadge GoNoGoResult="@gng" ShowEmoji="true"/>
             </div>
             <div class="fp-toolbar">
-                <a href="/flights/@fp.Id/edit" class="btn btn-outline-secondary">Bewerken</a>
+                <a href="/flights/@_fp.Id/edit" class="btn btn-outline-secondary">Bewerken</a>
                 <button class="btn btn-success" @onclick="DownloadPdf">Download PDF</button>
-                <button class="btn btn-outline-primary" @onclick="() => showFlownModal = true">Markeer als gevlogen</button>
+                <button class="btn btn-outline-primary" @onclick="() => _showFlownModal = true">Markeer als gevlogen
+                </button>
                 <a href="/flights" class="btn btn-outline-secondary">Terug</a>
             </div>
         </div>
@@ -52,29 +56,35 @@ else
                     <div class="card-header bg-primary text-white">1. Algemene Gegevens</div>
                     <div class="card-body">
                         <dl class="row mb-0">
-                            <dt class="col-sm-3">Datum</dt><dd class="col-sm-9">@fp.Datum.ToString("dd/MM/yyyy")</dd>
-                            <dt class="col-sm-3">Tijdstip</dt><dd class="col-sm-9">@fp.Tijdstip.ToString("HH:mm") LT</dd>
-                            <dt class="col-sm-3">Ballon</dt><dd class="col-sm-9">@(fp.Balloon != null ? $"{fp.Balloon.Registration} – {fp.Balloon.Type} ({(fp.Balloon.VolumeM3.HasValue ? $"{fp.Balloon.VolumeM3:F0} m³" : "–")})" : "–")</dd>
-                            <dt class="col-sm-3">Piloot / PIC</dt><dd class="col-sm-9">@(fp.Pilot?.Name ?? "–")</dd>
-                            <dt class="col-sm-3">Locatie</dt><dd class="col-sm-9">@(fp.Location?.Name ?? "–")</dd>
+                            <dt class="col-sm-3">Datum</dt>
+                            <dd class="col-sm-9">@_fp.Datum.ToString("dd/MM/yyyy")</dd>
+                            <dt class="col-sm-3">Tijdstip</dt>
+                            <dd class="col-sm-9">@_fp.Tijdstip.ToString("HH:mm") LT</dd>
+                            <dt class="col-sm-3">Ballon</dt>
+                            <dd class="col-sm-9">@(_fp.Balloon != null ? $"{_fp.Balloon.Registration} – {_fp.Balloon.Type} ({(_fp.Balloon.VolumeM3.HasValue ? $"{_fp.Balloon.VolumeM3:F0} m³" : "–")})" : "–")</dd>
+                            <dt class="col-sm-3">Piloot / PIC</dt>
+                            <dd class="col-sm-9">@(_fp.Pilot?.Name ?? "–")</dd>
+                            <dt class="col-sm-3">Locatie</dt>
+                            <dd class="col-sm-9">@(_fp.Location?.Name ?? "–")</dd>
                             <dt class="col-sm-3">Veld eigenaar gemeld</dt>
                             <dd class="col-sm-9">
-                                @if (fp.VeldEigenaarGemeld)
+                                @if (_fp.VeldEigenaarGemeld)
                                 {
                                     <span class="badge bg-success">Ja</span>
                                 }
                                 else
                                 {
                                     <span class="badge bg-secondary">Nee / NVT</span>
-                                    <a href="https://forms.monday.com/forms/90b13ba3fa8356c3f9a6d5f46b10421a?r=euc1" target="_blank" rel="noopener" class="ms-2 small">formulier invullen</a>
+                                    <a href="https://forms.monday.com/forms/90b13ba3fa8356c3f9a6d5f46b10421a?r=euc1"
+                                       target="_blank" rel="noopener" class="ms-2 small">formulier invullen</a>
                                 }
                             </dd>
                         </dl>
-                        @if (sunriseSunset.HasValue)
+                        @if (_sunriseSunset.HasValue)
                         {
                             <div class="fp-sun-card">
-                                <span>🌅 Zonsopgang: <strong>@sunriseSunset.Value.Sunrise.ToString("HH:mm") UTC</strong></span>
-                                <span>🌇 Zonsondergang: <strong>@sunriseSunset.Value.Sunset.ToString("HH:mm") UTC</strong></span>
+                                <span>🌅 Zonsopgang: <strong>@_sunriseSunset.Value.Sunrise.ToString("HH:mm") UTC</strong></span>
+                                <span>🌇 Zonsondergang: <strong>@_sunriseSunset.Value.Sunset.ToString("HH:mm") UTC</strong></span>
                             </div>
                         }
                     </div>
@@ -87,47 +97,63 @@ else
                     <div class="card-header bg-primary text-white">2. Meteorologische Informatie</div>
                     <div class="card-body">
                         <dl class="row mb-0">
-                            <dt class="col-sm-3">METAR</dt><dd class="col-sm-9 font-monospace">@(fp.Metar ?? "–")</dd>
-                            <dt class="col-sm-3">TAF</dt><dd class="col-sm-9 font-monospace" style="white-space:pre-wrap">@(fp.Taf ?? "–")</dd>
-                            <dt class="col-sm-3">Wind per hoogte</dt><dd class="col-sm-9" style="white-space:pre-wrap">@(fp.WindPerHoogte ?? "–")</dd>
-                            <dt class="col-sm-3">Neerslag / bewolking</dt><dd class="col-sm-9">@(fp.Neerslag ?? "–")</dd>
-                            <dt class="col-sm-3">Windrichting oppervlak</dt><dd class="col-sm-9">@(fp.SurfaceWindDirectionDeg.HasValue ? $"{fp.SurfaceWindDirectionDeg}°" : "–")</dd>
-                            <dt class="col-sm-3">Windsnelheid oppervlak</dt><dd class="col-sm-9">@(fp.SurfaceWindSpeedKt.HasValue ? $"{fp.SurfaceWindSpeedKt} kt" : "–")</dd>
-                            <dt class="col-sm-3">Temperatuur</dt><dd class="col-sm-9">@(fp.TemperatuurC.HasValue ? $"{fp.TemperatuurC}°C" : "–")</dd>
-                            <dt class="col-sm-3">Dauwpunt</dt><dd class="col-sm-9">@(fp.DauwpuntC.HasValue ? $"{fp.DauwpuntC}°C" : "–")</dd>
-                            <dt class="col-sm-3">QNH</dt><dd class="col-sm-9">@(fp.QnhHpa.HasValue ? $"{fp.QnhHpa} hPa" : "–")</dd>
-                            <dt class="col-sm-3">Zichtbaarheid</dt><dd class="col-sm-9">@(fp.ZichtbaarheidKm.HasValue ? $"{fp.ZichtbaarheidKm} km" : "–")</dd>
-                            <dt class="col-sm-3">CAPE</dt><dd class="col-sm-9">@(fp.CapeJkg.HasValue ? $"{fp.CapeJkg} J/kg" : "–")</dd>
+                            <dt class="col-sm-3">METAR</dt>
+                            <dd class="col-sm-9 font-monospace">@(_fp.Metar ?? "–")</dd>
+                            <dt class="col-sm-3">TAF</dt>
+                            <dd class="col-sm-9 font-monospace" style="white-space:pre-wrap">@(_fp.Taf ?? "–")</dd>
+                            <dt class="col-sm-3">Wind per hoogte</dt>
+                            <dd class="col-sm-9" style="white-space:pre-wrap">@(_fp.WindPerHoogte ?? "–")</dd>
+                            <dt class="col-sm-3">Neerslag / bewolking</dt>
+                            <dd class="col-sm-9">@(_fp.Neerslag ?? "–")</dd>
+                            <dt class="col-sm-3">Windrichting oppervlak</dt>
+                            <dd class="col-sm-9">@(_fp.SurfaceWindDirectionDeg.HasValue ? $"{_fp.SurfaceWindDirectionDeg}°" : "–")</dd>
+                            <dt class="col-sm-3">Windsnelheid oppervlak</dt>
+                            <dd class="col-sm-9">@(_fp.SurfaceWindSpeedKt.HasValue ? $"{_fp.SurfaceWindSpeedKt} kt" : "–")</dd>
+                            <dt class="col-sm-3">Temperatuur</dt>
+                            <dd class="col-sm-9">@(_fp.TemperatuurC.HasValue ? $"{_fp.TemperatuurC}°C" : "–")</dd>
+                            <dt class="col-sm-3">Dauwpunt</dt>
+                            <dd class="col-sm-9">@(_fp.DauwpuntC.HasValue ? $"{_fp.DauwpuntC}°C" : "–")</dd>
+                            <dt class="col-sm-3">QNH</dt>
+                            <dd class="col-sm-9">@(_fp.QnhHpa.HasValue ? $"{_fp.QnhHpa} hPa" : "–")</dd>
+                            <dt class="col-sm-3">Zichtbaarheid</dt>
+                            <dd class="col-sm-9">@(_fp.ZichtbaarheidKm.HasValue ? $"{_fp.ZichtbaarheidKm} km" : "–")</dd>
+                            <dt class="col-sm-3">CAPE</dt>
+                            <dd class="col-sm-9">@(_fp.CapeJkg.HasValue ? $"{_fp.CapeJkg} J/kg" : "–")</dd>
                         </dl>
-                        @if (fp.WindLevels.Count > 0)
+                        @if (_fp.WindLevels.Count > 0)
                         {
                             <table class="table table-sm table-bordered mt-3">
                                 <thead class="table-light">
-                                    <tr><th>Hoogte (ft)</th><th>Richting (°)</th><th>Snelheid (kt)</th><th>Temp (°C)</th></tr>
+                                <tr>
+                                    <th>Hoogte (ft)</th>
+                                    <th>Richting (°)</th>
+                                    <th>Snelheid (kt)</th>
+                                    <th>Temp (°C)</th>
+                                </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var wl in fp.WindLevels.OrderBy(w => w.Order))
-                                    {
-                                        <tr>
-                                            <td>@wl.AltitudeFt</td>
-                                            <td>@(wl.DirectionDeg?.ToString() ?? "–")</td>
-                                            <td>@(wl.SpeedKt?.ToString() ?? "–")</td>
-                                            <td>@(wl.TempC?.ToString("F1") ?? "–")</td>
-                                        </tr>
-                                    }
+                                @foreach (var wl in _fp.WindLevels.OrderBy(w => w.Order))
+                                {
+                                    <tr>
+                                        <td>@wl.AltitudeFt</td>
+                                        <td>@(wl.DirectionDeg?.ToString() ?? "–")</td>
+                                        <td>@(wl.SpeedKt?.ToString() ?? "–")</td>
+                                        <td>@(wl.TempC?.ToString("F1") ?? "–")</td>
+                                    </tr>
+                                }
                                 </tbody>
                             </table>
                         }
-                        @{ var meteo = fp.Images.Where(i => i.Section == "Meteo").ToList(); }
+                        @{ var meteo = _fp.Images.Where(i => i.Section == "Meteo").ToList(); }
                         @if (meteo.Count > 0)
                         {
                             <div class="fp-thumb-grid">
                                 @foreach (var img in meteo)
                                 {
                                     <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)"
-                                        class="flight-thumb"
-                                        title="@img.FileName"
-                                        @onclick="() => OpenLightbox(img)" />
+                                         class="flight-thumb"
+                                         title="@img.FileName"
+                                         @onclick="() => OpenLightbox(img)"/>
                                 }
                             </div>
                         }
@@ -141,10 +167,14 @@ else
                     <div class="card-header bg-primary text-white">3. Luchtruim en NOTAMs</div>
                     <div class="card-body">
                         <dl class="row mb-0">
-                            <dt class="col-sm-5">NOTAMs gecontroleerd</dt><dd class="col-sm-7">@fp.NotamsGecontroleerd</dd>
-                            <dt class="col-sm-5">Luchtruimstructuur</dt><dd class="col-sm-7" style="white-space:pre-wrap">@(fp.Luchtruimstructuur ?? "–")</dd>
-                            <dt class="col-sm-5">Beperkingen</dt><dd class="col-sm-7" style="white-space:pre-wrap">@(fp.Beperkingen ?? "–")</dd>
-                            <dt class="col-sm-5">Obstakels</dt><dd class="col-sm-7" style="white-space:pre-wrap">@(fp.Obstakels ?? "–")</dd>
+                            <dt class="col-sm-5">NOTAMs gecontroleerd</dt>
+                            <dd class="col-sm-7">@_fp.NotamsGecontroleerd</dd>
+                            <dt class="col-sm-5">Luchtruimstructuur</dt>
+                            <dd class="col-sm-7" style="white-space:pre-wrap">@(_fp.Luchtruimstructuur ?? "–")</dd>
+                            <dt class="col-sm-5">Beperkingen</dt>
+                            <dd class="col-sm-7" style="white-space:pre-wrap">@(_fp.Beperkingen ?? "–")</dd>
+                            <dt class="col-sm-5">Obstakels</dt>
+                            <dd class="col-sm-7" style="white-space:pre-wrap">@(_fp.Obstakels ?? "–")</dd>
                         </dl>
                     </div>
                 </div>
@@ -156,9 +186,12 @@ else
                     <div class="card-header bg-primary text-white">4. Veiligheid en Communicatie</div>
                     <div class="card-body">
                         <dl class="row mb-0">
-                            <dt class="col-sm-7">EHBO-kit en vuurblusser</dt><dd class="col-sm-5">@fp.EhboEnBlusser</dd>
-                            <dt class="col-sm-7">Passagierslijst ingevuld</dt><dd class="col-sm-5">@fp.PassagierslijstIngevuld</dd>
-                            <dt class="col-sm-7">Vluchtplan ingediend</dt><dd class="col-sm-5">@fp.VluchtplanIngediend</dd>
+                            <dt class="col-sm-7">EHBO-kit en vuurblusser</dt>
+                            <dd class="col-sm-5">@_fp.EhboEnBlusser</dd>
+                            <dt class="col-sm-7">Passagierslijst ingevuld</dt>
+                            <dd class="col-sm-5">@_fp.PassagierslijstIngevuld</dd>
+                            <dt class="col-sm-7">Vluchtplan ingediend</dt>
+                            <dd class="col-sm-5">@_fp.VluchtplanIngediend</dd>
                         </dl>
                     </div>
                 </div>
@@ -170,11 +203,11 @@ else
                     <div class="card-header bg-primary text-white">5. Technische Controle</div>
                     <div class="card-body">
                         <ul class="list-unstyled mb-0">
-                            <li>@(fp.BranderGetest ? "☑" : "☐") Brander getest</li>
-                            <li>@(fp.GasflaconsGecontroleerd ? "☑" : "☐") Gasflessen gevuld &amp; gecontroleerd</li>
-                            <li>@(fp.BallonVisueel ? "☑" : "☐") Ballon en mand visueel geïnspecteerd</li>
-                            <li>@(fp.VerankeringenGecontroleerd ? "☑" : "☐") Verankeringen en touwen gecontroleerd</li>
-                            <li>@(fp.InstrumentenWerkend ? "☑" : "☐") Instrumenten werkend</li>
+                            <li>@(_fp.BranderGetest ? "☑" : "☐") Brander getest</li>
+                            <li>@(_fp.GasflaconsGecontroleerd ? "☑" : "☐") Gasflessen gevuld &amp; gecontroleerd</li>
+                            <li>@(_fp.BallonVisueel ? "☑" : "☐") Ballon en mand visueel geïnspecteerd</li>
+                            <li>@(_fp.VerankeringenGecontroleerd ? "☑" : "☐") Verankeringen en touwen gecontroleerd</li>
+                            <li>@(_fp.InstrumentenWerkend ? "☑" : "☐") Instrumenten werkend</li>
                         </ul>
                     </div>
                 </div>
@@ -185,24 +218,39 @@ else
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">7. Load Berekening</div>
                     <div class="card-body">
-                        <p><strong>Gewicht envelop:</strong> @(fp.EnvelopeWeightKg?.ToString("F1") ?? "–") kg</p>
-                        <p><strong>Max Altitude:</strong> @(fp.MaxAltitudeFt.HasValue ? fp.MaxAltitudeFt + " ft" : "–")</p>
-                        <p><strong>Totaal lift:</strong> @(fp.TotaalLiftKg?.ToString("F1") ?? "–") kg</p>
+                        <p><strong>Gewicht envelop:</strong> @(_fp.EnvelopeWeightKg?.ToString("F1") ?? "–") kg</p>
+                        <p><strong>Max
+                                Altitude:</strong> @(_fp.MaxAltitudeFt.HasValue ? _fp.MaxAltitudeFt + " ft" : "–")</p>
+                        <p><strong>Totaal lift:</strong> @(_fp.TotaalLiftKg?.ToString("F1") ?? "–") kg</p>
                         <table class="table table-sm">
-                            <thead><tr><th>Naam</th><th>Gewicht</th></tr></thead>
+                            <thead>
+                            <tr>
+                                <th>Naam</th>
+                                <th>Gewicht</th>
+                            </tr>
+                            </thead>
                             <tbody>
-                                <tr class="table-light"><td><em>Piloot: @(fp.Pilot?.Name ?? "–")</em></td><td>@(fp.Pilot?.WeightKg?.ToString("F1") ?? "–") kg</td></tr>
-                                @foreach (var p in fp.Passengers.OrderBy(x => x.Order))
-                                {
-                                    <tr><td>@p.Name</td><td>@p.WeightKg.ToString("F1") kg</td></tr>
-                                }
-                                <tr class="fw-bold table-secondary"><td>Totaal</td><td>@(_assessment?.TotaalGewicht.ToString("F1") ?? "–") kg</td></tr>
+                            <tr class="table-light">
+                                <td><em>Piloot: @(_fp.Pilot?.Name ?? "–")</em></td>
+                                <td>@(_fp.Pilot?.WeightKg?.ToString("F1") ?? "–") kg</td>
+                            </tr>
+                            @foreach (var p in _fp.Passengers.OrderBy(x => x.Order))
+                            {
+                                <tr>
+                                    <td>@p.Name</td>
+                                    <td>@p.WeightKg.ToString("F1") kg</td>
+                                </tr>
+                            }
+                            <tr class="fw-bold table-secondary">
+                                <td>Totaal</td>
+                                <td>@(_assessment?.TotaalGewicht.ToString("F1") ?? "–") kg</td>
+                            </tr>
                             </tbody>
                         </table>
-                        @if (fp.TotaalLiftKg.HasValue)
+                        @if (_fp.TotaalLiftKg.HasValue)
                         {
-                            <span class="badge @((_assessment?.LiftVoldoende ?? false) ? "bg-success" : "bg-danger")">
-                                @((_assessment?.LiftVoldoende ?? false) ? "✅ Lift voldoende" : "❌ Lift onvoldoende")
+                            <span class="badge @(_assessment?.LiftVoldoende ?? false ? "bg-success" : "bg-danger")">
+                                @(_assessment?.LiftVoldoende ?? false ? "✅ Lift voldoende" : "❌ Lift onvoldoende")
                             </span>
                         }
                     </div>
@@ -215,7 +263,7 @@ else
                     <div class="card-header bg-primary text-white">6. Pax Briefing</div>
                     <div class="card-body p-0">
                         <div class="ql-snow">
-                            <div class="ql-editor">@((MarkupString)(fp.PaxBriefing ?? "<em>–</em>"))</div>
+                            <div class="ql-editor">@((MarkupString)(_fp.PaxBriefing ?? "<em>–</em>"))</div>
                         </div>
                     </div>
                 </div>
@@ -227,24 +275,26 @@ else
                     <div class="card-header bg-primary text-white">8. Traject</div>
                     <div class="card-body">
                         @{
-                            var hasSavedEnh = savedEnhancedTrajectories != null && savedEnhancedTrajectories.Any(t => t.Points.Count > 0);
-                            var hasSavedDr  = savedTrajectories != null && savedTrajectories.Count > 0;
+                            var hasSavedEnh = _savedEnhancedTrajectories != null && _savedEnhancedTrajectories.Any(t => t.Points.Count > 0);
+                            var hasSavedDr = _savedTrajectories is { Count: > 0 };
                         }
-                        @if ((hasSavedEnh || hasSavedDr) && fp?.Location?.Latitude != null)
+                        @if ((hasSavedEnh || hasSavedDr) && _fp?.Location?.Latitude != null)
                         {
                             <div class="mb-3">
                                 <div class="d-flex flex-wrap gap-1 align-items-center mb-2">
-                                    @foreach (var t in (savedEnhancedTrajectories ?? new()).Where(t => t.Points.Count > 0))
+                                    @foreach (var t in (_savedEnhancedTrajectories ?? []).Where(t => t.Points.Count > 0))
                                     {
-                                        <span class="badge" style="background-color:@t.Color">@t.AltitudeFt ft (3D)</span>
+                                        <span class="badge"
+                                              style="background-color:@t.Color">@t.AltitudeFt ft (3D)</span>
                                     }
-                                    @foreach (var t in (savedTrajectories ?? new()))
+                                    @foreach (var t in _savedTrajectories ?? [])
                                     {
-                                        <span class="badge" style="background-color:@t.Color">@t.AltitudeFt ft (DR)</span>
+                                        <span class="badge"
+                                              style="background-color:@t.Color">@t.AltitudeFt ft (DR)</span>
                                     }
                                     @{
-                                        var refTraj = (savedEnhancedTrajectories ?? new()).FirstOrDefault(t => t.Points.Count > 0)
-                                                   ?? savedTrajectories?.FirstOrDefault();
+                                        var refTraj = (_savedEnhancedTrajectories ?? []).FirstOrDefault(t => t.Points.Count > 0)
+                                                          ?? _savedTrajectories?.FirstOrDefault();
                                     }
                                     @if (refTraj != null)
                                     {
@@ -254,27 +304,28 @@ else
                                         </span>
                                     }
                                 </div>
-                                <div id="saved-combined-map" style="height:400px;border-radius:8px;overflow:hidden;"></div>
+                                <div id="saved-combined-map"
+                                     style="height:400px;border-radius:8px;overflow:hidden;"></div>
                             </div>
                         }
-                        @if (!string.IsNullOrWhiteSpace(fp.Traject))
+                        @if (!string.IsNullOrWhiteSpace(_fp?.Traject))
                         {
-                            <pre class="mb-3">@fp.Traject</pre>
+                            <pre class="mb-3">@_fp.Traject</pre>
                         }
-                        @{ var traj = fp.Images.Where(i => i.Section == "Traject").ToList(); }
-                        @if (traj.Count > 0)
+                        @{ var traj = _fp?.Images.Where(i => i.Section == "Traject").ToList(); }
+                        @if (traj is { Count: > 0 })
                         {
                             <div class="fp-thumb-grid">
                                 @foreach (var img in traj)
                                 {
                                     <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)"
-                                        class="flight-thumb"
-                                        title="@img.FileName"
-                                        @onclick="() => OpenLightbox(img)" />
+                                         class="flight-thumb"
+                                         title="@img.FileName"
+                                         @onclick="() => OpenLightbox(img)"/>
                                 }
                             </div>
                         }
-                        @if (string.IsNullOrWhiteSpace(fp.Traject) && traj.Count == 0)
+                        @if (string.IsNullOrWhiteSpace(_fp?.Traject) && traj is { Count: 0 })
                         {
                             <span class="text-muted">–</span>
                         }
@@ -286,20 +337,25 @@ else
             <div class="col-12 mb-4">
                 <div class="card">
                     <div class="card-header bg-primary text-white">9. Ballonbulletin</div>
-                    <div class="card-body"><pre class="font-monospace small mb-0">@fp.Ballonbulletin</pre></div>
+                    <div class="card-body">
+                        <pre class="font-monospace small mb-0">@_fp?.Ballonbulletin</pre>
+                    </div>
                 </div>
             </div>
 
-            @if (fp.IsFlown)
+            @if (_fp is { IsFlown: true })
             {
                 <div class="col-12 mb-4">
                     <div class="card border-success">
                         <div class="card-header bg-success text-white">✈️ Vluchtverslag</div>
                         <div class="card-body">
                             <dl class="row mb-0">
-                                <dt class="col-sm-3">Werkelijke landing</dt><dd class="col-sm-9">@(fp.ActualLandingNotes ?? "–")</dd>
-                                <dt class="col-sm-3">Vluchtduur</dt><dd class="col-sm-9">@(fp.ActualFlightDurationMinutes.HasValue ? $"{fp.ActualFlightDurationMinutes} min" : "–")</dd>
-                                <dt class="col-sm-3">Opmerkingen</dt><dd class="col-sm-9" style="white-space:pre-wrap">@(fp.ActualRemarks ?? "–")</dd>
+                                <dt class="col-sm-3">Werkelijke landing</dt>
+                                <dd class="col-sm-9">@(_fp.ActualLandingNotes ?? "–")</dd>
+                                <dt class="col-sm-3">Vluchtduur</dt>
+                                <dd class="col-sm-9">@(_fp.ActualFlightDurationMinutes.HasValue ? $"{_fp.ActualFlightDurationMinutes} min" : "–")</dd>
+                                <dt class="col-sm-3">Opmerkingen</dt>
+                                <dd class="col-sm-9" style="white-space:pre-wrap">@(_fp.ActualRemarks ?? "–")</dd>
                             </dl>
                         </div>
                     </div>
@@ -309,28 +365,31 @@ else
             <!-- Section: Vlucht Track -->
             <div class="col-12 mt-3">
                 <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center" style="background:#1a3a5c;color:white;">
+                    <div class="card-header d-flex justify-content-between align-items-center"
+                         style="background:#1a3a5c;color:white;">
                         <span>Vlucht Track</span>
-                        <button class="btn btn-sm btn-outline-light" @onclick="() => showTrackUpload = !showTrackUpload">
-                            @(fp!.KmlTrack != null ? "Vervangen" : "KML Uploaden")
+                        <button class="btn btn-sm btn-outline-light"
+                                @onclick="() => _showTrackUpload = !_showTrackUpload">
+                            @(_fp!.KmlTrack != null ? "Vervangen" : "KML Uploaden")
                         </button>
                     </div>
                     <div class="card-body p-0">
-                        @if (showTrackUpload || fp!.KmlTrack == null)
+                        @if (_showTrackUpload || _fp!.KmlTrack == null)
                         {
                             <div class="p-3">
-                                <p class="text-muted small mb-2">Upload een KML bestand van de Hot Air app (of ander GPS logger). Het track wordt op een kaart weergegeven.</p>
-                                <InputFile OnChange="OnKmlUpload" accept=".kml" class="form-control form-control-sm" />
-                                @if (kmlUploadError != null)
+                                <p class="text-muted small mb-2">Upload een KML bestand van de Hot Air app (of ander GPS
+                                    logger). Het track wordt op een kaart weergegeven.</p>
+                                <InputFile OnChange="OnKmlUpload" accept=".kml" class="form-control form-control-sm"/>
+                                @if (_kmlUploadError != null)
                                 {
-                                    <div class="alert alert-danger mt-2 py-1 small">@kmlUploadError</div>
+                                    <div class="alert alert-danger mt-2 py-1 small">@_kmlUploadError</div>
                                 }
                             </div>
                         }
 
-                        @if (trackPoints != null && trackPoints.Count > 0)
+                        @if (_trackPoints is { Count: > 0 })
                         {
-                            var stats = KmlSvc.ComputeStats(trackPoints);
+                            var stats = KmlSvc.ComputeStats(_trackPoints);
                             <div class="d-flex gap-4 px-3 pt-3 pb-2 flex-wrap">
                                 <div class="text-center">
                                     <div class="fw-bold fs-5">@((stats.MaxAltM * 3.28084).ToString("F0")) ft</div>
@@ -345,7 +404,7 @@ else
                                     <div class="text-muted small">Afstand</div>
                                 </div>
                                 <div class="text-center">
-                                    <div class="fw-bold fs-5">@trackPoints.Count</div>
+                                    <div class="fw-bold fs-5">@_trackPoints.Count</div>
                                     <div class="text-muted small">GPS punten</div>
                                 </div>
                             </div>
@@ -357,7 +416,7 @@ else
                                 </div>
                             </div>
                         }
-                        else if (fp!.KmlTrack == null)
+                        else if (_fp!.KmlTrack == null)
                         {
                             <div class="p-3 text-muted small">Nog geen track geüpload.</div>
                         }
@@ -369,7 +428,7 @@ else
 }
 
 <!-- Mark as flown modal -->
-@if (showFlownModal)
+@if (_showFlownModal)
 {
     <div class="modal d-block" tabindex="-1">
         <div class="modal-dialog">
@@ -380,20 +439,20 @@ else
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Werkelijke landing</label>
-                        <input type="text" class="form-control" @bind="flownLandingNotes" />
+                        <input type="text" class="form-control" @bind="_flownLandingNotes"/>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Vluchtduur (min)</label>
-                        <input type="number" class="form-control" @bind="flownDurationMinutes" />
+                        <input type="number" class="form-control" @bind="_flownDurationMinutes"/>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Opmerkingen</label>
-                        <textarea class="form-control" rows="3" @bind="flownRemarks"></textarea>
+                        <textarea class="form-control" rows="3" @bind="_flownRemarks"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-success" @onclick="SaveFlown">Opslaan</button>
-                    <button class="btn btn-secondary" @onclick="() => showFlownModal = false">Annuleren</button>
+                    <button class="btn btn-secondary" @onclick="() => _showFlownModal = false">Annuleren</button>
                 </div>
             </div>
         </div>
@@ -402,191 +461,14 @@ else
 }
 
 <!-- Lightbox modal -->
-@if (lightboxImg != null)
+@if (_lightboxImg != null)
 {
     <div class="lightbox-backdrop" @onclick="CloseLightbox">
         <div class="lightbox-content" @onclick:stopPropagation="true">
             <button class="lightbox-close" @onclick="CloseLightbox">&times;</button>
-            <img src="data:@lightboxImg.ContentType;base64,@Convert.ToBase64String(lightboxImg.Data)"
-                 alt="@lightboxImg.FileName" class="lightbox-img" />
-            <div class="lightbox-caption">@lightboxImg.FileName</div>
+            <img src="data:@_lightboxImg.ContentType;base64,@Convert.ToBase64String(_lightboxImg.Data)"
+                 alt="@_lightboxImg.FileName" class="lightbox-img"/>
+            <div class="lightbox-caption">@_lightboxImg.FileName</div>
         </div>
     </div>
-}
-
-@code {
-    [Parameter] public int Id { get; set; }
-    private FlightPreparation? fp;
-    private FlightAssessment? _assessment;
-    private string? _userId;
-    private FlightImage? lightboxImg;
-
-    private bool showFlownModal;
-    private string? flownLandingNotes;
-    private int? flownDurationMinutes;
-    private string? flownRemarks;
-
-    private (TimeOnly Sunrise, TimeOnly Sunset)? sunriseSunset;
-
-    private List<TrackPoint>? trackPoints;
-    private bool showTrackUpload = false;
-    private string? kmlUploadError;
-    private bool mapInitialized = false;
-
-    private List<SimulatedTrajectory>? savedTrajectories;
-    private List<SimulatedTrajectory>? savedEnhancedTrajectories;
-    private bool savedCombinedMapRendered = false;
-
-    private void OpenLightbox(FlightImage img) => lightboxImg = img;
-    private void CloseLightbox() => lightboxImg = null;
-
-    private void LoadExistingTrack()
-    {
-        if (fp?.KmlTrack != null)
-            trackPoints = KmlSvc.ParseCoordinates(fp.KmlTrack);
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        _userId = userId;
-        var isAdmin = authState.User.IsInRole("Admin");
-
-        fp = await FpSvc.GetByIdAsync(Id);
-
-        if (fp != null)
-        {
-            // Ownership check — redirect if the flight belongs to another user
-            if (fp.CreatedByUserId != null && fp.CreatedByUserId != userId && !isAdmin)
-            {
-                Nav.NavigateTo("/flights");
-                return;
-            }
-
-            // Compute assessment (TotaalGewicht, LiftVoldoende, GoNoGo via service)
-            _assessment = await AssessmentSvc.ComputeAsync(fp, userId);
-
-            // Initialise flown modal pre-fill
-            flownLandingNotes = fp.ActualLandingNotes;
-            flownDurationMinutes = fp.ActualFlightDurationMinutes;
-            flownRemarks = fp.ActualRemarks;
-
-            // Sunrise/sunset
-            var loc = fp.Location;
-            if (loc?.Latitude.HasValue == true && loc.Longitude.HasValue)
-                sunriseSunset = SunriseSvc.Calculate(fp.Datum, loc.Latitude!.Value, loc.Longitude!.Value);
-
-            LoadExistingTrack();
-
-            if (!string.IsNullOrWhiteSpace(fp?.TrajectorySimulationJson))
-            {
-                try
-                {
-                    var all = System.Text.Json.JsonSerializer.Deserialize<List<SimulatedTrajectory>>(fp.TrajectorySimulationJson);
-                    if (all != null && all.Count > 0)
-                    {
-                        savedTrajectories = all.Where(t => t.DataSource != TrajectoryDataSource.Hysplit).ToList();
-                        savedEnhancedTrajectories = all.Where(t => t.DataSource == TrajectoryDataSource.Hysplit).ToList();
-                        if (savedTrajectories.Count == 0) savedTrajectories = null;
-                        if (savedEnhancedTrajectories.Count == 0) savedEnhancedTrajectories = null;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogWarning(ex, "Failed to deserialize TrajectorySimulationJson for flight {Id}", fp?.Id);
-                    savedTrajectories = null;
-                }
-            }
-        }
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        await base.OnAfterRenderAsync(firstRender);
-        if (trackPoints != null && trackPoints.Count > 0 && !mapInitialized)
-        {
-            mapInitialized = true;
-            var pts = trackPoints.Select(p => new double[] { p.Lat, p.Lon, p.AltM }).ToArray();
-            await JS.InvokeVoidAsync("initFlightMap", "flight-track-map", pts);
-            await JS.InvokeVoidAsync("initAltitudeChart", "altitude-chart", pts);
-        }
-        var hasSavedAny = ((savedTrajectories?.Count ?? 0) > 0)
-                       || (savedEnhancedTrajectories?.Any(t => t.Points.Count > 0) == true);
-        if (hasSavedAny && !savedCombinedMapRendered
-            && fp?.Location?.Latitude != null && fp.Location.Longitude != null)
-        {
-            savedCombinedMapRendered = true;
-            var drJs = (savedTrajectories ?? new())
-                .Select(t => new
-                {
-                    color       = t.Color,
-                    label       = $"{t.AltitudeFt} ft (DR)",
-                    durationMin = t.DurationMinutes,
-                    hasAltitude = false,
-                    points      = t.Points.Select(p => new[] { p.Lat, p.Lon }).ToArray()
-                });
-            var enhJs = (savedEnhancedTrajectories ?? new())
-                .Where(t => t.Points.Count > 0)
-                .Select(t => new
-                {
-                    color       = t.Color,
-                    label       = $"{t.AltitudeFt} ft (3D)",
-                    durationMin = t.DurationMinutes,
-                    hasAltitude = true,
-                    points      = t.Points.Select(p => new[] { p.Lat, p.Lon, p.AltitudeFt ?? 0 }).ToArray()
-                });
-            await JS.InvokeVoidAsync("initCombinedTrajectoryMap",
-                "saved-combined-map",
-                fp!.Location!.Latitude,
-                fp.Location.Longitude,
-                drJs.Concat<object>(enhJs).ToArray());
-        }
-    }
-
-    private async Task OnKmlUpload(InputFileChangeEventArgs e)
-    {
-        kmlUploadError = null;
-        try
-        {
-            using var stream = e.File.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
-            using var reader = new System.IO.StreamReader(stream);
-            var kml = await reader.ReadToEndAsync();
-            var pts = KmlSvc.ParseCoordinates(kml);
-            if (pts.Count == 0) { kmlUploadError = "Geen geldige coördinaten gevonden in het KML bestand."; return; }
-
-            await FpSvc.PatchKmlTrackAsync(fp!.Id, kml);
-
-            fp.KmlTrack = kml;
-            trackPoints = pts;
-            mapInitialized = false;
-            showTrackUpload = false;
-        }
-        catch (Exception ex)
-        {
-            kmlUploadError = $"Fout bij uploaden: {ex.Message}";
-        }
-    }
-
-    private async Task SaveFlown()
-    {
-        if (fp == null) return;
-
-        await FpSvc.PatchFlownAsync(fp.Id, true, flownLandingNotes, flownDurationMinutes, flownRemarks);
-
-        fp.IsFlown = true;
-        fp.ActualLandingNotes = flownLandingNotes;
-        fp.ActualFlightDurationMinutes = flownDurationMinutes;
-        fp.ActualRemarks = flownRemarks;
-        showFlownModal = false;
-    }
-
-    private async Task DownloadPdf()
-    {
-        if (fp == null) return;
-        var pdfBytes = await PdfSvc.GenerateAsync(fp, userId: _userId);
-        var fileName = $"vaartvoorbereiding_{fp.Datum:yyyy-MM-dd}_{fp.Id}.pdf";
-        await JS.InvokeVoidAsync("downloadFileFromBytes", fileName, "application/pdf",
-            Convert.ToBase64String(pdfBytes));
-    }
 }

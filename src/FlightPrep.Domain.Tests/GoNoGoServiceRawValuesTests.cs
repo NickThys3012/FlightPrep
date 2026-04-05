@@ -1,14 +1,14 @@
-using FlightPrep.Models;
+using FlightPrep.Domain.Models;
 using FlightPrep.Services;
 
 namespace FlightPrep.Domain.Tests;
 
 /// <summary>
-/// Additional tests for the raw-values overload of
-/// <see cref="GoNoGoService.Compute(double?, double?, double?, GoNoGoSettings)"/>.
-/// The existing <see cref="FlightPrep.Tests.GoNoGoServiceComputeTests"/> covers the
-/// <c>Compute(FlightPreparation, GoNoGoSettings)</c> overload; this class focuses on
-/// the new raw-values path used by the list page summary rows.
+///     Additional tests for the raw-values overload of
+///     <see cref="GoNoGoService.Compute(double?, double?, double?, GoNoGoSettings)" />.
+///     The existing <see cref="FlightPrep.Tests.GoNoGoServiceComputeTests" /> covers the
+///     <c>Compute(FlightPreparation, GoNoGoSettings)</c> overload; this class focuses on
+///     the new raw-values path used by the list page summary rows.
 /// </summary>
 public class GoNoGoServiceRawValuesTests
 {
@@ -23,7 +23,7 @@ public class GoNoGoServiceRawValuesTests
         var sut = new GoNoGoService(null!);
 
         // Act
-        var result = sut.Compute(windKt: 20, visKm: null, capeJkg: null, DefaultSettings);
+        var result = sut.Compute(20, null, null, DefaultSettings);
 
         // Assert
         Assert.Equal("red", result);
@@ -36,7 +36,7 @@ public class GoNoGoServiceRawValuesTests
         var sut = new GoNoGoService(null!);
 
         // Act
-        var result = sut.Compute(windKt: 15, visKm: null, capeJkg: null, DefaultSettings);
+        var result = sut.Compute(15, null, null, DefaultSettings);
 
         // Assert — >= threshold triggers red
         Assert.Equal("red", result);
@@ -49,7 +49,7 @@ public class GoNoGoServiceRawValuesTests
         var sut = new GoNoGoService(null!);
 
         // Act
-        var result = sut.Compute(windKt: null, visKm: 2.0, capeJkg: null, DefaultSettings);
+        var result = sut.Compute(null, 2.0, null, DefaultSettings);
 
         // Assert
         Assert.Equal("red", result);
@@ -62,7 +62,7 @@ public class GoNoGoServiceRawValuesTests
         var sut = new GoNoGoService(null!);
 
         // Act
-        var result = sut.Compute(windKt: null, visKm: null, capeJkg: 600, DefaultSettings);
+        var result = sut.Compute(null, null, 600, DefaultSettings);
 
         // Assert
         Assert.Equal("red", result);
@@ -77,7 +77,7 @@ public class GoNoGoServiceRawValuesTests
         var sut = new GoNoGoService(null!);
 
         // Act
-        var result = sut.Compute(windKt: 10, visKm: null, capeJkg: null, DefaultSettings);
+        var result = sut.Compute(10, null, null, DefaultSettings);
 
         // Assert
         Assert.Equal("yellow", result);
@@ -90,7 +90,7 @@ public class GoNoGoServiceRawValuesTests
         var sut = new GoNoGoService(null!);
 
         // Act
-        var result = sut.Compute(windKt: null, visKm: 4.0, capeJkg: null, DefaultSettings);
+        var result = sut.Compute(null, 4.0, null, DefaultSettings);
 
         // Assert
         Assert.Equal("yellow", result);
@@ -103,7 +103,7 @@ public class GoNoGoServiceRawValuesTests
         var sut = new GoNoGoService(null!);
 
         // Act
-        var result = sut.Compute(windKt: null, visKm: null, capeJkg: 350, DefaultSettings);
+        var result = sut.Compute(null, null, 350, DefaultSettings);
 
         // Assert
         Assert.Equal("yellow", result);
@@ -118,7 +118,7 @@ public class GoNoGoServiceRawValuesTests
         var sut = new GoNoGoService(null!);
 
         // Act
-        var result = sut.Compute(windKt: 5, visKm: 10, capeJkg: 100, DefaultSettings);
+        var result = sut.Compute(5, 10, 100, DefaultSettings);
 
         // Assert
         Assert.Equal("green", result);
@@ -133,7 +133,7 @@ public class GoNoGoServiceRawValuesTests
         var sut = new GoNoGoService(null!);
 
         // Act
-        var result = sut.Compute(windKt: null, visKm: null, capeJkg: null, DefaultSettings);
+        var result = sut.Compute(null, null, null, DefaultSettings);
 
         // Assert
         Assert.Equal("unknown", result);
@@ -142,9 +142,9 @@ public class GoNoGoServiceRawValuesTests
     // ── Priority: red wins over yellow ────────────────────────────────────────
 
     [Theory]
-    [InlineData(20.0,  null,  null)] // wind red
-    [InlineData(null,  1.0,   null)] // vis red
-    [InlineData(null,  null, 600.0)] // cape red
+    [InlineData(20.0, null, null)] // wind red
+    [InlineData(null, 1.0, null)] // vis red
+    [InlineData(null, null, 600.0)] // cape red
     public void Compute_RawValues_AnyRedCriterion_ReturnsRed(
         double? windKt, double? visKm, double? capeJkg)
     {
@@ -168,7 +168,7 @@ public class GoNoGoServiceRawValuesTests
         var sut = new GoNoGoService(null!);
 
         // Act — 10 kt is above custom red (8) but below default red (15)
-        var result = sut.Compute(windKt: 10, visKm: null, capeJkg: null, customSettings);
+        var result = sut.Compute(10, null, null, customSettings);
 
         // Assert
         Assert.Equal("red", result);

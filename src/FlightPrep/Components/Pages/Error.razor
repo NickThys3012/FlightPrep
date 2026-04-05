@@ -1,5 +1,4 @@
 ﻿@page "/Error"
-@using System.Diagnostics
 
 <PageTitle>Fout – FlightPrep</PageTitle>
 
@@ -8,7 +7,7 @@
         <div style="font-size:3rem">⚠️</div>
         <h1 class="h3 mt-2 mb-1">Er is iets misgegaan</h1>
         <p class="text-muted">
-            Er trad een onverwachte fout op. Dit kan gebeuren na een herstart van de server.<br />
+            Er trad een onverwachte fout op. Dit kan gebeuren na een herstart van de server.<br/>
             Herlaad de pagina om verder te gaan.
         </p>
     </div>
@@ -29,14 +28,3 @@
         </div>
     }
 </div>
-
-@code {
-    [CascadingParameter]
-    private HttpContext? HttpContext { get; set; }
-
-    private string? RequestId { get; set; }
-    private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
-
-    protected override void OnInitialized() =>
-        RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
-}

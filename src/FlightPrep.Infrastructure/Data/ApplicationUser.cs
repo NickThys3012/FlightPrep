@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 
-namespace FlightPrep.Data;
+namespace FlightPrep.Infrastructure.Data;
 
 public class ApplicationUser : IdentityUser
 {
-    public bool IsApproved { get; set; } = false;
+    public bool IsApproved { get; set; }
 }

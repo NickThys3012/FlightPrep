@@ -1,19 +1,8 @@
 @page "/flights/new"
 @page "/flights/{Id:int}/edit"
+@using FlightPrep.Domain.Models.Trajectory
 @attribute [Authorize]
 @rendermode InteractiveServer
-@inject IFlightPreparationService FpSvc
-@inject AuthenticationStateProvider AuthStateProvider
-@inject NavigationManager Nav
-@inject IPdfService PdfSvc
-@inject ISunriseService SunriseSvc
-@inject IJSRuntime JS
-@inject ITrajectoryService TrajectorySvc
-@inject ILogger<FlightEdit> Logger
-@inject IEnhancedTrajectoryService EnhancedTrajectorySvc
-@inject IGoNoGoService GoNoGoSvc
-@using Microsoft.AspNetCore.Components.Forms
-@using FlightPrep.Models.Trajectory
 
 <PageTitle>@(Id.HasValue ? "Vaart Bewerken" : "Nieuwe Vaart") – FlightPrep</PageTitle>
 
@@ -23,18 +12,18 @@
         <a href="/flights" class="btn btn-outline-secondary">Terug</a>
     </div>
 
-    @if (fp == null)
+    @if (_fp == null)
     {
         <p><em>Laden...</em></p>
     }
     else
     {
         <!-- Go/No-Go inline badge (hidden when unknown) -->
-        var gng = fp != null ? GoNoGoSvc.Compute(fp, _goNoGoSettings) : "unknown";
+        var gng = _fp != null ? goNoGoSvc.Compute(_fp, _goNoGoSettings) : "unknown";
         if (gng != "unknown")
         {
             <div class="mb-3">
-                <FlightGoNoGoBadge GoNoGoResult="@gng" />
+                <FlightGoNoGoBadge GoNoGoResult="@gng"/>
                 <span class="text-muted ms-2 small">
                     @(gng == "green" ? "Vlucht goedgekeurd" : gng == "yellow" ? "Voorzichtigheid geboden" : "Vlucht niet toegestaan")
                 </span>
@@ -55,29 +44,31 @@
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label class="form-label">Datum</label>
-                                <input type="date" class="form-control" value="@fp?.Datum.ToString("yyyy-MM-dd")"
-                                    @onchange="e => { fp!.Datum = DateOnly.Parse(e.Value!.ToString()!); UpdateSunriseSunset(); }" />
+                                <input type="date" class="form-control" value="@_fp?.Datum.ToString("yyyy-MM-dd")"
+                                       @onchange="e => { _fp!.Datum = DateOnly.Parse(e.Value!.ToString()!); UpdateSunriseSunset(); }"/>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Tijdstip (LT)</label>
-                                <input type="time" class="form-control" value="@fp?.Tijdstip.ToString("HH:mm")"
-                                    @onchange="e => fp!.Tijdstip = TimeOnly.Parse(e.Value!.ToString()!)" />
+                                <input type="time" class="form-control" value="@_fp?.Tijdstip.ToString("HH:mm")"
+                                       @onchange="e => _fp!.Tijdstip = TimeOnly.Parse(e.Value!.ToString()!)"/>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Ballon</label>
-                                <select class="form-select" @bind="fp!.BalloonId" @bind:after="OnBalloonChanged">
+                                <select class="form-select" @bind="_fp!.BalloonId" @bind:after="OnBalloonChanged">
                                     <option value="">– Selecteer ballon –</option>
-                                    @foreach (var b in balloons)
+                                    @foreach (var b in _balloons)
                                     {
-                                        <option value="@b.Id">@b.Registration – @b.Type (@(b.VolumeM3.HasValue ? $"{b.VolumeM3:F0} m³" : "–"))</option>
+                                        <option
+                                            value="@b.Id">@b.Registration – @b.Type (@(b.VolumeM3.HasValue ? $"{b.VolumeM3:F0} m³" : "–"))
+                                        </option>
                                     }
                                 </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Piloot / PIC</label>
-                                <select class="form-select" @bind="fp.PilotId" @bind:after="OnPilotChanged">
+                                <select class="form-select" @bind="_fp.PilotId" @bind:after="OnPilotChanged">
                                     <option value="">– Selecteer piloot –</option>
-                                    @foreach (var p in pilots)
+                                    @foreach (var p in _pilots)
                                     {
                                         <option value="@p.Id">@p.Name</option>
                                     }
@@ -85,32 +76,35 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Locatie</label>
-                                <select class="form-select" @bind="fp.LocationId" @bind:after="OnLocationChanged">
+                                <select class="form-select" @bind="_fp.LocationId" @bind:after="OnLocationChanged">
                                     <option value="">– Selecteer locatie –</option>
-                                    @foreach (var l in locations)
+                                    @foreach (var l in _locations)
                                     {
-                                        <option value="@l.Id">@l.Name @(l.IcaoCode != null ? $"({l.IcaoCode})" : "")</option>
+                                        <option
+                                            value="@l.Id">@l.Name @(l.IcaoCode != null ? $"({l.IcaoCode})" : "")</option>
                                     }
                                 </select>
                             </div>
                         </div>
                         <div class="mt-3">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" @bind="fp.VeldEigenaarGemeld" id="chkVeldEigenaar" />
+                                <input class="form-check-input" type="checkbox" @bind="_fp.VeldEigenaarGemeld"
+                                       id="chkVeldEigenaar"/>
                                 <label class="form-check-label" for="chkVeldEigenaar">
                                     Veld eigenaar gemeld (indien van toepassing) –
-                                    <a href="https://forms.monday.com/forms/90b13ba3fa8356c3f9a6d5f46b10421a?r=euc1" target="_blank" rel="noopener">
+                                    <a href="https://forms.monday.com/forms/90b13ba3fa8356c3f9a6d5f46b10421a?r=euc1"
+                                       target="_blank" rel="noopener">
                                         formulier invullen
                                     </a>
                                 </label>
                             </div>
                         </div>
-                        @if (sunriseSunset.HasValue)
+                        @if (_sunriseSunset.HasValue)
                         {
                             <div class="col-12 mt-3">
                                 <div class="fp-sun-card">
-                                    <span>🌅 Zonsopgang: <strong>@sunriseSunset.Value.Sunrise.ToString("HH:mm") UTC</strong></span>
-                                    <span>🌇 Zonsondergang: <strong>@sunriseSunset.Value.Sunset.ToString("HH:mm") UTC</strong></span>
+                                    <span>🌅 Zonsopgang: <strong>@_sunriseSunset.Value.Sunrise.ToString("HH:mm") UTC</strong></span>
+                                    <span>🌇 Zonsondergang: <strong>@_sunriseSunset.Value.Sunset.ToString("HH:mm") UTC</strong></span>
                                 </div>
                             </div>
                         }
@@ -121,15 +115,16 @@
             <!-- SECTION 2: Meteorologische Informatie -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec2">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#sec2">
                         <span class="acc-num">2</span> Meteorologische Informatie
                     </button>
                 </h2>
                 <div id="sec2" class="accordion-collapse collapse">
                     <div class="accordion-body">
-                        <FlightMeteoSection Fp="fp"
-                                            CurrentLocation="currentLocation"
-                                            MeteoImages="meteoImages" />
+                        <FlightMeteoSection Fp="_fp"
+                                            CurrentLocation="_currentLocation"
+                                            MeteoImages="_meteoImages"/>
                     </div>
                 </div>
             </div>
@@ -137,7 +132,8 @@
             <!-- SECTION 3: Luchtruim en NOTAMs -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec3">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#sec3">
                         <span class="acc-num">3</span> Luchtruim en NOTAMs
                     </button>
                 </h2>
@@ -146,22 +142,22 @@
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label class="form-label">NOTAMs gecontroleerd</label>
-                                <select class="form-select" @bind="fp.NotamsGecontroleerd">
+                                <select class="form-select" @bind="_fp.NotamsGecontroleerd">
                                     <option value="JA">JA</option>
                                     <option value="NEE">NEE</option>
                                 </select>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Luchtruimstructuur</label>
-                                <textarea class="form-control" rows="3" @bind="fp.Luchtruimstructuur"></textarea>
+                                <textarea class="form-control" rows="3" @bind="_fp.Luchtruimstructuur"></textarea>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Beperkingen / gesloten zones</label>
-                                <textarea class="form-control" rows="3" @bind="fp.Beperkingen"></textarea>
+                                <textarea class="form-control" rows="3" @bind="_fp.Beperkingen"></textarea>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Obstakels</label>
-                                <textarea class="form-control" rows="2" @bind="fp.Obstakels"></textarea>
+                                <textarea class="form-control" rows="2" @bind="_fp.Obstakels"></textarea>
                             </div>
                         </div>
                     </div>
@@ -171,7 +167,8 @@
             <!-- SECTION 4: Veiligheid en Communicatie -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec4">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#sec4">
                         <span class="acc-num">4</span> Veiligheid en Communicatie
                     </button>
                 </h2>
@@ -180,14 +177,14 @@
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label">EHBO-kit en vuurblusser</label>
-                                <select class="form-select" @bind="fp.EhboEnBlusser">
+                                <select class="form-select" @bind="_fp.EhboEnBlusser">
                                     <option value="JA">JA</option>
                                     <option value="NEE">NEE</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Passagierslijst ingevuld</label>
-                                <select class="form-select" @bind="fp.PassagierslijstIngevuld">
+                                <select class="form-select" @bind="_fp.PassagierslijstIngevuld">
                                     <option value="JA">JA</option>
                                     <option value="NEE">NEE</option>
                                     <option value="NVT">NVT</option>
@@ -195,7 +192,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Vluchtplan ingediend</label>
-                                <select class="form-select" @bind="fp.VluchtplanIngediend">
+                                <select class="form-select" @bind="_fp.VluchtplanIngediend">
                                     <option value="JA">JA</option>
                                     <option value="NEE">NEE</option>
                                     <option value="NVT">NVT</option>
@@ -209,30 +206,33 @@
             <!-- SECTION 5: Technische Controle -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec5">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#sec5">
                         <span class="acc-num">5</span> Technische Controle
                     </button>
                 </h2>
                 <div id="sec5" class="accordion-collapse collapse">
                     <div class="accordion-body">
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" @bind="fp.BranderGetest" id="chk1" />
+                            <input class="form-check-input" type="checkbox" @bind="_fp.BranderGetest" id="chk1"/>
                             <label class="form-check-label" for="chk1">Brander getest</label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" @bind="fp.GasflaconsGecontroleerd" id="chk2" />
+                            <input class="form-check-input" type="checkbox" @bind="_fp.GasflaconsGecontroleerd"
+                                   id="chk2"/>
                             <label class="form-check-label" for="chk2">Gasflessen gevuld &amp; gecontroleerd</label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" @bind="fp.BallonVisueel" id="chk3" />
+                            <input class="form-check-input" type="checkbox" @bind="_fp.BallonVisueel" id="chk3"/>
                             <label class="form-check-label" for="chk3">Ballon en mand visueel geïnspecteerd</label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" @bind="fp.VerankeringenGecontroleerd" id="chk4" />
+                            <input class="form-check-input" type="checkbox" @bind="_fp.VerankeringenGecontroleerd"
+                                   id="chk4"/>
                             <label class="form-check-label" for="chk4">Verankeringen en touwen gecontroleerd</label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" @bind="fp.InstrumentenWerkend" id="chk5" />
+                            <input class="form-check-input" type="checkbox" @bind="_fp.InstrumentenWerkend" id="chk5"/>
                             <label class="form-check-label" for="chk5">Instrumenten werkend</label>
                         </div>
                     </div>
@@ -243,7 +243,7 @@
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#sec6" @onclick="InitQuillOnOpen">
+                            data-bs-target="#sec6" @onclick="InitQuillOnOpen">
                         <span class="acc-num">6</span> Pax Briefing
                     </button>
                 </h2>
@@ -257,13 +257,14 @@
             <!-- SECTION 7: Load Calculation -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec7">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#sec7">
                         <span class="acc-num">7</span> Load Berekening
                     </button>
                 </h2>
                 <div id="sec7" class="accordion-collapse collapse">
                     <div class="accordion-body">
-                        <FlightPassengerList Fp="fp" CurrentPilot="currentPilot" />
+                        <FlightPassengerList Fp="_fp" CurrentPilot="_currentPilot"/>
                     </div>
                 </div>
             </div>
@@ -271,7 +272,8 @@
             <!-- SECTION 8: Traject -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec8">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#sec8">
                         <span class="acc-num">8</span> Traject
                     </button>
                 </h2>
@@ -285,39 +287,41 @@
                                     <input type="number" class="form-control form-control-sm"
                                            style="width:90px"
                                            min="15" max="120" step="5"
-                                           @bind="simulationDurationMinutes" />
+                                           @bind="_simulationDurationMinutes"/>
                                 </div>
                                 <div class="mt-3">
                                     <button class="btn btn-sm btn-primary" @onclick="SimuleerTraject">
                                         <span class="bi bi-geo-alt"></span> Simuleer trajecten
                                     </button>
                                     <button class="btn btn-sm btn-secondary ms-1"
-                                            @onclick="() => showEnhancedPanel = !showEnhancedPanel">
+                                            @onclick="() => _showEnhancedPanel = !_showEnhancedPanel">
                                         <span class="bi bi-wind"></span> Geavanceerd (3D)
                                     </button>
                                 </div>
                             </div>
 
-                            @if (trajectoryError != null)
+                            @if (_trajectoryError != null)
                             {
-                                <div class="alert alert-warning py-1 small">@trajectoryError</div>
+                                <div class="alert alert-warning py-1 small">@_trajectoryError</div>
                             }
 
-                            @if (simulatedTrajectories != null && simulatedTrajectories.Count > 0)
+                            @if (_simulatedTrajectories is { Count: > 0 })
                             {
                                 <div class="mb-2 d-flex flex-wrap gap-2 align-items-center">
-                                    @foreach (var t in simulatedTrajectories)
+                                    @foreach (var t in _simulatedTrajectories)
                                     {
                                         <span class="badge" style="background-color:@t.Color">@t.AltitudeFt ft</span>
                                     }
-                                    <span class="text-muted small ms-2">@simulatedTrajectories[0].DataSource</span>
-                                    @if (fp?.Id > 0)
+                                    <span class="text-muted small ms-2">@_simulatedTrajectories[0].DataSource</span>
+                                    @if (_fp?.Id > 0)
                                     {
-                                        <span class="text-success small ms-auto"><span class="bi bi-check-circle"></span> Automatisch opgeslagen</span>
+                                        <span class="text-success small ms-auto"><span
+                                                class="bi bi-check-circle"></span> Automatisch opgeslagen</span>
                                     }
                                     else
                                     {
-                                        <span class="text-warning small ms-auto"><span class="bi bi-exclamation-circle"></span> Wordt opgeslagen bij "Opslaan"</span>
+                                        <span class="text-warning small ms-auto"><span
+                                                class="bi bi-exclamation-circle"></span> Wordt opgeslagen bij "Opslaan"</span>
                                     }
                                 </div>
                                 <div id="trajectory-map" style="display:none"></div>
@@ -327,121 +331,129 @@
                             }
                         </div>
 
-@if (showEnhancedPanel)
-{
-    <div class="card border-secondary mt-3">
-        <div class="card-header py-2">
-            <strong>Geavanceerde 3D-simulatie</strong>
-            <span class="text-muted small ms-2">(Open-Meteo uurlijkse winddata per druklaag)</span>
-        </div>
-        <div class="card-body">
-            <div class="row g-2 mb-3">
-                <div class="col-6 col-md-3">
-                    <label class="form-label small mb-1">Klimsnelheid (m/s)</label>
-                    <input type="number" class="form-control form-control-sm"
-                           min="0.5" max="10" step="0.5"
-                           @bind="enhAscentRateMs" />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small mb-1">Kruishoogtes (ft) — max. 5</label>
-                    @for (int i = 0; i < enhCruiseAltsFt.Count; i++)
-                    {
-                        var idx = i;
-                        <div class="input-group input-group-sm mb-1">
-                            <input type="number" class="form-control"
-                                   min="500" max="20000" step="500"
-                                   value="@enhCruiseAltsFt[idx]"
-                                   @onchange="e => enhCruiseAltsFt[idx] = int.TryParse(e.Value?.ToString(), out var v) ? v : enhCruiseAltsFt[idx]" />
-                            @if (enhCruiseAltsFt.Count > 1)
-                            {
-                                <button class="btn btn-outline-danger" @onclick="() => enhCruiseAltsFt.RemoveAt(idx)" type="button">
-                                    <span class="bi bi-trash"></span>
-                                </button>
-                            }
-                        </div>
-                    }
-                    @if (enhCruiseAltsFt.Count < 5)
-                    {
-                        <div class="d-flex flex-wrap gap-1 mt-1 mb-1">
-                            @foreach (var preset in new[] { 500, 1000, 1500, 2000, 3000, 5000 })
-                            {
-                                var p = preset;
-                                @if (!enhCruiseAltsFt.Contains(p))
-                                {
-                                    <button class="btn btn-outline-secondary btn-sm py-0 px-2"
-                                            style="font-size:0.75rem"
-                                            @onclick="() => { if (enhCruiseAltsFt.Count < 5) enhCruiseAltsFt.Add(p); }"
-                                            type="button">@p</button>
-                                }
-                            }
-                        </div>
-                    }
-                </div>
-                <div class="col-6 col-md-3">
-                    <label class="form-label small mb-1">Daalsnelheid (m/s)</label>
-                    <input type="number" class="form-control form-control-sm"
-                           min="0.5" max="10" step="0.5"
-                           @bind="enhDescentRateMs" />
-                </div>
-                <div class="col-6 col-md-3 d-flex align-items-end">
-                    <button class="btn btn-sm btn-primary w-100"
-                            @onclick="BerekEnhancedTraject"
-                            disabled="@computingEnhanced">
-                        @if (computingEnhanced)
+                        @if (_showEnhancedPanel)
                         {
-                            <span class="spinner-border spinner-border-sm"></span>
-                            <span> Berekenen...</span>
-                        }
-                        else
-                        {
-                            <span class="bi bi-calculator"></span>
-                            <span> Bereken 3D-traject</span>
-                        }
-                    </button>
-                </div>
-            </div>
+                            <div class="card border-secondary mt-3">
+                                <div class="card-header py-2">
+                                    <strong>Geavanceerde 3D-simulatie</strong>
+                                    <span
+                                        class="text-muted small ms-2">(Open-Meteo uurlijkse winddata per druklaag)</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6 col-md-3">
+                                            <label class="form-label small mb-1">Klimsnelheid (m/s)</label>
+                                            <input type="number" class="form-control form-control-sm"
+                                                   min="0.5" max="10" step="0.5"
+                                                   @bind="_enhAscentRateMs"/>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label small mb-1">Kruishoogtes (ft) — max. 5</label>
+                                            @for (var i = 0; i < _enhCruiseAltsFt.Count; i++)
+                                            {
+                                                var idx = i;
+                                                <div class="input-group input-group-sm mb-1">
+                                                    <input type="number" class="form-control"
+                                                           min="500" max="20000" step="500"
+                                                           value="@_enhCruiseAltsFt[idx]"
+                                                           @onchange="e => _enhCruiseAltsFt[idx] = int.TryParse(e.Value?.ToString(), out var v) ? v : _enhCruiseAltsFt[idx]"/>
+                                                    @if (_enhCruiseAltsFt.Count > 1)
+                                                    {
+                                                        <button class="btn btn-outline-danger"
+                                                                @onclick="() => _enhCruiseAltsFt.RemoveAt(idx)"
+                                                                type="button">
+                                                            <span class="bi bi-trash"></span>
+                                                        </button>
+                                                    }
+                                                </div>
+                                            }
+                                            @if (_enhCruiseAltsFt.Count < 5)
+                                            {
+                                                <div class="d-flex flex-wrap gap-1 mt-1 mb-1">
+                                                    @foreach (var preset in new[] { 500, 1000, 1500, 2000, 3000, 5000 })
+                                                    {
+                                                        var p = preset;
+                                                        @if (!_enhCruiseAltsFt.Contains(p))
+                                                        {
+                                                            <button class="btn btn-outline-secondary btn-sm py-0 px-2"
+                                                                    style="font-size:0.75rem"
+                                                                    @onclick="() => { if (_enhCruiseAltsFt.Count < 5) _enhCruiseAltsFt.Add(p); }"
+                                                                    type="button">@p</button>
+                                                        }
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <label class="form-label small mb-1">Daalsnelheid (m/s)</label>
+                                            <input type="number" class="form-control form-control-sm"
+                                                   min="0.5" max="10" step="0.5"
+                                                   @bind="_enhDescentRateMs"/>
+                                        </div>
+                                        <div class="col-6 col-md-3 d-flex align-items-end">
+                                            <button class="btn btn-sm btn-primary w-100"
+                                                    @onclick="BerekEnhancedTraject"
+                                                    disabled="@_computingEnhanced">
+                                                @if (_computingEnhanced)
+                                                {
+                                                    <span class="spinner-border spinner-border-sm"></span>
+                                                    <span> Berekenen...</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="bi bi-calculator"></span>
+                                                    <span> Bereken 3D-traject</span>
+                                                }
+                                            </button>
+                                        </div>
+                                    </div>
 
-            @if (enhancedError != null)
-            {
-                <div class="alert alert-warning py-1 small">@enhancedError</div>
-            }
+                                    @if (_enhancedError != null)
+                                    {
+                                        <div class="alert alert-warning py-1 small">@_enhancedError</div>
+                                    }
 
-            @if (enhancedTrajectories != null && enhancedTrajectories.Any(t => t.Points.Count > 0))
-            {
-                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                    @foreach (var t in enhancedTrajectories.Where(t => t.Points.Count > 0))
-                    {
-                        <span class="badge" style="background-color:@t.Color">@t.AltitudeFt ft</span>
-                    }
-                    <span class="text-muted small">@enhancedTrajectories[0].DataSource · @enhancedTrajectories[0].DurationMinutes min</span>
-                    @if (fp?.Id > 0)
-                    {
-                        <span class="text-success small ms-auto"><span class="bi bi-check-circle"></span> Automatisch opgeslagen</span>
-                    }
-                    else
-                    {
-                        <span class="text-warning small ms-auto"><span class="bi bi-exclamation-circle"></span> Wordt opgeslagen bij "Opslaan"</span>
-                    }
-                </div>
-                <div id="enhanced-trajectory-map" style="display:none"></div>
-                <p class="text-muted small mb-0">
-                    ⚠️ Indicatief traject op basis van Open-Meteo uurlijkse druklaagwind. Geen gecertificeerde vliegweg.
-                </p>
-            }
-        </div>
-    </div>
-}
+                                    @if (_enhancedTrajectories != null && _enhancedTrajectories.Any(t => t.Points.Count > 0))
+                                    {
+                                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                            @foreach (var t in _enhancedTrajectories.Where(t => t.Points.Count > 0))
+                                            {
+                                                <span class="badge"
+                                                      style="background-color:@t.Color">@t.AltitudeFt ft</span>
+                                            }
+                                            <span
+                                                class="text-muted small">@_enhancedTrajectories[0].DataSource · @_enhancedTrajectories[0].DurationMinutes min</span>
+                                            @if (_fp?.Id > 0)
+                                            {
+                                                <span class="text-success small ms-auto"><span
+                                                        class="bi bi-check-circle"></span> Automatisch opgeslagen</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-warning small ms-auto"><span
+                                                        class="bi bi-exclamation-circle"></span> Wordt opgeslagen bij "Opslaan"</span>
+                                            }
+                                        </div>
+                                        <div id="enhanced-trajectory-map" style="display:none"></div>
+                                        <p class="text-muted small mb-0">
+                                            ⚠️ Indicatief traject op basis van Open-Meteo uurlijkse druklaagwind. Geen
+                                            gecertificeerde vliegweg.
+                                        </p>
+                                    }
+                                </div>
+                            </div>
+                        }
 
                         @{
                             var anyTrajectories =
-                                (simulatedTrajectories != null && simulatedTrajectories.Count > 0) ||
-                                (enhancedTrajectories  != null && enhancedTrajectories.Any(t => t.Points.Count > 0));
+                                _simulatedTrajectories is { Count: > 0 } ||
+                                (_enhancedTrajectories != null && _enhancedTrajectories.Any(t => t.Points.Count > 0));
                         }
-                        @if (anyTrajectories && fp?.Location?.Latitude != null)
+                        @if (anyTrajectories && _fp?.Location?.Latitude != null)
                         {
                             <div class="mt-3">
                                 <div class="d-flex flex-wrap gap-1 align-items-center mb-1">
-                                    @foreach (var t in (simulatedTrajectories ?? new List<SimulatedTrajectory>()).Concat(enhancedTrajectories?.Where(t => t.Points.Count > 0) ?? new List<SimulatedTrajectory>()))
+                                    @foreach (var t in (_simulatedTrajectories ?? []).Concat(_enhancedTrajectories?.Where(t => t.Points.Count > 0) ?? new List<SimulatedTrajectory>()))
                                     {
                                         <span class="badge" style="background-color:@t.Color">
                                             @t.AltitudeFt ft @(t.AscentRateMs.HasValue ? "3D" : "DR")
@@ -451,21 +463,22 @@
                                         ⚡ Hoogspanning en ✈ luchtruim worden automatisch geladen
                                     </span>
                                 </div>
-                                <div id="combined-trajectory-map" style="height:450px;border-radius:8px;overflow:hidden;"></div>
+                                <div id="combined-trajectory-map"
+                                     style="height:450px;border-radius:8px;overflow:hidden;"></div>
                             </div>
                         }
 
                         <div class="mb-3 mt-3">
                             <label class="form-label">Trajectnotities / waypoints</label>
                             <textarea class="form-control" rows="4" placeholder="Trajectnotities / waypoints..."
-                                @bind="fp.Traject"></textarea>
+                                      @bind="_fp!.Traject"></textarea>
                         </div>
 
                         <!-- Image upload – Traject -->
                         <div>
                             <FlightImageUpload Label="📷 Foto's (trajectkaart, wind chart, ...)"
                                                Section="Traject"
-                                               Images="trajectImages" />
+                                               Images="_trajectImages"/>
                         </div>
                     </div>
                 </div>
@@ -474,32 +487,34 @@
             <!-- SECTION 9: Ballonbulletin -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec9">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#sec9">
                         <span class="acc-num">9</span> Ballonbulletin
                     </button>
                 </h2>
                 <div id="sec9" class="accordion-collapse collapse">
                     <div class="accordion-body">
                         <textarea class="form-control font-monospace" rows="15"
-                            placeholder="Plak hier de Skeyes ballonbulletin tekst..."
-                            @bind="fp.Ballonbulletin"></textarea>
+                                  placeholder="Plak hier de Skeyes ballonbulletin tekst..."
+                                  @bind="_fp.Ballonbulletin"></textarea>
                     </div>
                 </div>
             </div>
 
-        </div><!-- end accordion -->
+        </div>
+        <!-- end accordion -->
 
         <!-- Action buttons -->
         <div class="d-flex gap-2 mt-4 mb-5">
-            <button class="btn btn-primary btn-lg" @onclick="SaveFlight" disabled="@saving">
-                @if (saving)
+            <button class="btn btn-primary btn-lg" @onclick="SaveFlight" disabled="@_saving">
+                @if (_saving)
                 {
                     <span class="spinner-border spinner-border-sm me-1"></span>
                 }
                 💾 Opslaan
             </button>
-            <button class="btn btn-success btn-lg" @onclick="SaveAndPdf" disabled="@saving">
-                @if (saving)
+            <button class="btn btn-success btn-lg" @onclick="SaveAndPdf" disabled="@_saving">
+                @if (_saving)
                 {
                     <span class="spinner-border spinner-border-sm me-1"></span>
                 }
@@ -508,392 +523,12 @@
             <a href="/flights" class="btn btn-outline-secondary btn-lg">Annuleren</a>
         </div>
 
-        @if (saveMessage != null)
+        @if (_saveMessage != null)
         {
-            <div class="alert @(saveError ? "alert-danger" : "alert-success") alert-dismissible">
-                @saveMessage
-                <button type="button" class="btn-close" @onclick="() => saveMessage = null"></button>
+            <div class="alert @(_saveError ? "alert-danger" : "alert-success") alert-dismissible">
+                @_saveMessage
+                <button type="button" class="btn-close" @onclick="() => _saveMessage = null"></button>
             </div>
         }
     }
 </div>
-
-@code {
-    [Parameter] public int? Id { get; set; }
-
-    private FlightPreparation? fp;
-    private List<Balloon> balloons = new();
-    private List<Pilot> pilots = new();
-    private List<Location> locations = new();
-    private Pilot? currentPilot;
-    private Location? currentLocation;
-    private GoNoGoSettings _goNoGoSettings = new();
-
-    // Images kept in memory; persisted on save
-    private List<FlightImage> meteoImages = new();
-    private List<FlightImage> trajectImages = new();
-
-    private bool saving;
-    private string? saveMessage;
-    private bool saveError;
-    private string? _userId;
-
-    private int simulationDurationMinutes = 60;
-    private List<SimulatedTrajectory>? simulatedTrajectories;
-    private string? trajectoryError;
-
-    private double enhAscentRateMs   = 3.0;
-    private List<int> enhCruiseAltsFt = new() { 3000 };
-    private double enhDescentRateMs  = 2.0;
-    private List<SimulatedTrajectory>? enhancedTrajectories;
-    private bool   showEnhancedPanel  = false;
-    private bool   combinedMapRendered = false;
-    private string? enhancedError;
-    private bool   computingEnhanced  = false;
-
-    private void AddCruiseAlt()
-    {
-        if (enhCruiseAltsFt.Count < 5)
-            enhCruiseAltsFt.Add((enhCruiseAltsFt.Count > 0 ? enhCruiseAltsFt[^1] : 2000) + 1000);
-    }
-
-    private (TimeOnly Sunrise, TimeOnly Sunset)? sunriseSunset;
-
-    private static readonly string DefaultPaxBriefing =
-        "<h2>Pax Briefing</h2>" +
-        "<h3>Voor de vlucht – Inflation</h3><ul>" +
-        "<li>Wat er staat te gebeuren tijdens inflation</li>" +
-        "<li><strong>NIET ROKEN</strong></li>" +
-        "<li>Oppassen voor de ventilator</li>" +
-        "<li>Alle PAX's en familie wachten achter de snuit van de wagen</li>" +
-        "<li>Wanneer de ballon recht staat roept de piloot om in te stappen (toon instapgat)</li>" +
-        "<li>Veiligheid checks vermelden (parachute)</li></ul>" +
-        "<h3>Tijdens de vaart</h3><ul>" +
-        "<li>Enkel vasthouden aan de stokken / mand / lussen / frame gascilinders</li>" +
-        "<li>Niets overboord gooien (afval, etc.)</li>" +
-        "<li>Uitkijken voor hoogspanning en dieren (paarden/koeien) – melden aan piloot</li></ul>" +
-        "<h3>Landingspositie oefenen (na ±30 min)</h3><ul>" +
-        "<li>Met de <strong>rug in de vaarrichting</strong></li>" +
-        "<li>Stevig vasthouden aan de lussen in de mand</li>" +
-        "<li>Licht door de knieën buigen (schok opvangen, kruisbanden deblokkeren)</li>" +
-        "<li><strong>Nooit handen uit de mand</strong> als we aan het slepen zijn</li></ul>" +
-        "<h3>Voor de landing</h3><ul>" +
-        "<li>Alles opbergen (GSM / camera / etc.)</li>" +
-        "<li>Landingspositie aannemen</li>" +
-        "<li>Pas uitstappen wanneer de piloot het zegt</li></ul>" +
-        "<h3>Na de landing</h3><ul>" +
-        "<li>Ballon opruimen</li>" +
-        "<li>Iets drinken 🙂</li></ul>" +
-        "<h3>Algemeen</h3><ul>" +
-        "<li>Aangeraden: stevige platte schoenen</li>" +
-        "<li>Vraag naar medische conditie waarvan de piloot op de hoogte moet zijn</li></ul>";
-
-    // Quill is initialised lazily when the user opens section 6 — never on a hidden element
-    private async Task InitQuillOnOpen()
-    {
-        if (fp == null) return;
-        await Task.Delay(400); // Bootstrap collapse animation is ~350 ms
-        await JS.InvokeVoidAsync("quillInit", "pax-briefing-editor", fp.PaxBriefing ?? "");
-    }
-
-    private async Task ReadQuillContent()
-    {
-        try
-        {
-            // quillGetHtml returns null when Quill was never opened → keep existing value
-            var html = await JS.InvokeAsync<string?>("quillGetHtml", "pax-briefing-editor");
-            if (html != null) fp!.PaxBriefing = html;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogDebug(ex, "JS interop not available during pre-render — expected");
-        }
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        balloons  = await FpSvc.GetBalloonsAsync();
-        pilots    = await FpSvc.GetPilotsAsync();
-        locations = await FpSvc.GetLocationsAsync();
-
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        _userId = userId;
-        var isAdmin = authState.User.IsInRole("Admin");
-
-        _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync(userId);
-
-        if (Id.HasValue)
-        {
-            fp = await FpSvc.GetByIdAsync(Id.Value);
-
-            if (fp == null) { Nav.NavigateTo("/flights"); return; }
-
-            // Ownership check — block access if flight belongs to another user
-            if (fp.CreatedByUserId != null && fp.CreatedByUserId != userId && !isAdmin)
-            {
-                Nav.NavigateTo("/flights");
-                return;
-            }
-
-            currentPilot  = fp.Pilot;
-            meteoImages   = fp.Images.Where(i => i.Section == "Meteo").ToList();
-            trajectImages = fp.Images.Where(i => i.Section == "Traject").ToList();
-        }
-        else
-        {
-            fp = new FlightPreparation { PaxBriefing = DefaultPaxBriefing };
-            fp.CreatedByUserId = userId;
-        }
-
-        UpdateSunriseSunset();
-        UpdateCurrentLocation();
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        await base.OnAfterRenderAsync(firstRender);
-        // Combined trajectory map: render once whenever either DR or 3D trajectories are available
-        var hasDr       = simulatedTrajectories != null && simulatedTrajectories.Count > 0;
-        var hasEnh      = enhancedTrajectories  != null && enhancedTrajectories.Any(t => t.Points.Count > 0);
-        var hasLocation = fp?.Location?.Latitude != null && fp.Location.Longitude != null;
-
-        if ((hasDr || hasEnh) && !combinedMapRendered && hasLocation)
-        {
-            combinedMapRendered = true;
-            var drTrajsJs = (simulatedTrajectories ?? new())
-                .Select(t => new
-                {
-                    color       = t.Color,
-                    label       = $"{t.AltitudeFt} ft (DR)",
-                    durationMin = t.DurationMinutes,
-                    hasAltitude = false,
-                    points      = t.Points.Select(p => new[] { p.Lat, p.Lon }).ToArray()
-                });
-            var enhTrajsJs = (enhancedTrajectories ?? new())
-                .Where(t => t.Points.Count > 0)
-                .Select(t => new
-                {
-                    color       = t.Color,
-                    label       = $"{t.AltitudeFt} ft (3D)",
-                    durationMin = t.DurationMinutes,
-                    hasAltitude = true,
-                    points      = t.Points.Select(p => new[] { p.Lat, p.Lon, p.AltitudeFt ?? 0 }).ToArray()
-                });
-            await JS.InvokeVoidAsync("initCombinedTrajectoryMap",
-                "combined-trajectory-map",
-                fp!.Location!.Latitude,
-                fp.Location.Longitude,
-                drTrajsJs.Concat<object>(enhTrajsJs).ToArray());
-        }
-    }
-
-    private async Task SimuleerTraject()
-    {
-        trajectoryError = null;
-        simulatedTrajectories = null;
-        combinedMapRendered = false;
-
-        if (fp?.Location?.Latitude is null || fp.Location.Longitude is null)
-        {
-            trajectoryError = "Locatie heeft geen coördinaten. Voeg lat/lon toe via Instellingen > Locaties.";
-            return;
-        }
-        var valid = fp.WindLevels
-            .Where(w => w.DirectionDeg.HasValue && w.SpeedKt is > 0)
-            .OrderBy(w => w.AltitudeFt)
-            .ToList();
-        if (!valid.Any())
-        {
-            trajectoryError = "Geen geldige windniveaus. Vul minstens één hoogte in met richting en snelheid.";
-            return;
-        }
-        if (simulationDurationMinutes is <= 0 or > 360)
-        {
-            trajectoryError = "Simulatieduur moet tussen 1 en 360 minuten liggen.";
-            return;
-        }
-        simulatedTrajectories = TrajectorySvc.Compute(
-            fp.Location.Latitude.Value,
-            fp.Location.Longitude.Value,
-            valid,
-            simulationDurationMinutes);
-
-        await AutoSaveSimulationAsync();
-    }
-
-    private void MergeSimulationsToFp()
-    {
-        if (fp is null) return;
-        var all = new List<SimulatedTrajectory>(simulatedTrajectories ?? new());
-        if (enhancedTrajectories != null)
-            all.AddRange(enhancedTrajectories.Where(t => t.Points.Count > 0));
-        if (all.Count > 0)
-            fp.TrajectorySimulationJson = System.Text.Json.JsonSerializer.Serialize(all);
-    }
-
-    private async Task AutoSaveSimulationAsync()
-    {
-        MergeSimulationsToFp();
-        if (fp is null || fp.Id == 0) return; // new flight — will be saved when user saves the form
-        await FpSvc.PatchTrajectoryJsonAsync(fp.Id, fp.TrajectorySimulationJson);
-    }
-
-    private async Task BerekEnhancedTraject()
-    {
-        enhancedError        = null;
-        enhancedTrajectories = null;
-        combinedMapRendered  = false;
-
-        if (fp?.Location?.Latitude is null || fp.Location.Longitude is null)
-        {
-            enhancedError = "Locatie heeft geen coördinaten. Voeg lat/lon toe via Instellingen > Locaties.";
-            return;
-        }
-        if (!enhCruiseAltsFt.Any())
-        {
-            enhancedError = "Voer minstens één kruishoogte in.";
-            return;
-        }
-        if (enhCruiseAltsFt.Any(a => a < 500 || a > 20000))
-        {
-            enhancedError = "Kruishoogte(s) moeten tussen 500 en 20000 ft liggen.";
-            return;
-        }
-        if (enhAscentRateMs  is <= 0 or > 10) { enhancedError = "Klimsnelheid moet tussen 0.5 en 10 m/s liggen."; return; }
-        if (enhDescentRateMs is <= 0 or > 10) { enhancedError = "Daalsnelheid moet tussen 0.5 en 10 m/s liggen."; return; }
-        if (simulationDurationMinutes is <= 0 or > 360) { enhancedError = "Vluchtduur moet tussen 1 en 360 minuten liggen."; return; }
-
-        computingEnhanced = true;
-        StateHasChanged();
-        try
-        {
-            var launchUtc = DateTime.SpecifyKind(fp.Datum.ToDateTime(fp.Tijdstip), DateTimeKind.Utc);
-            enhancedTrajectories = await EnhancedTrajectorySvc.ComputeMultipleAsync(
-                fp.Location.Latitude.Value,
-                fp.Location.Longitude.Value,
-                launchUtc,
-                enhAscentRateMs,
-                enhCruiseAltsFt,
-                enhDescentRateMs,
-                simulationDurationMinutes);
-
-            if (enhancedTrajectories.All(t => t.Points.Count == 0))
-                enhancedError = "Geen winddata beschikbaar voor dit tijdstip. Probeer een andere vliegdatum of gebruik dead-reckoning.";
-            else
-                await AutoSaveSimulationAsync();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "BerekEnhancedTraject failed for flight {Id}", fp?.Id);
-            enhancedError = "Berekening mislukt. Probeer opnieuw.";
-        }
-        finally
-        {
-            computingEnhanced = false;
-        }
-    }
-
-    private void OnBalloonChanged()
-    {
-        if (fp == null) return;
-        var balloon = balloons.FirstOrDefault(b => b.Id == fp.BalloonId);
-        if (balloon != null && fp.EnvelopeWeightKg == null)
-            fp.EnvelopeWeightKg = balloon.EmptyWeightKg;
-    }
-
-    private void OnPilotChanged()
-    {
-        if (fp == null) return;
-        currentPilot = pilots.FirstOrDefault(p => p.Id == fp.PilotId);
-    }
-
-    private void OnLocationChanged()
-    {
-        if (fp == null) return;
-        var loc = locations.FirstOrDefault(l => l.Id == fp.LocationId);
-        if (loc?.AirspaceNotes != null && string.IsNullOrWhiteSpace(fp.Luchtruimstructuur))
-            fp.Luchtruimstructuur = loc.AirspaceNotes;
-        UpdateCurrentLocation();
-        UpdateSunriseSunset();
-    }
-
-    private void UpdateCurrentLocation()
-    {
-        currentLocation = locations.FirstOrDefault(l => l.Id == fp?.LocationId);
-    }
-
-    private void UpdateSunriseSunset()
-    {
-        if (fp == null) { sunriseSunset = null; return; }
-        var loc = locations.FirstOrDefault(l => l.Id == fp.LocationId);
-        if (loc?.Latitude.HasValue == true && loc.Longitude.HasValue)
-            sunriseSunset = SunriseSvc.Calculate(fp.Datum, loc.Latitude!.Value, loc.Longitude!.Value);
-        else
-            sunriseSunset = null;
-    }
-
-    // ── Save ─────────────────────────────────────────────────────────────────
-    private async Task<FlightPreparation?> SaveInternal()
-    {
-        if (fp == null) return null;
-        MergeSimulationsToFp(); // ensure any in-memory simulations are persisted with the record
-        await ReadQuillContent(); // pull latest HTML from editor
-        saving = true; saveMessage = null;
-        try
-        {
-            currentPilot = pilots.FirstOrDefault(p => p.Id == fp.PilotId);
-
-            // Defensive: stamp CreatedByUserId at save time for new flights.
-            // Covers edge cases where OnInitializedAsync ran before auth state was ready.
-            if (fp.Id == 0 && fp.CreatedByUserId == null)
-            {
-                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-                fp.CreatedByUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            }
-
-            // Merge split image lists back onto the entity before persisting.
-            fp.Images = meteoImages.Concat(trajectImages).ToList();
-
-            await FpSvc.SaveAsync(fp);
-
-            // Re-populate navigation props from local lists (service may have cleared them
-            // temporarily during EF operations; they are restored by the service, but ensure
-            // in-memory image state is consistent with what we merged above).
-            fp.Balloon  = balloons.FirstOrDefault(b => b.Id == fp.BalloonId);
-            fp.Pilot    = pilots.FirstOrDefault(p => p.Id == fp.PilotId);
-            fp.Location = locations.FirstOrDefault(l => l.Id == fp.LocationId);
-            fp.Images   = meteoImages.Concat(trajectImages).ToList();
-
-            saveMessage = "✅ Vaart opgeslagen!"; saveError = false;
-            return fp;
-        }
-        catch (Exception ex) { saveMessage = $"❌ Fout bij opslaan: {ex.Message}"; saveError = true; return null; }
-        finally { saving = false; }
-    }
-
-    private async Task SaveFlight()
-    {
-        var saved = await SaveInternal();
-        if (saved != null && Id == null)
-        {
-            Id = saved.Id;
-            Nav.NavigateTo($"/flights/{saved.Id}/edit", replace: true);
-        }
-    }
-
-    private async Task SaveAndPdf()
-    {
-        var saved = await SaveInternal();
-        if (saved == null) return;
-        try
-        {
-            var pdfBytes = await PdfSvc.GenerateAsync(saved, userId: _userId);
-            await JS.InvokeVoidAsync("downloadFileFromBytes",
-                $"vaartvoorbereiding_{saved.Datum:yyyy-MM-dd}_{saved.Id}.pdf",
-                "application/pdf", Convert.ToBase64String(pdfBytes));
-        }
-        catch (Exception ex) { saveMessage = $"❌ PDF fout: {ex.Message}"; saveError = true; }
-    }
-}
-

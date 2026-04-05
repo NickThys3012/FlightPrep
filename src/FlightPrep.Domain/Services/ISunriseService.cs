@@ -1,4 +1,4 @@
-namespace FlightPrep.Services;
+namespace FlightPrep.Domain.Services;
 
 public interface ISunriseService
 {

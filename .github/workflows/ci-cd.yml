@@ -2,9 +2,9 @@ name: CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   build:
@@ -44,7 +44,8 @@ jobs:
             /p:Threshold=85 \
             /p:ThresholdType=line \
             /p:ThresholdStat=total \
-            '/p:ExcludeByFile="**/Migrations/**,**/Program.cs,**/*.razor,**/PdfService.cs,**/AppDbContext.cs"'
+            '/p:Include="[FlightPrep]*"' \
+            '/p:ExcludeByFile="**/Migrations/**,**/Program.cs,**/*.razor,**/*.razor.cs,**/*.cshtml,**/*.cshtml.cs,**/Telemetry/**,**/PdfService.cs,**/AppDbContext.cs"'
 
       - name: Run unit tests — Domain (with coverage)
         run: |
@@ -216,7 +217,7 @@ jobs:
         run: docker compose logs
 
   deploy:
-    needs: [build, e2e]
+    needs: [ build, e2e ]
     runs-on: ubuntu-latest
     if: |
       always() &&

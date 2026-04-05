@@ -1,31 +1,35 @@
-using System.Text.Json;
-using System.Text.RegularExpressions;
-using FlightPrep.Models;
-using FlightPrep.Models.Trajectory;
+using FlightPrep.Domain.Models;
+using FlightPrep.Domain.Models.Trajectory;
+using FlightPrep.Domain.Services;
 using QuestPDF;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using System.Text.RegularExpressions;
 
-namespace FlightPrep.Services;
+// ReSharper disable InconsistentNaming
 
-public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc, IGoNoGoService goNoGoSvc, IFlightAssessmentService assessmentSvc) : IPdfService
+namespace FlightPrep.Infrastructure.Services;
+
+public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc, IFlightAssessmentService assessmentSvc) : IPdfService
 {
-    private static readonly string PrimaryColor = "#1a3a5c";
-    private static readonly string LightBg = "#f0f4f8";
+    private const string PrimaryColor = "#1a3a5c";
+    private const string LightBg = "#f0f4f8";
 
-    public async Task<byte[]> GenerateAsync(FlightPreparation fp, byte[]? mapPng = null, string? userId = null, CancellationToken ct = default)
+    public async Task<byte[]> GenerateAsync(FlightPreparation fp, byte[]? mapPng = null, string? userId = null)
     {
-        // Generate trajectory map server-side if the caller didn't provide a pre-rendered one
+        // Generate a trajectory map server-side if the caller didn't provide a pre-rendered one
         mapPng ??= await mapSvc.RenderAsync(fp.TrajectorySimulationJson);
 
         Settings.License = LicenseType.Community;
 
-        // Compute sunrise/sunset if location has coords
+        // Compute sunrise/sunset if the location has coords
         (TimeOnly Sunrise, TimeOnly Sunset)? sunriseSunset = null;
         var loc = fp.Location;
         if (loc?.Latitude.HasValue == true && loc.Longitude.HasValue)
+        {
             sunriseSunset = sunriseSvc.Calculate(fp.Datum, loc.Latitude!.Value, loc.Longitude!.Value);
+        }
 
         var assessment = await assessmentSvc.ComputeAsync(fp, userId);
         var gng = assessment.GoNoGo;
@@ -45,9 +49,9 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         col.Item().AlignCenter().Text("Vaartvoorbereiding Ballonvaart")
                             .Bold().FontSize(18).FontColor(PrimaryColor);
                         col.Item().AlignCenter().Text(
-                            $"{fp.Datum:dd/MM/yyyy}  –  {fp.Tijdstip:HH:mm} LT" +
-                            (fp.Balloon != null ? $"  |  {fp.Balloon.Registration} ({fp.Balloon.Type})" : "") +
-                            (fp.Pilot != null ? $"  |  {fp.Pilot.Name}" : ""))
+                                $"{fp.Datum:dd/MM/yyyy}  –  {fp.Tijdstip:HH:mm} LT" +
+                                (fp.Balloon != null ? $"  |  {fp.Balloon.Registration} ({fp.Balloon.Type})" : "") +
+                                (fp.Pilot != null ? $"  |  {fp.Pilot.Name}" : ""))
                             .FontSize(10);
                         col.Item().PaddingVertical(4).LineHorizontal(1).LineColor(PrimaryColor);
                     });
@@ -66,16 +70,20 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     {
                         ("Datum", fp.Datum.ToString("dd/MM/yyyy")),
                         ("Tijdstip (LT)", fp.Tijdstip.ToString("HH:mm")),
-                        ("Ballon", fp.Balloon != null ? $"{fp.Balloon.Registration} – {fp.Balloon.Type} ({(fp.Balloon.VolumeM3.HasValue ? $"{fp.Balloon.VolumeM3:F0} m³" : "–")})" : "–"),
+                        ("Ballon",
+                            fp.Balloon != null
+                                ? $"{fp.Balloon.Registration} – {fp.Balloon.Type} ({(fp.Balloon.VolumeM3.HasValue ? $"{fp.Balloon.VolumeM3:F0} m³" : "–")})"
+                                : "–"),
                         ("Piloot / PIC", fp.Pilot?.Name ?? "–"),
                         ("Locatie", fp.Location?.Name ?? "–"),
-                        ("Veld eigenaar gemeld", fp.VeldEigenaarGemeld ? "Ja" : "Nee / NVT"),
+                        ("Veld eigenaar gemeld", fp.VeldEigenaarGemeld ? "Ja" : "Nee / NVT")
                     };
                     if (sunriseSunset.HasValue)
                     {
                         sec1Rows.Add(("Zonsopgang (UTC)", sunriseSunset.Value.Sunrise.ToString("HH:mm")));
                         sec1Rows.Add(("Zonsondergang (UTC)", sunriseSunset.Value.Sunset.ToString("HH:mm")));
                     }
+
                     AddSection(col, "1. Algemene Gegevens", sec1Rows.ToArray());
 
                     // Section 2 meteo rows
@@ -91,7 +99,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         ("Dauwpunt", fp.DauwpuntC.HasValue ? $"{fp.DauwpuntC}°C" : "–"),
                         ("QNH", fp.QnhHpa.HasValue ? $"{fp.QnhHpa} hPa" : "–"),
                         ("Zichtbaarheid", fp.ZichtbaarheidKm.HasValue ? $"{fp.ZichtbaarheidKm} km" : "–"),
-                        ("CAPE", fp.CapeJkg.HasValue ? $"{fp.CapeJkg} J/kg" : "–"),
+                        ("CAPE", fp.CapeJkg.HasValue ? $"{fp.CapeJkg} J/kg" : "–")
                     };
                     AddSection(col, "2. Meteorologische Informatie", sec2Rows.ToArray());
 
@@ -107,7 +115,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                 row.RelativeItem(2).Text("Snelheid (kt)").Bold();
                                 row.RelativeItem(2).Text("Temp (°C)").Bold();
                             });
-                            bool alt = false;
+                            var alt = false;
                             foreach (var wl in fp.WindLevels.OrderBy(w => w.Order))
                             {
                                 wSection.Item().Background(alt ? LightBg : Colors.White).Padding(3).Row(row =>
@@ -125,39 +133,37 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     // Meteo images
                     var meteoImgs = fp.Images.Where(i => i.Section == "Meteo").ToList();
                     if (meteoImgs.Count > 0)
-                        AddImageGrid(col, meteoImgs);
-
-                    AddSection(col, "3. Luchtruim en NOTAMs", new[]
                     {
+                        AddImageGrid(col, meteoImgs);
+                    }
+
+                    AddSection(col, "3. Luchtruim en NOTAMs", [
                         ("NOTAMs gecontroleerd", fp.NotamsGecontroleerd),
                         ("Luchtruimstructuur", fp.Luchtruimstructuur ?? "–"),
                         ("Beperkingen / gesloten zones", fp.Beperkingen ?? "–"),
-                        ("Obstakels", fp.Obstakels ?? "–"),
-                    });
+                        ("Obstakels", fp.Obstakels ?? "–")
+                    ]);
 
-                    AddSection(col, "4. Veiligheid en Communicatie", new[]
-                    {
+                    AddSection(col, "4. Veiligheid en Communicatie", [
                         ("EHBO-kit en vuurblusser", fp.EhboEnBlusser),
                         ("Passagierslijst ingevuld", fp.PassagierslijstIngevuld),
-                        ("Vluchtplan ingediend", fp.VluchtplanIngediend),
-                    });
+                        ("Vluchtplan ingediend", fp.VluchtplanIngediend)
+                    ]);
 
                     // Section 5 - Technische Controle with checkboxes
                     col.Item().PaddingTop(6).Background(PrimaryColor).Padding(4)
                         .Text("5. Technische Controle").Bold().FontColor(Colors.White).FontSize(10);
                     var checks = new[]
                     {
-                        (fp.BranderGetest, "Brander getest"),
-                        (fp.GasflaconsGecontroleerd, "Gasflessen gevuld & gecontroleerd"),
-                        (fp.BallonVisueel, "Ballon en mand visueel geïnspecteerd"),
-                        (fp.VerankeringenGecontroleerd, "Verankeringen en touwen gecontroleerd"),
-                        (fp.InstrumentenWerkend, "Instrumenten werkend"),
+                        (fp.BranderGetest, "Brander getest"), (fp.GasflaconsGecontroleerd, "Gasflessen gevuld & gecontroleerd"),
+                        (fp.BallonVisueel, "Ballon en mand visueel geïnspecteerd"), (fp.VerankeringenGecontroleerd, "Verankeringen en touwen gecontroleerd"),
+                        (fp.InstrumentenWerkend, "Instrumenten werkend")
                     };
-                    bool alt5 = false;
-                    foreach (var (checked_, label) in checks)
+                    var alt5 = false;
+                    foreach (var (@checked, label) in checks)
                     {
                         col.Item().Background(alt5 ? LightBg : Colors.White).Padding(3)
-                            .Text($"{(checked_ ? "[JA]" : "[NEE]")}  {label}");
+                            .Text($"{(@checked ? "[JA]" : "[NEE]")}  {label}");
                         alt5 = !alt5;
                     }
 
@@ -178,27 +184,41 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     col.Item().Background(Colors.Grey.Lighten2).Padding(3).Row(row =>
                     {
                         row.RelativeItem(3).Text("Passagier").Bold();
-                        row.RelativeItem(1).Text(t => { t.AlignRight(); t.Span("Gewicht (kg)").Bold(); });
+                        row.RelativeItem().Text(t =>
+                        {
+                            t.AlignRight();
+                            t.Span("Gewicht (kg)").Bold();
+                        });
                     });
-                    bool altLoad = false;
+                    var altLoad = false;
                     foreach (var p in fp.Passengers.OrderBy(x => x.Order))
                     {
                         var pWeight = p.WeightKg > 0 ? p.WeightKg.ToString("F1") : "–";
                         col.Item().Background(altLoad ? LightBg : Colors.White).Padding(3).Row(row =>
                         {
                             row.RelativeItem(3).Text(p.Name);
-                            row.RelativeItem(1).Text(t => { t.AlignRight(); t.Span(pWeight); });
+                            row.RelativeItem().Text(t =>
+                            {
+                                t.AlignRight();
+                                t.Span(pWeight);
+                            });
                         });
                         altLoad = !altLoad;
                     }
+
                     var totalWeight = $"{assessment.TotaalGewicht:F1} kg";
                     col.Item().Background(Colors.Grey.Lighten3).Padding(3).Row(row =>
                     {
                         row.RelativeItem(3).Text("Totaal gewicht").Bold();
-                        row.RelativeItem(1).Text(t => { t.AlignRight(); t.Span(totalWeight).Bold(); });
+                        row.RelativeItem().Text(t =>
+                        {
+                            t.AlignRight();
+                            t.Span(totalWeight).Bold();
+                        });
                     });
                     col.Item().Background(Colors.White).Padding(3)
-                        .Text($"Max Altitude: {(fp.MaxAltitudeFt.HasValue ? fp.MaxAltitudeFt + " ft" : "–")}  |  Lift units: {fp.LiftUnits?.ToString("F0") ?? "–"}  |  Totaal lift: {fp.TotaalLiftKg?.ToString("F1") ?? "–"} kg");
+                        .Text(
+                            $"Max Altitude: {(fp.MaxAltitudeFt.HasValue ? fp.MaxAltitudeFt + " ft" : "–")}  |  Lift units: {fp.LiftUnits?.ToString("F0") ?? "–"}  |  Totaal lift: {fp.TotaalLiftKg?.ToString("F1") ?? "–"} kg");
                     col.Item().Background(LightBg).Padding(3)
                         .Text(assessment.LiftVoldoende ? "Lift voldoende" : "Lift onvoldoende").Bold()
                         .FontColor(assessment.LiftVoldoende ? Colors.Green.Darken2 : Colors.Red.Darken2);
@@ -207,14 +227,13 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     if (fp.Balloon?.VolumeM3.HasValue == true &&
                         fp.Balloon?.InternalEnvelopeTempC.HasValue == true &&
                         fp.Location?.ElevationM.HasValue == true &&
-                        fp.TemperatuurC.HasValue &&
-                        fp.MaxAltitudeFt.HasValue)
+                        fp is { TemperatuurC: not null, MaxAltitudeFt: not null })
                     {
-                        var A  = fp.MaxAltitudeFt.Value * 0.3048;
+                        var A = fp.MaxAltitudeFt.Value * 0.3048;
                         var Eg = fp.Location.ElevationM.Value;
                         var Tg = fp.TemperatuurC.Value;
                         var Ti = fp.Balloon.InternalEnvelopeTempC.Value;
-                        var V  = fp.Balloon.VolumeM3.Value;
+                        var V = fp.Balloon.VolumeM3.Value;
                         var lr = LiftCalculator.Calculate(A, Eg, Tg, Ti, V);
 
                         col.Item().Background(LightBg).Padding(3)
@@ -228,12 +247,13 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     }
 
                     if (!string.IsNullOrWhiteSpace(fp.LoadNotes))
-                        col.Item().Background(Colors.White).Padding(3).Text($"Notities: {fp.LoadNotes}");
-
-                    AddSection(col, "8. Traject", new[]
                     {
-                        ("Trajectnotities", fp.Traject ?? "–"),
-                    });
+                        col.Item().Background(Colors.White).Padding(3).Text($"Notities: {fp.LoadNotes}");
+                    }
+
+                    AddSection(col, "8. Traject", [
+                        ("Trajectnotities", fp.Traject ?? "–")
+                    ]);
 
                     // Simulated trajectories summary
                     if (!string.IsNullOrWhiteSpace(fp.TrajectorySimulationJson))
@@ -241,46 +261,56 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         try
                         {
                             var allTrajs = JsonSerializer.Deserialize<List<SimulatedTrajectory>>(fp.TrajectorySimulationJson);
-                            if (allTrajs != null && allTrajs.Count > 0)
+                            if (allTrajs is { Count: > 0 })
                             {
                                 col.Item().PaddingTop(4)
                                     .Text("Trajectsimulaties").Bold().FontSize(8.5f).FontColor(PrimaryColor);
 
-                                bool alt2 = false;
+                                var alt2 = false;
                                 foreach (var t in allTrajs.Where(t => t.Points.Count > 0))
                                 {
-                                    var last  = t.Points[^1];
-                                    var src   = t.DataSource == TrajectoryDataSource.Hysplit
-                                                    ? "Open-Meteo 3D"
-                                                    : t.DataSource == TrajectoryDataSource.OpenMeteo
-                                                        ? "Open-Meteo"
-                                                        : "Dead-reckoning";
+                                    var last = t.Points[^1];
+                                    var src = t.DataSource == TrajectoryDataSource.Hysplit
+                                        ? "Open-Meteo 3D"
+                                        : t.DataSource == TrajectoryDataSource.OpenMeteo
+                                            ? "Open-Meteo"
+                                            : "Dead-reckoning";
                                     var landing = $"{last.Lat:F4}°N  {last.Lon:F4}°E";
-                                    var altRow  = $"{t.AltitudeFt} ft  |  {src}  |  {t.DurationMinutes} min  |  berekend {t.SimulatedAt:dd/MM/yyyy HH:mm}  |  landing ≈ {landing}";
+                                    var altRow = $"{t.AltitudeFt} ft  |  {src}  |  {t.DurationMinutes} min  |  berekend {t.SimulatedAt:dd/MM/yyyy HH:mm}  |  landing ≈ {landing}";
 
                                     col.Item()
-                                       .Background(alt2 ? LightBg : Colors.White)
-                                       .Padding(2)
-                                       .Text(altRow)
-                                       .FontSize(8);
+                                        .Background(alt2 ? LightBg : Colors.White)
+                                        .Padding(2)
+                                        .Text(altRow)
+                                        .FontSize(8);
                                     alt2 = !alt2;
                                 }
                             }
                         }
-                        catch { /* malformed JSON — skip silently */ }
+                        catch
+                        {
+                            /* malformed JSON — skip silently */
+                        }
                     }
 
                     // Trajectory map image — TrajectoryMapService enforces ≥4:3 landscape
-                    // aspect ratio so FitWidth is always safe on an A4 page
+                    // aspect ratio, so FitWidth is always safe on an A4 page
                     if (mapPng != null)
+                    {
                         col.Item().PageBreak();
+                    }
+
                     if (mapPng != null)
+                    {
                         col.Item().Image(mapPng).FitWidth();
+                    }
 
                     // Traject images
                     var trajImgs = fp.Images.Where(i => i.Section == "Traject").ToList();
                     if (trajImgs.Count > 0)
+                    {
                         AddImageGrid(col, trajImgs);
+                    }
 
                     col.Item().PaddingTop(6).Background(PrimaryColor).Padding(4)
                         .Text("9. Ballonbulletin").Bold().FontColor(Colors.White).FontSize(10);
@@ -293,17 +323,17 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                             .Text("Vluchtverslag").Bold().FontColor(Colors.White).FontSize(10);
                         col.Item().Background(LightBg).Padding(3).Row(row =>
                         {
-                            row.RelativeItem(1).Text("Werkelijke landing").Bold();
+                            row.RelativeItem().Text("Werkelijke landing").Bold();
                             row.RelativeItem(2).Text(fp.ActualLandingNotes ?? "–");
                         });
                         col.Item().Background(Colors.White).Padding(3).Row(row =>
                         {
-                            row.RelativeItem(1).Text("Vluchtduur").Bold();
+                            row.RelativeItem().Text("Vluchtduur").Bold();
                             row.RelativeItem(2).Text(fp.ActualFlightDurationMinutes.HasValue ? $"{fp.ActualFlightDurationMinutes} min" : "–");
                         });
                         col.Item().Background(LightBg).Padding(3).Row(row =>
                         {
-                            row.RelativeItem(1).Text("Opmerkingen").Bold();
+                            row.RelativeItem().Text("Opmerkingen").Bold();
                             row.RelativeItem(2).Text(fp.ActualRemarks ?? "–");
                         });
                     }
@@ -324,46 +354,53 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
     private static void AddImageGrid(ColumnDescriptor col, List<FlightImage> images)
     {
         const int perRow = 2; // 2-per-row gives larger images than 3
-        for (int start = 0; start < images.Count; start += perRow)
+        for (var start = 0; start < images.Count; start += perRow)
         {
             var batch = images.Skip(start).Take(perRow).ToList();
             col.Item().PaddingTop(4).Row(row =>
             {
                 foreach (var img in batch)
+                {
                     row.RelativeItem().Padding(3).Image(img.Data).FitArea();
-                // keep columns balanced when batch is smaller than perRow
-                for (int i = batch.Count; i < perRow; i++)
+                }
+
+                // keep columns balanced when the batch is smaller than perRow
+                for (var i = batch.Count; i < perRow; i++)
+                {
                     row.RelativeItem();
+                }
             });
         }
     }
 
-    private static void AddSection(ColumnDescriptor col, string title, (string Label, string Value)[] rows)
-    {
+    private static void AddSection(ColumnDescriptor col, string title, (string Label, string Value)[] rows) =>
         col.Item().PaddingTop(6).Column(section =>
         {
             section.Item().Background(PrimaryColor).Padding(4)
                 .Text(title).Bold().FontColor(Colors.White).FontSize(10);
-            bool alt = false;
+            var alt = false;
             foreach (var (label, value) in rows)
             {
                 section.Item().Background(alt ? "#f0f4f8" : Colors.White).Padding(3).Row(row =>
                 {
-                    row.RelativeItem(1).Text(label).Bold();
+                    row.RelativeItem().Text(label).Bold();
                     row.RelativeItem(2).Text(value);
                 });
                 alt = !alt;
             }
         });
-    }
 
     /// <summary>
-    /// Renders Quill-generated HTML into a QuestPDF ColumnDescriptor,
-    /// preserving headings, bullet/ordered lists and indent levels.
+    ///     Renders Quill-generated HTML into a QuestPDF ColumnDescriptor,
+    ///     preserving headings, bullet/ordered lists, and indent levels.
     /// </summary>
     private static void RenderHtmlToColumn(ColumnDescriptor body, string? html)
     {
-        if (string.IsNullOrWhiteSpace(html)) { body.Item().Text("–"); return; }
+        if (string.IsNullOrWhiteSpace(html))
+        {
+            body.Item().Text("–");
+            return;
+        }
 
         // Remove Quill's internal UI marker spans (empty, just for visual bullets)
         var clean = Regex.Replace(html,
@@ -375,18 +412,22 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
             @"<(h[1-6]|p|li)([^>]*)>(.*?)</\1>",
             RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-        bool any = false;
+        var any = false;
         foreach (Match m in blockRx.Matches(clean))
         {
-            var tag   = m.Groups[1].Value.ToLowerInvariant();
+            var tag = m.Groups[1].Value.ToLowerInvariant();
             var attrs = m.Groups[2].Value;
             // Strip all remaining inline tags, decode entities
-            var text  = Regex.Replace(m.Groups[3].Value, "<[^>]+>", "")
-                             .Replace("&nbsp;", " ").Replace("&amp;", "&")
-                             .Replace("&lt;", "<").Replace("&gt;", ">")
-                             .Replace("&quot;", "\"").Trim();
+            var text = Regex.Replace(m.Groups[3].Value, "<[^>]+>", "")
+                .Replace("&nbsp;", " ").Replace("&amp;", "&")
+                .Replace("&lt;", "<").Replace("&gt;", ">")
+                .Replace("&quot;", "\"").Trim();
 
-            if (string.IsNullOrWhiteSpace(text)) continue;
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                continue;
+            }
+
             any = true;
 
             var indentMatch = Regex.Match(attrs, @"ql-indent-(\d+)");
@@ -402,18 +443,26 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     body.Item().PaddingTop(4).Text(text).Bold().FontSize(10); break;
                 case "li":
                     var bullet = attrs.Contains("ordered") ? "-" : "*";
-                    body.Item().PaddingLeft(8 + indent).Text($"{bullet} {text}").FontSize(9); break;
+                    body.Item().PaddingLeft(8 + indent).Text($"{bullet} {text}").FontSize(9);
+                    break;
                 default: // p
                     body.Item().PaddingTop(1).PaddingLeft(indent).Text(text).FontSize(9); break;
             }
         }
 
-        if (!any) body.Item().Text("–");
+        if (!any)
+        {
+            body.Item().Text("–");
+        }
     }
 
     private static string StripHtml(string? html)
     {
-        if (string.IsNullOrWhiteSpace(html)) return "–";
+        if (string.IsNullOrWhiteSpace(html))
+        {
+            return "–";
+        }
+
         var text = Regex.Replace(html, @"<span\s[^>]*class=""ql-ui""[^>]*>.*?</span>", "",
             RegexOptions.IgnoreCase | RegexOptions.Singleline);
         text = Regex.Replace(text, @"</?(p|h[1-6]|li|br|ul|ol|div)[^>]*>",
@@ -421,7 +470,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
             RegexOptions.IgnoreCase);
         text = Regex.Replace(text, "<[^>]+>", "");
         text = text.Replace("&nbsp;", " ").Replace("&amp;", "&")
-                   .Replace("&lt;", "<").Replace("&gt;", ">").Replace("&quot;", "\"");
+            .Replace("&lt;", "<").Replace("&gt;", ">").Replace("&quot;", "\"");
         return Regex.Replace(text, @"\n{3,}", "\n\n").Trim();
     }
 }

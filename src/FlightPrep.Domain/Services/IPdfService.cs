@@ -1,8 +1,8 @@
-using FlightPrep.Models;
+using FlightPrep.Domain.Models;
 
-namespace FlightPrep.Services;
+namespace FlightPrep.Domain.Services;
 
 public interface IPdfService
 {
-    Task<byte[]> GenerateAsync(FlightPreparation fp, byte[]? mapPng = null, string? userId = null, CancellationToken ct = default);
+    Task<byte[]> GenerateAsync(FlightPreparation fp, byte[]? mapPng = null, string? userId = null);
 }

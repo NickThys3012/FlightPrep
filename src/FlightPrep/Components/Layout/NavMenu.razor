@@ -39,7 +39,9 @@
                                 <li><a class="dropdown-item" href="/settings/balloons">Ballonnen</a></li>
                                 <li><a class="dropdown-item" href="/settings/pilots">Piloten</a></li>
                                 <li><a class="dropdown-item" href="/settings/locations">Locaties</a></li>
-                                <li><hr class="dropdown-divider" style="border-color:rgba(255,255,255,0.15)"></li>
+                                <li>
+                                    <hr class="dropdown-divider" style="border-color:rgba(255,255,255,0.15)">
+                                </li>
                                 <li><a class="dropdown-item" href="/settings/gonogo">Go/No-Go instellingen</a></li>
                             </ul>
                         </li>
@@ -58,7 +60,7 @@
                         </AuthorizeView>
                         <li class="nav-item">
                             <form method="post" action="/Logout" class="d-inline">
-                                <AntiforgeryToken />
+                                <AntiforgeryToken/>
                                 <button type="submit" class="nav-link btn btn-link px-2">
                                     Uitloggen (@context.User.Identity!.Name)
                                 </button>

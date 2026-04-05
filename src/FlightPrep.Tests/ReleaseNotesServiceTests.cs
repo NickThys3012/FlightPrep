@@ -1,16 +1,17 @@
-using System.Text.Json;
-using FlightPrep.Models.ReleaseNotes;
-using FlightPrep.Services;
+using FlightPrep.Domain.Models.ReleaseNotes;
+using FlightPrep.Infrastructure.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using System.Reflection;
+using System.Text.Json;
 
 namespace FlightPrep.Tests;
 
-public class ReleaseNotesServiceTests : IDisposable
+public sealed class ReleaseNotesServiceTests : IDisposable
 {
-    private readonly string _webRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
     private readonly Mock<IWebHostEnvironment> _envMock = new();
+    private readonly string _webRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 
     public ReleaseNotesServiceTests()
     {
@@ -18,7 +19,11 @@ public class ReleaseNotesServiceTests : IDisposable
         _envMock.Setup(e => e.WebRootPath).Returns(_webRoot);
     }
 
-    public void Dispose() => Directory.Delete(_webRoot, recursive: true);
+    public void Dispose()
+    {
+        Directory.Delete(_webRoot, true);
+        GC.SuppressFinalize(this);
+    }
 
     private ReleaseNotesService BuildSut() =>
         new(_envMock.Object, NullLogger<ReleaseNotesService>.Instance);
@@ -32,11 +37,7 @@ public class ReleaseNotesServiceTests : IDisposable
     [Fact]
     public async Task GetAsync_ValidFile_ReturnsDocument()
     {
-        WriteReleaseNotes(new ReleaseNotesDocument
-        {
-            CurrentVersion = "1.2.3",
-            Entries = [new ReleaseEntry { Pr = 1, Title = "Test", Version = "1.2.3" }]
-        });
+        WriteReleaseNotes(new ReleaseNotesDocument { CurrentVersion = "1.2.3", Entries = [new ReleaseEntry { Pr = 1, Title = "Test", Version = "1.2.3" }] });
         var sut = BuildSut();
 
         var result = await sut.GetAsync();
@@ -53,7 +54,7 @@ public class ReleaseNotesServiceTests : IDisposable
 
         var first = await sut.GetAsync();
 
-        // Overwrite the file — cached result should still be returned
+        // Overwrite the file — a cached result should still be returned
         WriteReleaseNotes(new ReleaseNotesDocument { CurrentVersion = "2.0.0" });
         var second = await sut.GetAsync();
 
@@ -75,7 +76,7 @@ public class ReleaseNotesServiceTests : IDisposable
     [Fact]
     public async Task GetAsync_InvalidJson_ReturnsEmptyDocument()
     {
-        File.WriteAllText(Path.Combine(_webRoot, "release-notes.json"), "NOT_VALID_JSON{{");
+        await File.WriteAllTextAsync(Path.Combine(_webRoot, "release-notes.json"), "NOT_VALID_JSON{{");
         var sut = BuildSut();
 
         var result = await sut.GetAsync();
@@ -86,7 +87,7 @@ public class ReleaseNotesServiceTests : IDisposable
     [Fact]
     public async Task GetAsync_EmptyFile_ReturnsEmptyDocument()
     {
-        File.WriteAllText(Path.Combine(_webRoot, "release-notes.json"), "");
+        await File.WriteAllTextAsync(Path.Combine(_webRoot, "release-notes.json"), "");
         var sut = BuildSut();
 
         var result = await sut.GetAsync();
@@ -104,13 +105,13 @@ public class ReleaseNotesServiceTests : IDisposable
 
         // Reset _cachedAt to force expiry
         var field = typeof(ReleaseNotesService)
-            .GetField("_cachedAt", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+            .GetField("_cachedAt", BindingFlags.NonPublic | BindingFlags.Instance)!;
         field.SetValue(sut, DateTime.MinValue);
 
-        // Replace file with updated content
+        // Replace a file with updated content
         WriteReleaseNotes(new ReleaseNotesDocument { CurrentVersion = "3.0.0" });
 
-        // Act — cache is expired, so file must be re-read
+        // Act — cache is expired, so a file must be re-read
         var result = await sut.GetAsync();
 
         // Assert
@@ -127,7 +128,7 @@ public class ReleaseNotesServiceTests : IDisposable
             Entries =
             [
                 new ReleaseEntry { Pr = 1, Title = "Alpha", Version = "2.0.0" },
-                new ReleaseEntry { Pr = 2, Title = "Beta",  Version = "2.0.0" }
+                new ReleaseEntry { Pr = 2, Title = "Beta", Version = "2.0.0" }
             ]
         });
         var sut = BuildSut();
@@ -139,7 +140,7 @@ public class ReleaseNotesServiceTests : IDisposable
 
         var results = await Task.WhenAll(tasks);
 
-        // Assert — every caller received a fully-populated, non-null document
+        // Assert — every caller received a fully populated, non-null document
         Assert.All(results, r =>
         {
             Assert.NotNull(r);

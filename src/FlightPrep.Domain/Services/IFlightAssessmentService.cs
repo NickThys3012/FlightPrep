@@ -1,6 +1,6 @@
-using FlightPrep.Models;
+using FlightPrep.Domain.Models;
 
-namespace FlightPrep.Services;
+namespace FlightPrep.Domain.Services;
 
 public interface IFlightAssessmentService
 {

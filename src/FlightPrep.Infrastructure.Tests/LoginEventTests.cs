@@ -1,5 +1,5 @@
-using FlightPrep.Data;
-using FlightPrep.Models;
+using FlightPrep.Domain.Models;
+using FlightPrep.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,13 +7,12 @@ using Microsoft.Extensions.DependencyInjection;
 namespace FlightPrep.Infrastructure.Tests;
 
 /// <summary>
-/// Integration tests for the <see cref="LoginEvent"/> entity and the
-/// "last-50 ordered by timestamp DESC" query used by UserManagement.razor.
-///
-/// The query logic is replicated directly here (see <see cref="LoadLoginEventsAsync"/>)
-/// because UserManagement is a Blazor component and is excluded from unit test scope.
-/// This validates the persistence contract independently of the fire-and-forget
-/// <c>RecordLoginEvent</c> path in LoginModel.
+///     Integration tests for the <see cref="LoginEvent" /> entity and the
+///     "last-50 ordered by timestamp DESC" query used by UserManagement.razor.
+///     The query logic is replicated directly here (see <see cref="LoadLoginEventsAsync" />)
+///     because UserManagement is a Blazor component and is excluded from unit test scope.
+///     This validates the persistence contract independently of the fire-and-forget
+///     <c>RecordLoginEvent</c> path in LoginModel.
 /// </summary>
 public class LoginEventTests
 {
@@ -25,14 +24,14 @@ public class LoginEventTests
         var services = new ServiceCollection();
         services.AddDbContextFactory<AppDbContext>(o =>
             o.UseInMemoryDatabase(dbName)
-             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
         return services.BuildServiceProvider()
-                       .GetRequiredService<IDbContextFactory<AppDbContext>>();
+            .GetRequiredService<IDbContextFactory<AppDbContext>>();
     }
 
     /// <summary>
-    /// Replicates the query from <c>UserManagement.LoadLoginEvents</c>:
-    /// returns the most recent 50 login events ordered by Timestamp DESC.
+    ///     Replicates the query from <c>UserManagement.LoadLoginEvents</c>:
+    ///     returns the most recent 50 login events ordered by Timestamp DESC.
     /// </summary>
     private static async Task<List<LoginEvent>> LoadLoginEventsAsync(
         IDbContextFactory<AppDbContext> factory)
@@ -66,11 +65,11 @@ public class LoginEventTests
         var timestamp = new DateTime(2025, 6, 15, 10, 30, 0, DateTimeKind.Utc);
         var original = new LoginEvent
         {
-            Email         = "pilot@example.com",
-            UserId        = "user-abc",
-            Timestamp     = timestamp,
-            Success       = false,
-            IpAddress     = "192.168.1.1",
+            Email = "pilot@example.com",
+            UserId = "user-abc",
+            Timestamp = timestamp,
+            Success = false,
+            IpAddress = "192.168.1.1",
             FailureReason = "InvalidPassword"
         };
 
@@ -86,11 +85,11 @@ public class LoginEventTests
         // Assert
         Assert.NotNull(loaded);
         Assert.Equal("pilot@example.com", loaded.Email);
-        Assert.Equal("user-abc",          loaded.UserId);
-        Assert.Equal(timestamp,           loaded.Timestamp);
+        Assert.Equal("user-abc", loaded.UserId);
+        Assert.Equal(timestamp, loaded.Timestamp);
         Assert.False(loaded.Success);
-        Assert.Equal("192.168.1.1",       loaded.IpAddress);
-        Assert.Equal("InvalidPassword",   loaded.FailureReason);
+        Assert.Equal("192.168.1.1", loaded.IpAddress);
+        Assert.Equal("InvalidPassword", loaded.FailureReason);
     }
 
     // ── LoadLoginEvents query logic ───────────────────────────────────────────
@@ -116,15 +115,11 @@ public class LoginEventTests
         var baseTime = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         await using var db = await factory.CreateDbContextAsync();
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
-            db.LoginEvents.Add(new LoginEvent
-            {
-                Email     = $"user{i}@example.com",
-                Timestamp = baseTime.AddHours(i),
-                Success   = true
-            });
+            db.LoginEvents.Add(new LoginEvent { Email = $"user{i}@example.com", Timestamp = baseTime.AddHours(i), Success = true });
         }
+
         await db.SaveChangesAsync();
 
         // Act
@@ -132,9 +127,11 @@ public class LoginEventTests
 
         // Assert — 10 events returned; newest first
         Assert.Equal(10, result.Count);
-        for (int i = 0; i < result.Count - 1; i++)
+        for (var i = 0; i < result.Count - 1; i++)
+        {
             Assert.True(result[i].Timestamp >= result[i + 1].Timestamp,
                 $"Event at index {i} should be newer than index {i + 1}");
+        }
     }
 
     [Fact]
@@ -145,15 +142,11 @@ public class LoginEventTests
         var baseTime = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         await using var db = await factory.CreateDbContextAsync();
-        for (int i = 0; i < 60; i++)
+        for (var i = 0; i < 60; i++)
         {
-            db.LoginEvents.Add(new LoginEvent
-            {
-                Email     = $"user{i}@example.com",
-                Timestamp = baseTime.AddHours(i),
-                Success   = i % 2 == 0
-            });
+            db.LoginEvents.Add(new LoginEvent { Email = $"user{i}@example.com", Timestamp = baseTime.AddHours(i), Success = i % 2 == 0 });
         }
+
         await db.SaveChangesAsync();
 
         // Act
@@ -171,21 +164,17 @@ public class LoginEventTests
         var baseTime = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         await using var db = await factory.CreateDbContextAsync();
-        for (int i = 0; i < 60; i++)
+        for (var i = 0; i < 60; i++)
         {
-            db.LoginEvents.Add(new LoginEvent
-            {
-                Email     = $"user{i}@example.com",
-                Timestamp = baseTime.AddHours(i),
-                Success   = true
-            });
+            db.LoginEvents.Add(new LoginEvent { Email = $"user{i}@example.com", Timestamp = baseTime.AddHours(i), Success = true });
         }
+
         await db.SaveChangesAsync();
 
         // Act
         var result = await LoadLoginEventsAsync(factory);
 
-        // Assert — most recent event is hour 59; oldest in the result is hour 10
+        // Assert — most recent event is hour 59; the oldest in the result is hour 10
         Assert.Equal(baseTime.AddHours(59), result.First().Timestamp);
         Assert.Equal(baseTime.AddHours(10), result.Last().Timestamp);
     }
