@@ -1,5 +1,7 @@
 using FlightPrep.Domain.Models;
+using FlightPrep.Domain.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
 using System.Security.Claims;
 
@@ -7,7 +9,10 @@ namespace FlightPrep.Components.Pages;
 
 public partial class Logboek : ComponentBase
 {
-       [Inject] private NavigationManager NavManager { get; set; } = null!;
+    [Inject] private NavigationManager NavManager { get; set; } = null!;
+    [Inject] private IFlightPreparationService FpSvc { get; set; } = null!;
+    [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = null!;
+    [Inject] private IJSRuntime Js { get; set; } = null!;
 
     private List<FlightPreparation>? _flights;
     private int _totalFlights;
