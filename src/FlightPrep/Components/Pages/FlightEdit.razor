@@ -536,6 +536,7 @@
     private bool saving;
     private string? saveMessage;
     private bool saveError;
+    private string? _userId;
 
     private int simulationDurationMinutes = 60;
     private List<SimulatedTrajectory>? simulatedTrajectories;
@@ -611,15 +612,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync();
-
         balloons  = await FpSvc.GetBalloonsAsync();
         pilots    = await FpSvc.GetPilotsAsync();
         locations = await FpSvc.GetLocationsAsync();
 
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        _userId = userId;
         var isAdmin = authState.User.IsInRole("Admin");
+
+        _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync(userId);
 
         if (Id.HasValue)
         {
@@ -886,7 +888,7 @@
         if (saved == null) return;
         try
         {
-            var pdfBytes = await PdfSvc.GenerateAsync(saved);
+            var pdfBytes = await PdfSvc.GenerateAsync(saved, userId: _userId);
             await JS.InvokeVoidAsync("downloadFileFromBytes",
                 $"vaartvoorbereiding_{saved.Datum:yyyy-MM-dd}_{saved.Id}.pdf",
                 "application/pdf", Convert.ToBase64String(pdfBytes));

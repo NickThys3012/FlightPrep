@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @inject IFlightPreparationService FpSvc
 @inject IGoNoGoService GoNoGoSvc
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>FlightPrep – Dashboard</PageTitle>
 
@@ -95,7 +96,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync(userId);
 
         var (total, thisYear, flown) = await FpSvc.GetFlightCountsAsync();
         totalFlights    = total;

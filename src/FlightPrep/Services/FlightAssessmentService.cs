@@ -14,11 +14,11 @@ public class FlightAssessmentService(IGoNoGoService goNoGoSvc) : IFlightAssessme
     /// Computes the <see cref="FlightAssessment"/> for the given flight preparation.
     /// The <see cref="GoNoGoSettings"/> are loaded from the database on each call.
     /// </summary>
-    public async Task<FlightAssessment> ComputeAsync(FlightPreparation fp)
+    public async Task<FlightAssessment> ComputeAsync(FlightPreparation fp, string? userId = null)
     {
         ArgumentNullException.ThrowIfNull(fp);
 
-        var settings = await goNoGoSvc.GetSettingsAsync();
+        var settings = await goNoGoSvc.GetSettingsAsync(userId);
 
         var totaalGewicht = (fp.EnvelopeWeightKg ?? 0)
                           + (fp.Pilot?.WeightKg ?? 0)

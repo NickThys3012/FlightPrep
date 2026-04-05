@@ -87,6 +87,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             .HasForeignKey(l => l.OwnerId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        modelBuilder.Entity<Pilot>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(p => p.OwnerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<GoNoGoSettings>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(g => g.UserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<GoNoGoSettings>()
+            .HasIndex(g => g.UserId)
+            .IsUnique();
+
         modelBuilder.Entity<LoginEvent>(e =>
         {
             e.HasIndex(x => x.Email);

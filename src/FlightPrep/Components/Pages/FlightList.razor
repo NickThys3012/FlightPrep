@@ -150,10 +150,11 @@ else
 
     private async Task LoadFlights()
     {
-        _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync();
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         _userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         _isAdmin = authState.User.IsInRole("Admin");
+
+        _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync(_userId);
 
         flights = await FpSvc.GetSummariesAsync(_userId, _isAdmin);
     }

@@ -1,10 +1,11 @@
 @page "/settings/gonogo"
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize]
 @rendermode InteractiveServer
 @using FlightPrep.Models
 @using FlightPrep.Services
 @inject IGoNoGoService GoNoGoSvc
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Go/No-Go Instellingen</PageTitle>
 
@@ -125,16 +126,19 @@
 @code {
     private GoNoGoSettings? settings;
     private bool saved;
+    private string? _userId;
 
     protected override async Task OnInitializedAsync()
     {
-        settings = await GoNoGoSvc.GetSettingsAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        settings = await GoNoGoSvc.GetSettingsAsync(_userId);
     }
 
     private async Task Save()
     {
-        if (settings == null) return;
-        await GoNoGoSvc.SaveSettingsAsync(settings);
+        if (settings == null || _userId == null) return;
+        await GoNoGoSvc.SaveSettingsAsync(settings, _userId);
         saved = true;
         StateHasChanged();
         await Task.Delay(2500);

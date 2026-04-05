@@ -1,9 +1,10 @@
 namespace FlightPrep.Models;
 
-/// <summary>Singleton row (Id=1) storing configurable Go/No-Go thresholds.</summary>
+/// <summary>Per-user Go/No-Go threshold settings. UserId == null means global default (unauthenticated/system).</summary>
 public class GoNoGoSettings
 {
-    public int Id { get; set; } = 1;
+    public int Id { get; set; }
+    public string? UserId { get; set; }
 
     // Wind speed thresholds (kt)
     public double WindYellowKt  { get; set; } = 10;

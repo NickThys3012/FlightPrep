@@ -106,7 +106,10 @@
         await using var db = await DbFactory.CreateDbContextAsync();
         var query = db.Balloons.AsQueryable();
         if (!_isAdmin)
-            query = query.Where(b => b.OwnerId == null || b.OwnerId == _userId);
+        {
+            if (_userId == null) { balloons = []; return; }
+            query = query.Where(b => b.OwnerId == _userId);
+        }
         balloons = await query.OrderBy(b => b.Registration).ToListAsync();
     }
 
@@ -127,7 +130,11 @@
         }
         editError = null;
         await using var db = await DbFactory.CreateDbContextAsync();
-        db.Balloons.Update(editBalloon);
+        var b = await db.Balloons.FindAsync(editBalloon.Id);
+        if (b is null || (!_isAdmin && b.OwnerId != _userId)) return;
+        var originalOwnerId = b.OwnerId;
+        db.Entry(b).CurrentValues.SetValues(editBalloon);
+        b.OwnerId = originalOwnerId;
         await db.SaveChangesAsync();
         editId = null;
         await Load();
@@ -153,7 +160,7 @@
     {
         await using var db = await DbFactory.CreateDbContextAsync();
         var b = await db.Balloons.FindAsync(id);
-        if (b != null && (_isAdmin || b.OwnerId == null || b.OwnerId == _userId))
+        if (b != null && (_isAdmin || b.OwnerId == _userId))
         {
             db.Balloons.Remove(b);
             await db.SaveChangesAsync();
