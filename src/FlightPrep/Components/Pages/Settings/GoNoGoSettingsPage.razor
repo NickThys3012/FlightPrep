@@ -127,33 +127,3 @@
         </div>
     }
 </div>
-
-@code {
-    private GoNoGoSettings? _settings;
-    private bool _saved;
-    private string? _userId;
-
-    protected override async Task OnInitializedAsync()
-    {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        _userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        _settings = await GoNoGoSvc.GetSettingsAsync(_userId);
-    }
-
-    private async Task Save()
-    {
-        if (_settings == null || _userId == null) return;
-        await GoNoGoSvc.SaveSettingsAsync(_settings, _userId);
-        _saved = true;
-        StateHasChanged();
-        await Task.Delay(2500);
-        _saved = false;
-    }
-
-    private void Reset()
-    {
-        _settings = new GoNoGoSettings();
-        _saved = false;
-    }
-
-}
