@@ -463,7 +463,7 @@ else
             }
 
             // Compute assessment (TotaalGewicht, LiftVoldoende, GoNoGo via service)
-            _assessment = await AssessmentSvc.ComputeAsync(fp);
+            _assessment = await AssessmentSvc.ComputeAsync(fp, userId);
 
             // Initialise flown modal pre-fill
             flownLandingNotes = fp.ActualLandingNotes;

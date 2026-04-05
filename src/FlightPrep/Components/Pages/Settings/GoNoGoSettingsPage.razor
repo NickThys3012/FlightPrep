@@ -137,7 +137,7 @@
 
     private async Task Save()
     {
-        if (settings == null) return;
+        if (settings == null || _userId == null) return;
         await GoNoGoSvc.SaveSettingsAsync(settings, _userId);
         saved = true;
         StateHasChanged();
