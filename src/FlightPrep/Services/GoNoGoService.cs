@@ -17,9 +17,8 @@ public class GoNoGoService(IDbContextFactory<AppDbContext> dbFactory) : IGoNoGoS
     {
         await using var db = await dbFactory.CreateDbContextAsync();
         s.UserId = userId;
-        var existing = userId != null
-            ? await db.GoNoGoSettings.FirstOrDefaultAsync(g => g.UserId == userId)
-            : null;
+        var existing = await db.GoNoGoSettings
+            .FirstOrDefaultAsync(g => g.UserId == userId);
         if (existing != null)
         {
             db.Entry(existing).CurrentValues.SetValues(s);

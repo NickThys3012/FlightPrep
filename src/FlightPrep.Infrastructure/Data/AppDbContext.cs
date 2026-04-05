@@ -99,6 +99,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             .HasForeignKey(g => g.UserId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        modelBuilder.Entity<GoNoGoSettings>()
+            .HasIndex(g => g.UserId)
+            .IsUnique();
+
         modelBuilder.Entity<LoginEvent>(e =>
         {
             e.HasIndex(x => x.Email);
