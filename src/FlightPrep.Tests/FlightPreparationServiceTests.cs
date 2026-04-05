@@ -772,4 +772,67 @@ public class FlightPreparationServiceTests
         Assert.Null(loaded.ActualFlightDurationMinutes);
         Assert.Null(loaded.ActualRemarks);
     }
+
+    // ── GetSummariesAsync — null userId guard ─────────────────────────────────
+
+    [Fact]
+    public async Task GetSummariesAsync_NullUserId_NonAdmin_ReturnsEmptyList()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(GetSummariesAsync_NullUserId_NonAdmin_ReturnsEmptyList));
+        var sut = BuildSut(factory);
+        await using var db = await factory.CreateDbContextAsync();
+        db.FlightPreparations.Add(SeedFlight());
+        await db.SaveChangesAsync();
+
+        // Act
+        var result = await sut.GetSummariesAsync(null, isAdmin: false);
+
+        // Assert — null userId non-admin always returns empty, regardless of stored flights
+        Assert.Empty(result);
+    }
+
+    // ── GetAllWithNavAsync — null userId guard ────────────────────────────────
+
+    [Fact]
+    public async Task GetAllWithNavAsync_NullUserId_NonAdmin_ReturnsEmptyList()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(GetAllWithNavAsync_NullUserId_NonAdmin_ReturnsEmptyList));
+        var sut = BuildSut(factory);
+        await using var db = await factory.CreateDbContextAsync();
+        db.FlightPreparations.Add(SeedFlight());
+        await db.SaveChangesAsync();
+
+        // Act
+        var result = await sut.GetAllWithNavAsync(null, isAdmin: false);
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    // ── SaveAsync — UPDATE path with images ───────────────────────────────────
+
+    [Fact]
+    public async Task SaveAsync_UpdateExistingFlight_ReplacesImages()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(SaveAsync_UpdateExistingFlight_ReplacesImages));
+        var sut = BuildSut(factory);
+        var fp = SeedFlight();
+        fp.Images = [new FlightImage { FileName = "before.jpg", ContentType = "image/jpeg", Data = [1, 2] }];
+        var id = await sut.SaveAsync(fp);
+
+        // Act — update with a different image
+        var saved = await sut.GetByIdAsync(id);
+        Assert.NotNull(saved);
+        saved.Images = [new FlightImage { FileName = "after.jpg", ContentType = "image/jpeg", Data = [3, 4] }];
+        await sut.SaveAsync(saved);
+
+        // Assert — only the new image should be present
+        var loaded = await sut.GetByIdAsync(id);
+        Assert.NotNull(loaded);
+        Assert.Single(loaded.Images);
+        Assert.Equal("after.jpg", loaded.Images[0].FileName);
+    }
 }

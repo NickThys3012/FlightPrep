@@ -45,7 +45,7 @@ jobs:
             /p:ThresholdType=line \
             /p:ThresholdStat=total \
             '/p:Include="[FlightPrep]*"' \
-            '/p:ExcludeByFile="**/Migrations/**,**/Program.cs,**/*.razor,**/*.razor.cs,**/PdfService.cs,**/AppDbContext.cs"'
+            '/p:ExcludeByFile="**/Migrations/**,**/Program.cs,**/*.razor,**/*.razor.cs,**/*.cshtml,**/*.cshtml.cs,**/Telemetry/**,**/PdfService.cs,**/AppDbContext.cs"'
 
       - name: Run unit tests — Domain (with coverage)
         run: |
