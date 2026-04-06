@@ -462,10 +462,25 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
         Settings.License = LicenseType.Community;
 
         // Post-flight blank helpers — show fill line when flight is not yet marked as flown
-        string Blank(string? value)    => fp.IsFlown && !string.IsNullOrWhiteSpace(value) ? value : "________________";
-        string BlankNum(double? value) => fp.IsFlown && value.HasValue ? value.Value.ToString("0.#") : "________________";
-        string BlankInt(int? value)    => fp.IsFlown && value.HasValue ? value.Value.ToString() : "________________";
-        string BlankBool(bool? value)  => fp.IsFlown && value.HasValue ? (value.Value ? "Ja" : "Neen") : "________________";
+        string Blank(string? value) =>
+            !fp.IsFlown                      ? "________________" :
+            string.IsNullOrWhiteSpace(value) ? "—" :
+                                               value!;
+
+        string BlankNum(double? value) =>
+            !fp.IsFlown    ? "________________" :
+            value.HasValue ? value.Value.ToString("0.#") :
+                             "—";
+
+        string BlankInt(int? value) =>
+            !fp.IsFlown    ? "________________" :
+            value.HasValue ? value.Value.ToString() :
+                             "—";
+
+        string BlankBool(bool? value) =>
+            !fp.IsFlown    ? "________________" :
+            value.HasValue ? (value.Value ? "Ja" : "Neen") :
+                             "—";
 
         var pdfBytes = Document.Create(container =>
         {

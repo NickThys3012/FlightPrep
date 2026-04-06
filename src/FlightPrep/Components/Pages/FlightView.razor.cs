@@ -201,6 +201,8 @@ public partial class FlightView:ComponentBase
         if (_fp == null) return;
 
         var visibleDefects = bool.TryParse(_ofpVisibleDefects, out var b) ? b : (bool?)null;
+        if (visibleDefects != true)
+            _ofpVisibleDefectsNotes = null;
 
         await FpSvc.PatchFlownAsync(
             _fp.Id, true,
