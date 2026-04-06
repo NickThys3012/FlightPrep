@@ -13,7 +13,8 @@ public interface IFlightPreparationService
     Task DeleteAsync(int id);
     Task PatchTrajectoryJsonAsync(int id, string? json);
     Task PatchKmlTrackAsync(int id, string kml);
-    Task PatchFlownAsync(int id, bool isFlown, string? landingNotes, int? durationMinutes, string? remarks);
+    Task PatchFlownAsync(int id, bool isFlown, string? landingNotes, int? durationMinutes, string? remarks,
+        double? fuelConsumptionL, string? landingLocationText, bool? visibleDefects, string? visibleDefectsNotes);
     Task<(int Total, int ThisYear, int Flown)> GetFlightCountsAsync();
     Task<List<FlightPreparation>> GetRecentAsync(int count);
     Task<List<FlightPreparation>> GetAllWithNavAsync(string? userId, bool isAdmin);

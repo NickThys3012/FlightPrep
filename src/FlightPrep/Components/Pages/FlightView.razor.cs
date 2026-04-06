@@ -21,6 +21,10 @@ public partial class FlightView:ComponentBase
     private string? _flownLandingNotes;
     private int? _flownDurationMinutes;
     private string? _flownRemarks;
+    private double? _ofpFuelConsumptionL;
+    private string? _ofpLandingLocation;
+    private string _ofpVisibleDefects = "";
+    private string? _ofpVisibleDefectsNotes;
 
     private (TimeOnly Sunrise, TimeOnly Sunset)? _sunriseSunset;
 
@@ -74,6 +78,10 @@ public partial class FlightView:ComponentBase
             _flownLandingNotes = _fp.ActualLandingNotes;
             _flownDurationMinutes = _fp.ActualFlightDurationMinutes;
             _flownRemarks = _fp.ActualRemarks;
+            _ofpFuelConsumptionL = _fp.FuelConsumptionL;
+            _ofpLandingLocation = _fp.LandingLocationText;
+            _ofpVisibleDefects = _fp.VisibleDefects.HasValue ? _fp.VisibleDefects.Value.ToString() : "";
+            _ofpVisibleDefectsNotes = _fp.VisibleDefectsNotes;
 
             // Sunrise/sunset
             var loc = _fp.Location;
@@ -176,16 +184,37 @@ public partial class FlightView:ComponentBase
         }
     }
 
+    private void OpenFlownModal()
+    {
+        _flownLandingNotes = _fp?.ActualLandingNotes;
+        _flownDurationMinutes = _fp?.ActualFlightDurationMinutes;
+        _flownRemarks = _fp?.ActualRemarks;
+        _ofpFuelConsumptionL = _fp?.FuelConsumptionL;
+        _ofpLandingLocation = _fp?.LandingLocationText;
+        _ofpVisibleDefects = _fp?.VisibleDefects.HasValue == true ? _fp.VisibleDefects.Value.ToString() : "";
+        _ofpVisibleDefectsNotes = _fp?.VisibleDefectsNotes;
+        _showFlownModal = true;
+    }
+
     private async Task SaveFlown()
     {
         if (_fp == null) return;
 
-        await FpSvc.PatchFlownAsync(_fp.Id, true, _flownLandingNotes, _flownDurationMinutes, _flownRemarks);
+        var visibleDefects = bool.TryParse(_ofpVisibleDefects, out var b) ? b : (bool?)null;
+
+        await FpSvc.PatchFlownAsync(
+            _fp.Id, true,
+            _flownLandingNotes, _flownDurationMinutes, _flownRemarks,
+            _ofpFuelConsumptionL, _ofpLandingLocation, visibleDefects, _ofpVisibleDefectsNotes);
 
         _fp.IsFlown = true;
         _fp.ActualLandingNotes = _flownLandingNotes;
         _fp.ActualFlightDurationMinutes = _flownDurationMinutes;
         _fp.ActualRemarks = _flownRemarks;
+        _fp.FuelConsumptionL = _ofpFuelConsumptionL;
+        _fp.LandingLocationText = _ofpLandingLocation;
+        _fp.VisibleDefects = visibleDefects;
+        _fp.VisibleDefectsNotes = _ofpVisibleDefectsNotes;
         _showFlownModal = false;
     }
 

@@ -728,7 +728,8 @@ public class FlightPreparationServiceTests
             true,
             "Smooth landing",
             45,
-            "Great flight");
+            "Great flight",
+            null, null, null, null);
 
         var loaded = await sut.GetByIdAsync(id);
 
@@ -749,7 +750,7 @@ public class FlightPreparationServiceTests
 
         // Act & Assert — must complete gracefully (logs warning, returns)
         var ex = await Record.ExceptionAsync(() =>
-            sut.PatchFlownAsync(99999, true, null, null, null));
+            sut.PatchFlownAsync(99999, true, null, null, null, null, null, null, null));
         Assert.Null(ex);
     }
 
@@ -762,7 +763,7 @@ public class FlightPreparationServiceTests
         var id = await sut.SaveAsync(SeedFlight());
 
         // Act — patch with null notes/duration/remarks
-        await sut.PatchFlownAsync(id, false, null, null, null);
+        await sut.PatchFlownAsync(id, false, null, null, null, null, null, null, null);
         var loaded = await sut.GetByIdAsync(id);
 
         // Assert

@@ -419,7 +419,7 @@ public class FlightPreparationServiceTests
 
         // Act
         await sut.PatchFlownAsync(id, true, "Smooth landing",
-            45, "Great flight");
+            45, "Great flight", null, null, null, null);
 
         var loaded = await sut.GetByIdAsync(id);
 
@@ -440,7 +440,7 @@ public class FlightPreparationServiceTests
 
         // Act & Assert — must complete gracefully (logs warning, returns)
         var ex = await Record.ExceptionAsync(() =>
-            sut.PatchFlownAsync(99999, true, null, null, null));
+            sut.PatchFlownAsync(99999, true, null, null, null, null, null, null, null));
         Assert.Null(ex);
     }
 
