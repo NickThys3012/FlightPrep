@@ -50,7 +50,7 @@
                             <div class="col-md-3">
                                 <label class="form-label">Tijdstip (LT)</label>
                                 <input type="time" class="form-control" value="@_fp?.Tijdstip.ToString("HH:mm")"
-                                       @onchange="e => _fp!.Tijdstip = TimeOnly.Parse(e.Value!.ToString()!)"/>
+                                       @onchange="e => { var raw = e.Value?.ToString(); _fp!.Tijdstip = TimeOnly.TryParse(raw, out var t) ? t : _fp.Tijdstip; }"/>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Ballon</label>
