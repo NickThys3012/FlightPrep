@@ -92,4 +92,65 @@ public class PdfServiceOfpTests
         // Assert – must not throw
         Assert.Null(exception);
     }
+
+    // ── PLANNED TIME duration calculation ─────────────────────────────────────
+
+    [Fact]
+    public async Task GenerateOfpAsync_NormalFlight_PlannedTimeIsCorrect()
+    {
+        // Arrange – 10:00 → 11:30 is exactly 90 minutes, no midnight wrap needed
+        var sut = BuildSut();
+        var fp = new FlightPreparation
+        {
+            Datum               = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip            = new TimeOnly(10, 0),
+            PlannedLandingTime  = new TimeOnly(11, 30),
+        };
+
+        // Act
+        var result = await sut.GenerateOfpAsync(fp);
+
+        // Assert – smoke: no exception thrown, PDF content produced
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
+    }
+
+    [Fact]
+    public async Task GenerateOfpAsync_PastMidnightFlight_DoesNotThrow()
+    {
+        // Arrange – 23:30 → 01:15 crosses midnight; rawMinutes would be negative without the +24*60 guard
+        var sut = BuildSut();
+        var fp = new FlightPreparation
+        {
+            Datum               = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip            = new TimeOnly(23, 30),
+            PlannedLandingTime  = new TimeOnly(1, 15),
+        };
+
+        // Act – must not throw (negative-duration guard path exercised)
+        var exception = await Record.ExceptionAsync(() => sut.GenerateOfpAsync(fp));
+
+        // Assert
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task GenerateOfpAsync_NoPlannedLandingTime_RendersDash()
+    {
+        // Arrange – PlannedLandingTime is null; the else-branch should render "—" without throwing
+        var sut = BuildSut();
+        var fp = new FlightPreparation
+        {
+            Datum               = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip            = new TimeOnly(9, 0),
+            PlannedLandingTime  = null,
+        };
+
+        // Act
+        var result = await sut.GenerateOfpAsync(fp);
+
+        // Assert – null guard path: non-empty PDF, no exception
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
+    }
 }

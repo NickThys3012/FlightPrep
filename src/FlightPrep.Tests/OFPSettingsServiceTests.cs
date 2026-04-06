@@ -170,6 +170,53 @@ public class OFPSettingsServiceTests
         Assert.Equal(6, rows[0].PassengerEquipmentWeightKg);
     }
 
+    // ── Cascade delete ────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task DeleteUser_CascadesOFPSettingsRow()
+    {
+        // Arrange – seed a user + an OFP settings row linked to that user
+        const string userId = "user-cascade-test";
+        var factory = CreateFactory(nameof(DeleteUser_CascadesOFPSettingsRow));
+
+        await using (var db = factory.CreateDbContext())
+        {
+            db.Users.Add(new ApplicationUser
+            {
+                Id                 = userId,
+                UserName           = "cascade@test.be",
+                NormalizedUserName = "CASCADE@TEST.BE",
+                Email              = "cascade@test.be",
+                NormalizedEmail    = "CASCADE@TEST.BE",
+                SecurityStamp      = Guid.NewGuid().ToString(),
+            });
+            db.OFPSettings.Add(new OFPSettings
+            {
+                UserId                      = userId,
+                PassengerEquipmentWeightKg  = 7,
+            });
+            await db.SaveChangesAsync();
+        }
+
+        // Act – load both entities into a fresh context so EF's change-tracker
+        //       can apply the cascade, then delete the user
+        await using (var db = factory.CreateDbContext())
+        {
+            // Load OFPSettings into the tracker so the cascade fires in-memory
+            _ = await db.OFPSettings.Where(o => o.UserId == userId).ToListAsync();
+
+            var user = await db.Users.FindAsync(userId);
+            Assert.NotNull(user);   // guard: row must exist before delete
+            db.Users.Remove(user!);
+            await db.SaveChangesAsync();
+        }
+
+        // Assert – OFP settings row must be gone
+        await using var verify = factory.CreateDbContext();
+        var remaining = await verify.OFPSettings.Where(o => o.UserId == userId).ToListAsync();
+        Assert.Empty(remaining);
+    }
+
     // ── Inner helper ──────────────────────────────────────────────────────────
 
     private sealed class TestDbContextFactory(DbContextOptions<AppDbContext> opts)
