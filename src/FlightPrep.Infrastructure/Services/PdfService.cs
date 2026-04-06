@@ -655,6 +655,20 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                 }
                             });
 
+                            // Derive planned duration from takeoff and landing times
+                            string plannedTime;
+                            if (fp.PlannedLandingTime.HasValue)
+                            {
+                                var durationMinutes = (int)(fp.PlannedLandingTime.Value.ToTimeSpan() - fp.Tijdstip.ToTimeSpan()).TotalMinutes;
+                                // Handle past-midnight flights (negative result)
+                                if (durationMinutes < 0) durationMinutes += 24 * 60;
+                                plannedTime = $"{durationMinutes} min";
+                            }
+                            else
+                            {
+                                plannedTime = "—";
+                            }
+
                             // Fuel calculations
                             left.Item().PaddingTop(6).PaddingBottom(2).Text("FUEL CALCULATIONS").Bold().FontSize(9).FontColor(PrimaryColor);
                             left.Item().Border(0.5f).Table(fTable =>
@@ -676,7 +690,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                     hdr.Cell().Element(FHdrCell).Text("CONSUMPTION").Bold().FontColor(Colors.White).FontSize(7);
                                 });
                                 fTable.Cell().Background(Colors.White).Padding(3)
-                                    .Text(fp.FuelRequiredMinutes.HasValue ? $"{fp.FuelRequiredMinutes} min" : "—").FontSize(8);
+                                    .Text(plannedTime).FontSize(8);
                                 fTable.Cell().Background(Colors.White).Padding(3)
                                     .Text(fp.FuelAvailableMinutes.HasValue ? $"{fp.FuelAvailableMinutes} min" : "—").FontSize(8);
                                 fTable.Cell().Background(Colors.White).Padding(3)
