@@ -447,6 +447,55 @@ public class FlightPreparationServiceTests
     // ── GetAllWithNavAsync ────────────────────────────────────────────────────
 
     [Fact]
+    public async Task PatchFlownAsync_WithOFPFields_PersistsAllNewFields()
+    {
+        // Arrange
+        var factory = CreateFactory();
+        var sut = BuildSut(factory);
+        var id = await sut.SaveAsync(SeedFlight());
+
+        // Act
+        await sut.PatchFlownAsync(id, true, "Leuven touchdown", 60, null,
+            35.5, "Leuven", true, "crack in basket");
+
+        var loaded = await sut.GetByIdAsync(id);
+
+        // Assert
+        Assert.NotNull(loaded);
+        Assert.True(loaded.IsFlown);
+        Assert.Equal(35.5, loaded.FuelConsumptionL);
+        Assert.Equal("Leuven", loaded.LandingLocationText);
+        Assert.True(loaded.VisibleDefects);
+        Assert.Equal("crack in basket", loaded.VisibleDefectsNotes);
+    }
+
+    [Fact]
+    public async Task PatchFlownAsync_VisibleDefectsFalse_NullsOutNotes()
+    {
+        // Arrange – seed a flight that previously had defects noted
+        var factory = CreateFactory();
+        var sut = BuildSut(factory);
+
+        var fp = SeedFlight();
+        fp.VisibleDefects      = true;
+        fp.VisibleDefectsNotes = "old note";
+        var id = await sut.SaveAsync(fp);
+
+        // Act – update with visibleDefects = false and null notes
+        await sut.PatchFlownAsync(id, true, null, null, null,
+            null, null, false, null);
+
+        var loaded = await sut.GetByIdAsync(id);
+
+        // Assert
+        Assert.NotNull(loaded);
+        Assert.False(loaded.VisibleDefects);
+        Assert.Null(loaded.VisibleDefectsNotes);
+    }
+
+    // ── GetAllWithNavAsync ────────────────────────────────────────────────────
+
+    [Fact]
     public async Task GetAllWithNavAsync_OrderedByDatum_ReturnsAscending()
     {
         // Arrange

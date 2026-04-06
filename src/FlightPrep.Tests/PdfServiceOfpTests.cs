@@ -153,4 +153,86 @@ public class PdfServiceOfpTests
         Assert.NotNull(result);
         Assert.True(result.Length > 0);
     }
+
+    // ── Blank* helper (fill-line / value / dash) ──────────────────────────────
+
+    [Fact]
+    public async Task GenerateOfpAsync_NotFlown_PostFlightCellsReturnFillLine()
+    {
+        // Arrange – flight not yet marked as flown; Blank* helpers should return fill lines
+        var sut = BuildSut();
+        var fp = new FlightPreparation
+        {
+            Datum                       = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip                    = new TimeOnly(9, 0),
+            IsFlown                     = false,
+            FuelConsumptionL            = 42,
+            LandingLocationText         = "Leuven",
+            VisibleDefects              = true,
+            ActualLandingNotes          = "some notes",
+            ActualFlightDurationMinutes = 90,
+        };
+
+        // Act
+        var result = await sut.GenerateOfpAsync(fp);
+
+        // Assert – fill-line path must not throw and must produce a PDF
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
+    }
+
+    [Fact]
+    public async Task GenerateOfpAsync_FlownWithValues_PostFlightCellsRenderValues()
+    {
+        // Arrange – flight is flown with all post-flight fields populated (value path)
+        var sut = BuildSut();
+        var fp = new FlightPreparation
+        {
+            Datum                       = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip                    = new TimeOnly(9, 0),
+            IsFlown                     = true,
+            FuelConsumptionL            = 35.5,
+            LandingLocationText         = "Tienen",
+            VisibleDefects              = false,
+            VisibleDefectsNotes         = null,
+            ActualLandingNotes          = "smooth",
+            ActualFlightDurationMinutes = 75,
+            ActualRemarks               = "great flight",
+        };
+
+        // Act
+        var result = await sut.GenerateOfpAsync(fp);
+
+        // Assert – value path must not throw and must produce a PDF
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
+    }
+
+    [Fact]
+    public async Task GenerateOfpAsync_FlownWithNullPostFlightFields_RendersDash()
+    {
+        // Arrange – flight is flown but all post-flight fields are null; tests the "—" path,
+        // especially for the ActualFlightDurationMinutes == null guard
+        var sut = BuildSut();
+        var fp = new FlightPreparation
+        {
+            Datum                       = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip                    = new TimeOnly(9, 0),
+            IsFlown                     = true,
+            FuelConsumptionL            = null,
+            LandingLocationText         = null,
+            VisibleDefects              = null,
+            VisibleDefectsNotes         = null,
+            ActualLandingNotes          = null,
+            ActualFlightDurationMinutes = null,
+            ActualRemarks               = null,
+        };
+
+        // Act
+        var result = await sut.GenerateOfpAsync(fp);
+
+        // Assert – dash path must not throw and must produce a PDF
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
+    }
 }
