@@ -472,11 +472,6 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
             value.HasValue ? value.Value.ToString("0.#") :
                              "—";
 
-        string BlankInt(int? value) =>
-            !fp.IsFlown    ? "________________" :
-            value.HasValue ? value.Value.ToString() :
-                             "—";
-
         string BlankBool(bool? value) =>
             !fp.IsFlown    ? "________________" :
             value.HasValue ? (value.Value ? "Ja" : "Neen") :
@@ -858,9 +853,11 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
 
                         pfTable.Cell().Element(PFLabelCell).Text("ACTUAL DURATION").Bold().FontSize(7);
                         pfTable.Cell().Element(PFValueCell)
-                            .Text(fp.IsFlown && fp.ActualFlightDurationMinutes.HasValue
-                                ? $"{fp.ActualFlightDurationMinutes} min"
-                                : "________________")
+                            .Text(!fp.IsFlown
+                                ? "________________"
+                                : fp.ActualFlightDurationMinutes.HasValue
+                                    ? $"{fp.ActualFlightDurationMinutes} min"
+                                    : "—")
                             .FontSize(8);
 
                         pfTable.Cell().Element(PFLabelCell).Text("POST-FLIGHT REMARKS").Bold().FontSize(7);
