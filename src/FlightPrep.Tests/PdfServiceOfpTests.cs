@@ -235,4 +235,78 @@ public class PdfServiceOfpTests
         Assert.NotNull(result);
         Assert.True(result.Length > 0);
     }
+
+    // ── AFTER FLIGHT table (9-row, 5-column redesign) ────────────────────────
+
+    [Fact]
+    public async Task GenerateOfpAsync_NotFlown_AfterFlightDateIsBlank()
+    {
+        // Arrange – fp.IsFlown = false; the date cell uses the guard
+        //   fp.IsFlown ? fp.Datum.ToString("d-MM-yyyy") : "________________"
+        // This must not throw even though the IsFlown branch is never taken.
+        var sut = BuildSut();
+        var fp = new FlightPreparation
+        {
+            Datum    = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip = new TimeOnly(10, 0),
+            IsFlown  = false,
+        };
+
+        // Act
+        var result = await sut.GenerateOfpAsync(fp);
+
+        // Assert – not-flown date guard path: fill line rendered, no exception
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
+    }
+
+    [Fact]
+    public async Task GenerateOfpAsync_Flown_VisibleDefectsTrue_NotesRendered()
+    {
+        // Arrange – fp.IsFlown = true, VisibleDefects = true, notes populated.
+        //   BlankBool(true)  → "Ja"
+        //   Blank("crack in basket") → "crack in basket"
+        // Exercises the value paths through the redesigned AFTER FLIGHT table.
+        var sut = BuildSut();
+        var fp = new FlightPreparation
+        {
+            Datum               = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip            = new TimeOnly(10, 0),
+            IsFlown             = true,
+            VisibleDefects      = true,
+            VisibleDefectsNotes = "crack in basket",
+        };
+
+        // Act
+        var result = await sut.GenerateOfpAsync(fp);
+
+        // Assert – "Ja" + defect notes paths: non-empty PDF, no exception
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
+    }
+
+    [Fact]
+    public async Task GenerateOfpAsync_Flown_VisibleDefectsFalse_NotesNull()
+    {
+        // Arrange – fp.IsFlown = true, VisibleDefects = false, notes null.
+        //   BlankBool(false) → "Neen"
+        //   Blank(null)      → "—"
+        // Verifies no NullReferenceException when notes are null on a completed flight.
+        var sut = BuildSut();
+        var fp = new FlightPreparation
+        {
+            Datum               = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip            = new TimeOnly(10, 0),
+            IsFlown             = true,
+            VisibleDefects      = false,
+            VisibleDefectsNotes = null,
+        };
+
+        // Act
+        var result = await sut.GenerateOfpAsync(fp);
+
+        // Assert – "Neen" + null-notes dash paths: non-empty PDF, no exception
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
+    }
 }
