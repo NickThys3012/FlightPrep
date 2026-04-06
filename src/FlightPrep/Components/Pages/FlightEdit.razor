@@ -573,7 +573,7 @@
                             <div class="col-md-3">
                                 <label class="form-label">Zichtbare defecten</label>
                                 <select class="form-select" value="@(_fp.VisibleDefects?.ToString() ?? "")"
-                                        @onchange="e => _fp!.VisibleDefects = string.IsNullOrEmpty(e.Value?.ToString()) ? null : bool.Parse(e.Value!.ToString()!)">
+                                        @onchange="e => { var raw = e.Value?.ToString(); _fp!.VisibleDefects = bool.TryParse(raw, out var b) ? b : null; }">
                                     <option value="">— Selecteer —</option>
                                     <option value="False">NEE</option>
                                     <option value="True">JA</option>
