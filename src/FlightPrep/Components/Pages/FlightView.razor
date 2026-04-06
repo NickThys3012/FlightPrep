@@ -14,6 +14,7 @@
 @inject IJSRuntime Js
 @inject IKmlService KmlSvc
 @inject ILogger<FlightView> Logger
+@inject IOFPSettingsService OfpSettingsSvc
 
 <PageTitle>Vaart Bekijken – FlightPrep</PageTitle>
 
@@ -43,6 +44,9 @@ else
             <div class="fp-toolbar">
                 <a href="/flights/@_fp.Id/edit" class="btn btn-outline-secondary">Bewerken</a>
                 <button class="btn btn-success" @onclick="DownloadPdf">Download PDF</button>
+                <button class="btn btn-outline-primary" @onclick="DownloadOfp">
+                    <i class="bi bi-file-earmark-text"></i> Download OFP
+                </button>
                 <button class="btn btn-outline-primary" @onclick="() => _showFlownModal = true">Markeer als gevlogen
                 </button>
                 <a href="/flights" class="btn btn-outline-secondary">Terug</a>

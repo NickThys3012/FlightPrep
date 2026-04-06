@@ -1,8 +1,10 @@
 using FlightPrep.Domain.Models;
 using FlightPrep.Domain.Models.Trajectory;
 using FlightPrep.Domain.Services;
+using FlightPrep.Infrastructure.Data;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.JSInterop;
 using System.Security.Claims;
 
@@ -18,7 +20,8 @@ public partial class FlightEdit(
     ITrajectoryService trajectorySvc,
     ILogger<FlightEdit> logger,
     IEnhancedTrajectoryService enhancedTrajectorySvc,
-    IGoNoGoService goNoGoSvc)
+    IGoNoGoService goNoGoSvc,
+    UserManager<ApplicationUser> userManager)
     : ComponentBase
 {
    [Parameter] public int? Id { get; set; }
@@ -145,6 +148,17 @@ public partial class FlightEdit(
         {
             _fp = new FlightPreparation { PaxBriefing = DefaultPaxBriefing };
             _fp.CreatedByUserId = userId;
+
+            // Populate OFP snapshot fields from ApplicationUser for new flights
+            if (userId != null)
+            {
+                var appUser = await userManager.FindByIdAsync(userId);
+                if (appUser != null)
+                {
+                    _fp.OperatorName = appUser.OperatorName;
+                    _fp.PicWeightKg  = appUser.WeightKg;
+                }
+            }
         }
 
         UpdateSunriseSunset();
@@ -301,6 +315,14 @@ public partial class FlightEdit(
         var balloon = _balloons.FirstOrDefault(b => b.Id == _fp.BalloonId);
         if (balloon != null && _fp.EnvelopeWeightKg == null)
             _fp.EnvelopeWeightKg = balloon.EmptyWeightKg;
+
+        // Populate OFP weight snapshots from balloon reference weights (only if currently null)
+        if (balloon != null)
+        {
+            if (_fp.OFPEnvelopeWeightKg == null) _fp.OFPEnvelopeWeightKg = balloon.EnvelopeOnlyWeightKg;
+            if (_fp.OFPBasketWeightKg   == null) _fp.OFPBasketWeightKg   = balloon.BasketWeightKg;
+            if (_fp.OFPBurnerWeightKg   == null) _fp.OFPBurnerWeightKg   = balloon.BurnerWeightKg;
+        }
     }
 
     private void OnPilotChanged()

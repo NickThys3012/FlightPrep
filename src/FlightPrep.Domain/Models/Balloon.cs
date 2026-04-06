@@ -9,4 +9,9 @@ public class Balloon
     public double? InternalEnvelopeTempC { get; set; }
     public double? EmptyWeightKg { get; set; }
     public string? OwnerId { get; set; }
+
+    // OFP reference weights (defaults; never used at PDF generation time — OFP snapshots are stored on FlightPreparation)
+    public double? EnvelopeOnlyWeightKg { get; set; }
+    public double? BasketWeightKg       { get; set; }
+    public double? BurnerWeightKg       { get; set; }
 }

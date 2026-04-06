@@ -1,0 +1,59 @@
+@page "/settings/profile"
+@using FlightPrep.Infrastructure.Data
+@using Microsoft.AspNetCore.Identity
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject UserManager<ApplicationUser> UserMgr
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Profiel – FlightPrep</PageTitle>
+
+<div class="container py-4" style="max-width:640px">
+    <h3>👤 Profiel</h3>
+    <p class="text-muted small">
+        Uw profielgegevens worden gebruikt als standaardwaarden bij het aanmaken van een nieuwe vaart (OFP).
+    </p>
+
+    @if (_saved)
+    {
+        <div class="alert alert-success py-2">✅ Profiel opgeslagen.</div>
+    }
+    @if (_error != null)
+    {
+        <div class="alert alert-danger py-2">@_error</div>
+    }
+
+    @if (_user != null)
+    {
+        <div class="card mb-4">
+            <div class="card-header fw-bold">✈️ OFP Gegevens</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-8">
+                        <label class="form-label">Operator naam</label>
+                        <input type="text" class="form-control" @bind="_user.OperatorName"
+                               placeholder="Naam van de operator/maatschappij"/>
+                        <div class="form-text">
+                            Wordt automatisch ingevuld in het OFP bij een nieuwe vaart.
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="form-label">PIC gewicht (kg)</label>
+                        <input type="number" step="0.1" min="0" class="form-control" @bind="_user.WeightKg"/>
+                        <div class="form-text">
+                            Pilootgewicht voor OFP berekeningen.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary" @onclick="Save">💾 Opslaan</button>
+        </div>
+    }
+    else
+    {
+        <p><em>Laden...</em></p>
+    }
+</div>

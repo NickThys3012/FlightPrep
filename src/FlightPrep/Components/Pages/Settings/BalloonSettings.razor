@@ -19,6 +19,9 @@
             <th>Volume (m³)</th>
             <th>Ti (°C)</th>
             <th>Leeggewicht (kg)</th>
+            <th>Envelop (kg)</th>
+            <th>Mand (kg)</th>
+            <th>Brander (kg)</th>
             <th>Acties</th>
         </tr>
         </thead>
@@ -36,6 +39,12 @@
                                @bind="_editBalloon.InternalEnvelopeTempC"/></td>
                     <td><input type="number" step="0.1" class="form-control form-control-sm"
                                @bind="_editBalloon.EmptyWeightKg"/></td>
+                    <td><input type="number" step="0.1" class="form-control form-control-sm"
+                               @bind="_editBalloon.EnvelopeOnlyWeightKg"/></td>
+                    <td><input type="number" step="0.1" class="form-control form-control-sm"
+                               @bind="_editBalloon.BasketWeightKg"/></td>
+                    <td><input type="number" step="0.1" class="form-control form-control-sm"
+                               @bind="_editBalloon.BurnerWeightKg"/></td>
                     <td>
                         <button class="btn btn-sm btn-success" @onclick="SaveEdit">✅ Opslaan</button>
                         <button class="btn btn-sm btn-secondary" @onclick="CancelEdit">Annuleren</button>
@@ -50,6 +59,9 @@
                     <td>@(b.VolumeM3?.ToString("F0") ?? "–")</td>
                     <td>@(b.InternalEnvelopeTempC?.ToString("F0") ?? "–")</td>
                     <td>@(b.EmptyWeightKg?.ToString("F1") ?? "–")</td>
+                    <td>@(b.EnvelopeOnlyWeightKg?.ToString("F1") ?? "–")</td>
+                    <td>@(b.BasketWeightKg?.ToString("F1") ?? "–")</td>
+                    <td>@(b.BurnerWeightKg?.ToString("F1") ?? "–")</td>
                     <td>
                         <button class="btn btn-sm btn-outline-secondary" @onclick="() => StartEdit(b)">✏️</button>
                         <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteBalloon(b.Id)">🗑️</button>
@@ -69,6 +81,12 @@
                            @bind="_newBalloon.InternalEnvelopeTempC" placeholder="80"/></td>
                 <td><input type="number" step="0.1" class="form-control form-control-sm"
                            @bind="_newBalloon.EmptyWeightKg"/></td>
+                <td><input type="number" step="0.1" class="form-control form-control-sm"
+                           @bind="_newBalloon.EnvelopeOnlyWeightKg" placeholder="envelop kg"/></td>
+                <td><input type="number" step="0.1" class="form-control form-control-sm"
+                           @bind="_newBalloon.BasketWeightKg" placeholder="mand kg"/></td>
+                <td><input type="number" step="0.1" class="form-control form-control-sm"
+                           @bind="_newBalloon.BurnerWeightKg" placeholder="brander kg"/></td>
                 <td>
                     <button class="btn btn-sm btn-success" @onclick="SaveNew">✅ Toevoegen</button>
                     <button class="btn btn-sm btn-secondary" @onclick="() => _addingNew = false">Annuleren</button>

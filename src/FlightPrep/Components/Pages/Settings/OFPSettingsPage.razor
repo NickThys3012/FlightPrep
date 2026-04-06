@@ -1,0 +1,45 @@
+@page "/settings/ofp"
+@using FlightPrep.Domain.Models
+@using FlightPrep.Domain.Services
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IOFPSettingsService OFPSettingsSvc
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>OFP Instellingen – FlightPrep</PageTitle>
+
+<div class="container py-4" style="max-width:640px">
+    <h3>✈️ OFP Instellingen</h3>
+    <p class="text-muted small">
+        Configureer de standaardwaarden voor het Operational Flight Plan.
+    </p>
+
+    @if (_saved)
+    {
+        <div class="alert alert-success py-2">✅ Instellingen opgeslagen.</div>
+    }
+
+    @if (_settings != null)
+    {
+        <div class="card mb-4">
+            <div class="card-header fw-bold">🧳 Passagiersuitrusting</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label class="form-label">Gewicht passagiersuitrusting (kg)</label>
+                        <input type="number" step="0.1" min="0" class="form-control"
+                               @bind="_settings.PassengerEquipmentWeightKg"/>
+                        <div class="form-text">
+                            Wordt opgeteld bij het gewicht van elke passagier (bijv. 7 kg voor bagage/kleding).
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary" @onclick="Save">💾 Opslaan</button>
+            <button class="btn btn-outline-secondary" @onclick="Reset">↩️ Standaardwaarden</button>
+        </div>
+    }
+</div>

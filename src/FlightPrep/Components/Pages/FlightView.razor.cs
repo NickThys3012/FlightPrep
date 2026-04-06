@@ -198,4 +198,14 @@ public partial class FlightView:ComponentBase
             Convert.ToBase64String(pdfBytes));
     }
 
+    private async Task DownloadOfp()
+    {
+        if (_fp == null) return;
+        var settings = await OfpSettingsSvc.GetSettingsAsync(_userId);
+        var pdfBytes = await PdfSvc.GenerateOfpAsync(_fp, settings.PassengerEquipmentWeightKg);
+        var fileName = $"OFP_{_fp.Datum:yyyy-MM-dd}_{_fp.Id}.pdf";
+        await Js.InvokeVoidAsync("downloadFileFromBytes", fileName, "application/pdf",
+            Convert.ToBase64String(pdfBytes));
+    }
+
 }

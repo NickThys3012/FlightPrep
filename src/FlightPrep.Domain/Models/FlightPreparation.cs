@@ -82,11 +82,39 @@ public class FlightPreparation
     // Section 9 - Ballonbulletin
     public string? Ballonbulletin { get; set; }
 
+    // Section 10 - OFP (Operational Flight Plan)
+    // Snapshotted from ApplicationUser on new flight (fp.Id == 0)
+    public string? OperatorName { get; set; }
+    public double? PicWeightKg  { get; set; }
+
+    // Snapshotted from Balloon reference weights when balloon is selected
+    public double? OFPEnvelopeWeightKg { get; set; }
+    public double? OFPBasketWeightKg   { get; set; }
+    public double? OFPBurnerWeightKg   { get; set; }
+    public double? CylindersWeightKg   { get; set; }
+
+    // OFP per-flight fields
+    public string?   LandingLocationText  { get; set; }
+    public TimeOnly? PlannedLandingTime   { get; set; }
+    public int?      FuelAvailableMinutes { get; set; }
+    public int?      FuelRequiredMinutes  { get; set; }
+    public double?   FuelConsumptionL     { get; set; }
+    public bool?     VisibleDefects       { get; set; }
+    public string?   VisibleDefectsNotes  { get; set; }
+
     // Computed helpers (not mapped)
     public double TotaalGewicht =>
         (EnvelopeWeightKg ?? 0)
         + (Pilot?.WeightKg ?? 0)
         + Passengers.Sum(p => p.WeightKg);
+
+    public double TotaalGewichtOFP(double passengerEquipmentKg) =>
+        (OFPEnvelopeWeightKg ?? 0)
+      + (OFPBasketWeightKg   ?? 0)
+      + (OFPBurnerWeightKg   ?? 0)
+      + (CylindersWeightKg   ?? 0)
+      + (PicWeightKg ?? Pilot?.WeightKg ?? 0)
+      + Passengers.Sum(p => p.WeightKg + passengerEquipmentKg);
 
     public bool LiftVoldoende =>
         TotaalLiftKg.HasValue && TotaalLiftKg.Value > TotaalGewicht;

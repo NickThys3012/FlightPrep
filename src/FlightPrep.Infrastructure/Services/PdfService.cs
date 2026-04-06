@@ -456,6 +456,398 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
         }
     }
 
+    public Task<byte[]> GenerateOfpAsync(FlightPreparation fp, double passengerEquipmentKg = 7)
+    {
+        ArgumentNullException.ThrowIfNull(fp);
+        Settings.License = LicenseType.Community;
+
+        var pdfBytes = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(1.2f, Unit.Centimetre);
+                page.DefaultTextStyle(x => x.FontSize(8).FontFamily(Fonts.Arial));
+
+                // ── Header ──────────────────────────────────────────────────
+                page.Header().Element(hdr =>
+                {
+                    hdr.Column(hdrCol =>
+                    {
+                        // Row 1: OPERATOR | HOT AIR BALLOON (Reg + ICAO) | TYPE | DATE
+                        hdrCol.Item().Border(0.5f).Row(row =>
+                        {
+                            row.RelativeItem(3).BorderRight(0.5f).Padding(3).Column(c =>
+                            {
+                                c.Item().Text("OPERATOR").Bold().FontSize(7).FontColor(Colors.Grey.Darken1);
+                                c.Item().Text(fp.OperatorName ?? "—").FontSize(8);
+                            });
+                            row.RelativeItem(4).BorderRight(0.5f).Padding(3).Column(c =>
+                            {
+                                c.Item().Text("HOT AIR BALLOON").Bold().FontSize(7).FontColor(Colors.Grey.Darken1);
+                                var regIcao = string.Join("  ",
+                                    new[] { fp.Balloon?.Registration, fp.Location?.IcaoCode }
+                                        .Where(s => !string.IsNullOrWhiteSpace(s)));
+                                c.Item().Text(string.IsNullOrWhiteSpace(regIcao) ? "—" : regIcao).FontSize(8);
+                            });
+                            row.RelativeItem(2).BorderRight(0.5f).Padding(3).Column(c =>
+                            {
+                                c.Item().Text("TYPE").Bold().FontSize(7).FontColor(Colors.Grey.Darken1);
+                                c.Item().Text(fp.Balloon?.Type ?? "—").FontSize(8);
+                            });
+                            row.RelativeItem(2).Padding(3).Column(c =>
+                            {
+                                c.Item().Text("DATE").Bold().FontSize(7).FontColor(Colors.Grey.Darken1);
+                                c.Item().Text(fp.Datum.ToString("ddd d-MM-yy")).FontSize(8);
+                            });
+                        });
+                        // Row 2: PIC | TAKEOFF LOCATION | LANDING LOCATION | TAKEOFF TIME / LANDING TIME
+                        hdrCol.Item().BorderLeft(0.5f).BorderRight(0.5f).BorderBottom(0.5f).Row(row =>
+                        {
+                            row.RelativeItem(3).BorderRight(0.5f).Padding(3).Column(c =>
+                            {
+                                c.Item().Text("PIC").Bold().FontSize(7).FontColor(Colors.Grey.Darken1);
+                                c.Item().Text(fp.Pilot?.Name ?? "—").FontSize(8);
+                            });
+                            row.RelativeItem(3).BorderRight(0.5f).Padding(3).Column(c =>
+                            {
+                                c.Item().Text("TAKEOFF LOCATION").Bold().FontSize(7).FontColor(Colors.Grey.Darken1);
+                                c.Item().Text(fp.Location?.Name ?? "—").FontSize(8);
+                            });
+                            row.RelativeItem(3).BorderRight(0.5f).Padding(3).Column(c =>
+                            {
+                                c.Item().Text("LANDING LOCATION").Bold().FontSize(7).FontColor(Colors.Grey.Darken1);
+                                c.Item().Text(fp.LandingLocationText ?? "—").FontSize(8);
+                            });
+                            row.RelativeItem(2).Padding(3).Column(c =>
+                            {
+                                c.Item().Text("TAKEOFF / LANDING").Bold().FontSize(7).FontColor(Colors.Grey.Darken1);
+                                var takeoff = fp.Tijdstip.ToString("HH:mm");
+                                var landing = fp.PlannedLandingTime?.ToString("HH:mm") ?? "—";
+                                c.Item().Text($"{takeoff} / {landing}").FontSize(8);
+                            });
+                        });
+                        // Title
+                        hdrCol.Item().PaddingTop(4).AlignCenter()
+                            .Text("OPERATIONAL FLIGHT PLAN").Bold().FontSize(13).FontColor(PrimaryColor);
+                        hdrCol.Item().AlignCenter()
+                            .Text("LOAD CALCULATIONS AND PASSENGER LIST").FontSize(9).FontColor(Colors.Grey.Darken1);
+                        hdrCol.Item().PaddingVertical(3).LineHorizontal(1).LineColor(PrimaryColor);
+                    });
+                });
+
+                // ── Content ──────────────────────────────────────────────────
+                page.Content().Column(col =>
+                {
+                    // ── Passenger list ──────────────────────────────────────
+                    col.Item().PaddingBottom(2).Text("PASSENGER MANIFEST").Bold().FontSize(9).FontColor(PrimaryColor);
+                    col.Item().Border(0.5f).Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.ConstantColumn(22); // No
+                            cols.RelativeColumn(5);  // NAME
+                            cols.RelativeColumn(2);  // WEIGHT
+                            cols.ConstantColumn(20); // C
+                            cols.ConstantColumn(20); // A
+                            cols.ConstantColumn(20); // T
+                        });
+
+                        // Header row
+                        static IContainer HeaderCell(IContainer c) =>
+                            c.Background(PrimaryColor).Padding(3);
+                        table.Header(hdr =>
+                        {
+                            hdr.Cell().Element(HeaderCell).Text("No").Bold().FontColor(Colors.White).FontSize(8);
+                            hdr.Cell().Element(HeaderCell).Text("NAME").Bold().FontColor(Colors.White).FontSize(8);
+                            hdr.Cell().Element(HeaderCell).Text("WEIGHT (kg)").Bold().FontColor(Colors.White).FontSize(8);
+                            hdr.Cell().Element(HeaderCell).AlignCenter().Text("(C)").Bold().FontColor(Colors.White).FontSize(8);
+                            hdr.Cell().Element(HeaderCell).AlignCenter().Text("(A)").Bold().FontColor(Colors.White).FontSize(8);
+                            hdr.Cell().Element(HeaderCell).AlignCenter().Text("(T)").Bold().FontColor(Colors.White).FontSize(8);
+                        });
+
+                        var altRow = false;
+                        double passengerTotalKg = 0;
+                        for (var i = 0; i < fp.Passengers.Count; i++)
+                        {
+                            var p = fp.Passengers[i];
+                            var bg = altRow ? LightBg : "#FFFFFF";
+                            var totalPaxWeight = p.WeightKg + passengerEquipmentKg;
+                            passengerTotalKg += totalPaxWeight;
+                            table.Cell().Background(bg).Padding(3).Text($"{i + 1}").FontSize(8);
+                            table.Cell().Background(bg).Padding(3).Text(p.Name).FontSize(8);
+                            table.Cell().Background(bg).Padding(3).Text($"{p.WeightKg:F0} (+{passengerEquipmentKg:F0}kg)").FontSize(8);
+                            table.Cell().Background(bg).Padding(3).AlignCenter().Text(p.IsChild ? "✓" : "").FontSize(8);
+                            table.Cell().Background(bg).Padding(3).AlignCenter().Text(p.NeedsAssistance ? "✓" : "").FontSize(8);
+                            table.Cell().Background(bg).Padding(3).AlignCenter().Text(p.IsTransport ? "✓" : "").FontSize(8);
+                            altRow = !altRow;
+                        }
+
+                        // Footer — totals row
+                        var picWeight = fp.PicWeightKg ?? fp.Pilot?.WeightKg ?? 0;
+                        var grandTotal = passengerTotalKg + picWeight;
+                        table.Cell().ColumnSpan(2).Background(LightBg).Padding(3).Text("TOTALS (PAX + PIC)").Bold().FontSize(8);
+                        table.Cell().Background(LightBg).Padding(3).Text($"{grandTotal:F0} kg").Bold().FontSize(8);
+                        table.Cell().ColumnSpan(3).Background(LightBg).Padding(3).Text("").FontSize(8);
+                    });
+                    col.Item().PaddingTop(2).Text("(C) CHILD   (A) ASSISTANCE   (T) TRANSPORT")
+                        .FontSize(7).Italic().FontColor(Colors.Grey.Darken1);
+
+                    col.Item().PaddingTop(6).Row(mainRow =>
+                    {
+                        // ── Left column: weather + fuel + load ──────────────
+                        mainRow.RelativeItem(3).Column(left =>
+                        {
+                            // Weather conditions block
+                            left.Item().PaddingBottom(2).Text("WEATHER CONDITIONS").Bold().FontSize(9).FontColor(PrimaryColor);
+                            left.Item().Border(0.5f).Table(wTable =>
+                            {
+                                wTable.ColumnsDefinition(cols =>
+                                {
+                                    cols.RelativeColumn(2);
+                                    cols.RelativeColumn(3);
+                                });
+
+                                static IContainer WLabelCell(IContainer c) =>
+                                    c.Background(LightBg).Padding(3);
+                                static IContainer WValueCell(IContainer c) =>
+                                    c.Background(Colors.White).Padding(3);
+
+                                wTable.Cell().Element(WLabelCell).Text("SOURCE").Bold().FontSize(7);
+                                wTable.Cell().Element(WValueCell).Text("Meteoblue").FontSize(8);
+
+                                wTable.Cell().Element(WLabelCell).Text("DATE").Bold().FontSize(7);
+                                wTable.Cell().Element(WValueCell).Text(fp.Datum.ToString("d-MM-yyyy")).FontSize(8);
+
+                                wTable.Cell().Element(WLabelCell).Text("VISIBILITY").Bold().FontSize(7);
+                                wTable.Cell().Element(WValueCell)
+                                    .Text(fp.ZichtbaarheidKm.HasValue ? $"{fp.ZichtbaarheidKm} km" : "—").FontSize(8);
+
+                                wTable.Cell().Element(WLabelCell).Text("CLOUDS").Bold().FontSize(7);
+                                wTable.Cell().Element(WValueCell).Text("—").FontSize(8);
+
+                                wTable.Cell().Element(WLabelCell).Text("TEMP").Bold().FontSize(7);
+                                wTable.Cell().Element(WValueCell)
+                                    .Text(fp.TemperatuurC.HasValue ? $"{fp.TemperatuurC} °C" : "—").FontSize(8);
+
+                                wTable.Cell().Element(WLabelCell).Text("QNH").Bold().FontSize(7);
+                                wTable.Cell().Element(WValueCell)
+                                    .Text(fp.QnhHpa.HasValue ? $"{fp.QnhHpa} hPa" : "—").FontSize(8);
+
+                                // Wind levels (up to 3)
+                                var windLevels = fp.WindLevels.OrderBy(w => w.AltitudeFt).Take(3).ToList();
+                                if (windLevels.Count == 0)
+                                {
+                                    wTable.Cell().Element(WLabelCell).Text("SURFACE WIND").Bold().FontSize(7);
+                                    wTable.Cell().Element(WValueCell).Text("—").FontSize(8);
+                                }
+                                else
+                                {
+                                    for (var wi = 0; wi < windLevels.Count; wi++)
+                                    {
+                                        var wl = windLevels[wi];
+                                        var label = wi == 0 ? "SURFACE" : $"{wl.AltitudeFt}FT";
+                                        var dir = wl.DirectionDeg?.ToString("D3") ?? "---";
+                                        var spd = wl.SpeedKt?.ToString("F0").PadLeft(2, '0') ?? "--";
+                                        wTable.Cell().Element(WLabelCell).Text(label).Bold().FontSize(7);
+                                        wTable.Cell().Element(WValueCell).Text($"{dir}/{spd}kt").FontSize(8);
+                                    }
+                                }
+                            });
+
+                            // Fuel calculations
+                            left.Item().PaddingTop(6).PaddingBottom(2).Text("FUEL CALCULATIONS").Bold().FontSize(9).FontColor(PrimaryColor);
+                            left.Item().Border(0.5f).Table(fTable =>
+                            {
+                                fTable.ColumnsDefinition(cols =>
+                                {
+                                    cols.RelativeColumn();
+                                    cols.RelativeColumn();
+                                    cols.RelativeColumn();
+                                    cols.RelativeColumn();
+                                });
+                                static IContainer FHdrCell(IContainer c) =>
+                                    c.Background(PrimaryColor).Padding(3);
+                                fTable.Header(hdr =>
+                                {
+                                    hdr.Cell().Element(FHdrCell).Text("PLANNED TIME").Bold().FontColor(Colors.White).FontSize(7);
+                                    hdr.Cell().Element(FHdrCell).Text("FUEL AVAILABLE").Bold().FontColor(Colors.White).FontSize(7);
+                                    hdr.Cell().Element(FHdrCell).Text("FUEL REQUIRED").Bold().FontColor(Colors.White).FontSize(7);
+                                    hdr.Cell().Element(FHdrCell).Text("CONSUMPTION").Bold().FontColor(Colors.White).FontSize(7);
+                                });
+                                fTable.Cell().Background(Colors.White).Padding(3)
+                                    .Text(fp.FuelRequiredMinutes.HasValue ? $"{fp.FuelRequiredMinutes} min" : "—").FontSize(8);
+                                fTable.Cell().Background(Colors.White).Padding(3)
+                                    .Text(fp.FuelAvailableMinutes.HasValue ? $"{fp.FuelAvailableMinutes} min" : "—").FontSize(8);
+                                fTable.Cell().Background(Colors.White).Padding(3)
+                                    .Text(fp.FuelRequiredMinutes.HasValue ? $"{fp.FuelRequiredMinutes} min" : "—").FontSize(8);
+                                fTable.Cell().Background(Colors.White).Padding(3)
+                                    .Text("______ L").FontSize(8).FontColor(Colors.Grey.Darken1);
+                            });
+
+                            // Load calculations
+                            left.Item().PaddingTop(6).PaddingBottom(2).Text("LOAD CALCULATIONS").Bold().FontSize(9).FontColor(PrimaryColor);
+                            left.Item().Border(0.5f).Table(lTable =>
+                            {
+                                lTable.ColumnsDefinition(cols =>
+                                {
+                                    cols.RelativeColumn(2);
+                                    cols.RelativeColumn(3);
+                                });
+                                static IContainer LLabelCell(IContainer c) =>
+                                    c.Background(LightBg).Padding(3);
+                                static IContainer LValueCell(IContainer c) =>
+                                    c.Background(Colors.White).Padding(3);
+
+                                lTable.Cell().Element(LLabelCell).Text("TAKEOFF TEMP").Bold().FontSize(7);
+                                lTable.Cell().Element(LValueCell)
+                                    .Text(fp.TemperatuurC.HasValue ? $"{fp.TemperatuurC} °C" : "—").FontSize(8);
+
+                                lTable.Cell().Element(LLabelCell).Text("QNH").Bold().FontSize(7);
+                                lTable.Cell().Element(LValueCell)
+                                    .Text(fp.QnhHpa.HasValue ? $"{fp.QnhHpa} hPa" : "—").FontSize(8);
+
+                                lTable.Cell().Element(LLabelCell).Text("ELEVATION").Bold().FontSize(7);
+                                var elevFt = fp.Location?.ElevationM.HasValue == true
+                                    ? $"{fp.Location.ElevationM.Value * 3.28084:F0} ft"
+                                    : "—";
+                                lTable.Cell().Element(LValueCell).Text(elevFt).FontSize(8);
+
+                                lTable.Cell().Element(LLabelCell).Text("MAX ALTITUDE").Bold().FontSize(7);
+                                lTable.Cell().Element(LValueCell)
+                                    .Text(fp.MaxAltitudeFt.HasValue ? $"{fp.MaxAltitudeFt} ft" : "—").FontSize(8);
+
+                                lTable.Cell().Element(LLabelCell).Text("ENVELOPE VOLUME").Bold().FontSize(7);
+                                lTable.Cell().Element(LValueCell)
+                                    .Text(fp.Balloon?.VolumeM3.HasValue == true ? $"{fp.Balloon.VolumeM3} m³" : "—").FontSize(8);
+
+                                lTable.Cell().Element(LLabelCell).Text("LIFT AVAILABLE").Bold().FontSize(7);
+                                lTable.Cell().Element(LValueCell)
+                                    .Text(fp.TotaalLiftKg.HasValue ? $"{fp.TotaalLiftKg:F0} kg" : "—").FontSize(8);
+
+                                lTable.Cell().Element(LLabelCell).Text("LIFT REQUIRED").Bold().FontSize(7);
+                                lTable.Cell().Element(LValueCell)
+                                    .Text($"{fp.TotaalGewichtOFP(passengerEquipmentKg):F0} kg").FontSize(8);
+                            });
+                        });
+
+                        mainRow.ConstantItem(8); // spacer
+
+                        // ── Right column: equipment weights ──────────────────
+                        mainRow.RelativeItem(2).Column(right =>
+                        {
+                            right.Item().PaddingBottom(2).Text("EQUIPMENT WEIGHTS").Bold().FontSize(9).FontColor(PrimaryColor);
+                            right.Item().Border(0.5f).Table(eTable =>
+                            {
+                                eTable.ColumnsDefinition(cols =>
+                                {
+                                    cols.RelativeColumn(2);
+                                    cols.RelativeColumn(2);
+                                });
+                                static IContainer EHdrCell(IContainer c) =>
+                                    c.Background(PrimaryColor).Padding(3);
+                                eTable.Header(hdr =>
+                                {
+                                    hdr.Cell().Element(EHdrCell).Text("COMPONENT").Bold().FontColor(Colors.White).FontSize(7);
+                                    hdr.Cell().Element(EHdrCell).Text("WEIGHT").Bold().FontColor(Colors.White).FontSize(7);
+                                });
+
+                                static string FmtKg(double? v) => v.HasValue ? $"{v:F0} kg" : "—";
+
+                                eTable.Cell().Background(LightBg).Padding(3).Text("ENVELOPE").FontSize(8);
+                                eTable.Cell().Background(Colors.White).Padding(3).Text(FmtKg(fp.OFPEnvelopeWeightKg)).FontSize(8);
+
+                                eTable.Cell().Background(LightBg).Padding(3).Text("BASKET").FontSize(8);
+                                eTable.Cell().Background(Colors.White).Padding(3).Text(FmtKg(fp.OFPBasketWeightKg)).FontSize(8);
+
+                                eTable.Cell().Background(LightBg).Padding(3).Text("BURNER").FontSize(8);
+                                eTable.Cell().Background(Colors.White).Padding(3).Text(FmtKg(fp.OFPBurnerWeightKg)).FontSize(8);
+
+                                eTable.Cell().Background(LightBg).Padding(3).Text("CYLINDERS").FontSize(8);
+                                eTable.Cell().Background(Colors.White).Padding(3).Text(FmtKg(fp.CylindersWeightKg)).FontSize(8);
+
+                                var picW = fp.PicWeightKg ?? fp.Pilot?.WeightKg;
+                                eTable.Cell().Background(LightBg).Padding(3).Text("PIC").FontSize(8);
+                                eTable.Cell().Background(Colors.White).Padding(3).Text(FmtKg(picW)).FontSize(8);
+                            });
+
+                            // Last minute updates
+                            right.Item().PaddingTop(6).PaddingBottom(2).Text("LAST MINUTE UPDATES").Bold().FontSize(9).FontColor(PrimaryColor);
+                            right.Item().Border(0.5f).MinHeight(40).Padding(3).Text("").FontSize(8);
+                        });
+                    });
+
+                    // ── Signature block ──────────────────────────────────────
+                    col.Item().PaddingTop(8).Border(0.5f).Padding(6).Column(sig =>
+                    {
+                        sig.Item().Text("SIGNATURE").Bold().FontSize(9).FontColor(PrimaryColor);
+                        sig.Item().PaddingTop(2).Text("The pilot's signature confirms the following:").FontSize(8);
+                        sig.Item().Text("(a) Operating site suitability for balloon and operation.").FontSize(8);
+                        sig.Item().Text("(b) Reserve fuel or ballast sufficiency for safe landing.").FontSize(8);
+                        sig.Item().Text("(c) Passengers briefed on normal and emergency procedures.").FontSize(8);
+                        sig.Item().Text("(d) Meteorological and aeronautical information reviewed, including alternatives.").FontSize(8);
+                        sig.Item().Text("(e) Pilot and Crew members are fit, communicative, and not incapacitated.").FontSize(8);
+                        sig.Item().PaddingTop(10).Row(r =>
+                        {
+                            r.RelativeItem().Column(c =>
+                            {
+                                c.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Medium);
+                                c.Item().AlignCenter().Text("SIGNATURE / DATE").FontSize(7).FontColor(Colors.Grey.Darken1);
+                            });
+                        });
+                    });
+
+                    // ── Visible defects ──────────────────────────────────────
+                    col.Item().PaddingTop(6).Border(0.5f).Table(dTable =>
+                    {
+                        dTable.ColumnsDefinition(cols =>
+                        {
+                            cols.RelativeColumn(2);
+                            cols.RelativeColumn();
+                            cols.RelativeColumn();
+                            cols.RelativeColumn(2);
+                        });
+                        static IContainer DHdrCell(IContainer c) =>
+                            c.Background(PrimaryColor).Padding(3);
+
+                        dTable.Header(hdr =>
+                        {
+                            hdr.Cell().Element(DHdrCell).Text("VISIBLE DEFECTS").Bold().FontColor(Colors.White).FontSize(7);
+                            hdr.Cell().Element(DHdrCell).Text("YES / NO").Bold().FontColor(Colors.White).FontSize(7);
+                            hdr.Cell().Element(DHdrCell).Text("DATE").Bold().FontColor(Colors.White).FontSize(7);
+                            hdr.Cell().Element(DHdrCell).Text("AFTER FLIGHT").Bold().FontColor(Colors.White).FontSize(7);
+                        });
+
+                        dTable.Cell().ColumnSpan(4).Background(LightBg).Padding(2)
+                            .Row(subHdr =>
+                            {
+                                subHdr.RelativeItem(2).Text("DEFECT").Bold().FontSize(7);
+                                subHdr.RelativeItem().Text("SIGNATURE").Bold().FontSize(7);
+                                subHdr.RelativeItem().Text("ACTION").Bold().FontSize(7);
+                                subHdr.RelativeItem().Text("CERTIFICATE").Bold().FontSize(7);
+                                subHdr.RelativeItem(2).Text("DEFECT").Bold().FontSize(7);
+                                subHdr.RelativeItem().Text("AUTHORITY").Bold().FontSize(7);
+                                subHdr.RelativeItem().Text("INITIALS").Bold().FontSize(7);
+                                subHdr.RelativeItem().Text("DATE").Bold().FontSize(7);
+                            });
+                        dTable.Cell().Background(Colors.White).MinHeight(20).Padding(3).Text("").FontSize(8);
+                        var yesNo = fp.VisibleDefects.HasValue ? (fp.VisibleDefects.Value ? "YES" : "NO") : "—";
+                        dTable.Cell().Background(Colors.White).Padding(3).Text(yesNo).FontSize(8);
+                        dTable.Cell().Background(Colors.White).Padding(3).Text(fp.Datum.ToString("d-MM-yyyy")).FontSize(8);
+                        dTable.Cell().Background(Colors.White).Padding(3).Text(fp.VisibleDefectsNotes ?? "").FontSize(8);
+                    });
+                });
+
+                // ── Footer ──────────────────────────────────────────────────
+                page.Footer().BorderTop(0.5f).PaddingTop(4)
+                    .Text("THIS CONFIRMS THAT THE SPECIFIED ACTIONS WERE EXECUTED ACCORDING PART-ML AND THAT THE AIRCRAFT IS DECLARED AS READY FOR THE NEXT FLIGHT.")
+                    .FontSize(7).Italic().FontColor(Colors.Grey.Darken1);
+            });
+        }).GeneratePdf();
+
+        return Task.FromResult(pdfBytes);
+    }
+
     private static string StripHtml(string? html)
     {
         if (string.IsNullOrWhiteSpace(html))
