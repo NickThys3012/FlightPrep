@@ -50,7 +50,8 @@ public partial class BalloonSettings: ComponentBase
             EmptyWeightKg = b.EmptyWeightKg,
             EnvelopeOnlyWeightKg = b.EnvelopeOnlyWeightKg,
             BasketWeightKg = b.BasketWeightKg,
-            BurnerWeightKg = b.BurnerWeightKg
+            BurnerWeightKg = b.BurnerWeightKg,
+            CylindersWeightKg = b.CylindersWeightKg
         };
     }
 

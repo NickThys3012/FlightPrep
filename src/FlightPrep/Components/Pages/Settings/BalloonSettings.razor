@@ -22,6 +22,7 @@
             <th>Envelop (kg)</th>
             <th>Mand (kg)</th>
             <th>Brander (kg)</th>
+            <th>Cilinders (kg)</th>
             <th>Acties</th>
         </tr>
         </thead>
@@ -45,6 +46,8 @@
                                @bind="_editBalloon.BasketWeightKg"/></td>
                     <td><input type="number" step="0.1" class="form-control form-control-sm"
                                @bind="_editBalloon.BurnerWeightKg"/></td>
+                    <td><input type="number" step="0.1" class="form-control form-control-sm"
+                               @bind="_editBalloon.CylindersWeightKg"/></td>
                     <td>
                         <button class="btn btn-sm btn-success" @onclick="SaveEdit">✅ Opslaan</button>
                         <button class="btn btn-sm btn-secondary" @onclick="CancelEdit">Annuleren</button>
@@ -62,6 +65,7 @@
                     <td>@(b.EnvelopeOnlyWeightKg?.ToString("F1") ?? "–")</td>
                     <td>@(b.BasketWeightKg?.ToString("F1") ?? "–")</td>
                     <td>@(b.BurnerWeightKg?.ToString("F1") ?? "–")</td>
+                    <td>@(b.CylindersWeightKg?.ToString("F1") ?? "–")</td>
                     <td>
                         <button class="btn btn-sm btn-outline-secondary" @onclick="() => StartEdit(b)">✏️</button>
                         <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteBalloon(b.Id)">🗑️</button>
@@ -87,6 +91,8 @@
                            @bind="_newBalloon.BasketWeightKg" placeholder="mand kg"/></td>
                 <td><input type="number" step="0.1" class="form-control form-control-sm"
                            @bind="_newBalloon.BurnerWeightKg" placeholder="brander kg"/></td>
+                <td><input type="number" step="0.1" class="form-control form-control-sm"
+                           @bind="_newBalloon.CylindersWeightKg" placeholder="cilinders kg"/></td>
                 <td>
                     <button class="btn btn-sm btn-success" @onclick="SaveNew">✅ Toevoegen</button>
                     <button class="btn btn-sm btn-secondary" @onclick="() => _addingNew = false">Annuleren</button>

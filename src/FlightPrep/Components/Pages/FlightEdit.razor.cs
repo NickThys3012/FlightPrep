@@ -322,6 +322,7 @@ public partial class FlightEdit(
             if (_fp.OFPEnvelopeWeightKg == null) _fp.OFPEnvelopeWeightKg = balloon.EnvelopeOnlyWeightKg;
             if (_fp.OFPBasketWeightKg   == null) _fp.OFPBasketWeightKg   = balloon.BasketWeightKg;
             if (_fp.OFPBurnerWeightKg   == null) _fp.OFPBurnerWeightKg   = balloon.BurnerWeightKg;
+            if (_fp.CylindersWeightKg   == null) _fp.CylindersWeightKg   = balloon.CylindersWeightKg;
         }
     }
 

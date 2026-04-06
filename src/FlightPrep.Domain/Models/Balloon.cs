@@ -14,4 +14,5 @@ public class Balloon
     public double? EnvelopeOnlyWeightKg { get; set; }
     public double? BasketWeightKg       { get; set; }
     public double? BurnerWeightKg       { get; set; }
+    public double? CylindersWeightKg    { get; set; }
 }
