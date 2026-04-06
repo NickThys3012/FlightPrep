@@ -659,9 +659,10 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                             string plannedTime;
                             if (fp.PlannedLandingTime.HasValue)
                             {
-                                var durationMinutes = (int)(fp.PlannedLandingTime.Value.ToTimeSpan() - fp.Tijdstip.ToTimeSpan()).TotalMinutes;
+                                var rawMinutes = (fp.PlannedLandingTime.Value.ToTimeSpan() - fp.Tijdstip.ToTimeSpan()).TotalMinutes;
                                 // Handle past-midnight flights (negative result)
-                                if (durationMinutes < 0) durationMinutes += 24 * 60;
+                                if (rawMinutes < 0) rawMinutes += 24 * 60;
+                                var durationMinutes = (int)rawMinutes;
                                 plannedTime = $"{durationMinutes} min";
                             }
                             else

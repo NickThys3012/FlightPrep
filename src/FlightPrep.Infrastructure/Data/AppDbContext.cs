@@ -108,7 +108,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             .HasOne<ApplicationUser>()
             .WithMany()
             .HasForeignKey(o => o.UserId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<OFPSettings>()
             .HasIndex(o => o.UserId)

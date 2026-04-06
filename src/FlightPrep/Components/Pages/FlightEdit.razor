@@ -552,7 +552,7 @@
                                 <label class="form-label">Geplande landingstijd</label>
                                 <input type="time" class="form-control"
                                        value="@_fp.PlannedLandingTime?.ToString("HH:mm")"
-                                       @onchange="e => _fp!.PlannedLandingTime = string.IsNullOrWhiteSpace(e.Value?.ToString()) ? null : TimeOnly.Parse(e.Value!.ToString()!)"/>
+                                       @onchange="e => { var raw = e.Value?.ToString(); _fp!.PlannedLandingTime = TimeOnly.TryParse(raw, out var t) ? t : null; }"/>
                             </div>
                         </div>
                         <div class="row g-3 mt-1">
