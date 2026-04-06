@@ -28,7 +28,11 @@ public class OFPSettingsService(IDbContextFactory<AppDbContext> dbFactory) : IOF
         }
         else
         {
-            db.OFPSettings.Add(s);
+            db.OFPSettings.Add(new OFPSettings
+            {
+                UserId                     = userId,
+                PassengerEquipmentWeightKg = s.PassengerEquipmentWeightKg
+            });
         }
         await db.SaveChangesAsync();
     }
