@@ -45,7 +45,7 @@
                             <div class="col-md-3">
                                 <label class="form-label">Datum</label>
                                 <input type="date" class="form-control" value="@_fp?.Datum.ToString("yyyy-MM-dd")"
-                                       @onchange="e => { _fp!.Datum = DateOnly.Parse(e.Value!.ToString()!); UpdateSunriseSunset(); }"/>
+                                       @onchange="e => { var raw = e.Value?.ToString(); if (DateOnly.TryParse(raw, out var d)) { _fp!.Datum = d; UpdateSunriseSunset(); } }"/>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Tijdstip (LT)</label>
