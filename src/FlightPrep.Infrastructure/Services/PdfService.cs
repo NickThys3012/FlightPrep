@@ -461,6 +461,12 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
         ArgumentNullException.ThrowIfNull(fp);
         Settings.License = LicenseType.Community;
 
+        // Post-flight blank helpers — show fill line when flight is not yet marked as flown
+        string Blank(string? value)    => fp.IsFlown && !string.IsNullOrWhiteSpace(value) ? value : "________________";
+        string BlankNum(double? value) => fp.IsFlown && value.HasValue ? value.Value.ToString("0.#") : "________________";
+        string BlankInt(int? value)    => fp.IsFlown && value.HasValue ? value.Value.ToString() : "________________";
+        string BlankBool(bool? value)  => fp.IsFlown && value.HasValue ? (value.Value ? "Ja" : "Neen") : "________________";
+
         var pdfBytes = Document.Create(container =>
         {
             container.Page(page =>
@@ -517,7 +523,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                             row.RelativeItem(3).BorderRight(0.5f).Padding(3).Column(c =>
                             {
                                 c.Item().Text("LANDING LOCATION").Bold().FontSize(7).FontColor(Colors.Grey.Darken1);
-                                c.Item().Text(fp.LandingLocationText ?? "—").FontSize(8);
+                                c.Item().Text(Blank(fp.LandingLocationText)).FontSize(8);
                             });
                             row.RelativeItem(2).Padding(3).Column(c =>
                             {
@@ -697,7 +703,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                 fTable.Cell().Background(Colors.White).Padding(3)
                                     .Text(fp.FuelRequiredMinutes.HasValue ? $"{fp.FuelRequiredMinutes} min" : "—").FontSize(8);
                                 fTable.Cell().Background(Colors.White).Padding(3)
-                                    .Text("______ L").FontSize(8).FontColor(Colors.Grey.Darken1);
+                                    .Text($"{BlankNum(fp.FuelConsumptionL)} L").FontSize(8);
                             });
 
                             // Load calculations
@@ -812,6 +818,40 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         });
                     });
 
+                    // ── Post-flight record ────────────────────────────────────
+                    col.Item().PaddingTop(6).Border(0.5f).Table(pfTable =>
+                    {
+                        pfTable.ColumnsDefinition(cols =>
+                        {
+                            cols.RelativeColumn(2);
+                            cols.RelativeColumn(5);
+                        });
+                        static IContainer PFHdrCell(IContainer c) =>
+                            c.Background(PrimaryColor).Padding(3);
+                        pfTable.Header(hdr =>
+                        {
+                            hdr.Cell().ColumnSpan(2).Element(PFHdrCell)
+                                .Text("AFTER-FLIGHT RECORD").Bold().FontColor(Colors.White).FontSize(7);
+                        });
+                        static IContainer PFLabelCell(IContainer c) =>
+                            c.Background(LightBg).Padding(3);
+                        static IContainer PFValueCell(IContainer c) =>
+                            c.Background(Colors.White).Padding(3);
+
+                        pfTable.Cell().Element(PFLabelCell).Text("ACTUAL LANDING").Bold().FontSize(7);
+                        pfTable.Cell().Element(PFValueCell).Text(Blank(fp.ActualLandingNotes)).FontSize(8);
+
+                        pfTable.Cell().Element(PFLabelCell).Text("ACTUAL DURATION").Bold().FontSize(7);
+                        pfTable.Cell().Element(PFValueCell)
+                            .Text(fp.IsFlown && fp.ActualFlightDurationMinutes.HasValue
+                                ? $"{fp.ActualFlightDurationMinutes} min"
+                                : "________________")
+                            .FontSize(8);
+
+                        pfTable.Cell().Element(PFLabelCell).Text("POST-FLIGHT REMARKS").Bold().FontSize(7);
+                        pfTable.Cell().Element(PFValueCell).Text(Blank(fp.ActualRemarks)).FontSize(8);
+                    });
+
                     // ── Visible defects ──────────────────────────────────────
                     col.Item().PaddingTop(6).Border(0.5f).Table(dTable =>
                     {
@@ -846,10 +886,9 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                 subHdr.RelativeItem().Text("DATE").Bold().FontSize(7);
                             });
                         dTable.Cell().Background(Colors.White).MinHeight(20).Padding(3).Text("").FontSize(8);
-                        var yesNo = fp.VisibleDefects.HasValue ? (fp.VisibleDefects.Value ? "YES" : "NO") : "—";
-                        dTable.Cell().Background(Colors.White).Padding(3).Text(yesNo).FontSize(8);
+                        dTable.Cell().Background(Colors.White).Padding(3).Text(BlankBool(fp.VisibleDefects)).FontSize(8);
                         dTable.Cell().Background(Colors.White).Padding(3).Text(fp.Datum.ToString("d-MM-yyyy")).FontSize(8);
-                        dTable.Cell().Background(Colors.White).Padding(3).Text(fp.VisibleDefectsNotes ?? "").FontSize(8);
+                        dTable.Cell().Background(Colors.White).Padding(3).Text(Blank(fp.VisibleDefectsNotes)).FontSize(8);
                     });
                 });
 
