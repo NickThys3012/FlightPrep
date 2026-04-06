@@ -887,7 +887,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         dTable.Cell().ColumnSpan(5).Element(DHeaderCell)
                             .Text("AFTER FLIGHT").Bold().FontColor(Colors.White).FontSize(7);
 
-                        // Row 2 — VISIBLE DEFECTS | YES/NO | DATE (spans cols 3-5 merged)
+                        // Row 2 — VISIBLE DEFECTS (col 1) | YES/NO (cols 2–3) | DATE (cols 4–5)
                         dTable.Cell().Element(DLabelCell)
                             .Text("VISIBLE DEFECTS").Bold().FontSize(7);
                         dTable.Cell().ColumnSpan(2).Element(DValueCell)
@@ -895,37 +895,38 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         dTable.Cell().ColumnSpan(2).Element(DValueCell)
                             .Text(fp.IsFlown ? fp.Datum.ToString("d-MM-yyyy") : "________________").FontSize(8);
 
-                        // Row 3 — SIGNATURE (full width, tall fill area)
+                        // Row 3 — SIGNATURE label row
                         dTable.Cell().ColumnSpan(5).Element(DLabelCell)
                             .Text("SIGNATURE").Bold().FontSize(7);
+                        // Row 4 — Signature fill area
                         dTable.Cell().ColumnSpan(5).Background(Colors.White).MinHeight(24).Padding(3)
                             .Text("").FontSize(8);
 
-                        // Row 4 — DEFECT label | ACTION label
+                        // Row 5 — DEFECT / ACTION labels
                         dTable.Cell().ColumnSpan(2).Element(DLabelCell)
                             .Text("DEFECT").Bold().FontSize(7);
                         dTable.Cell().ColumnSpan(3).Element(DLabelCell)
                             .Text("ACTION").Bold().FontSize(7);
-                        // Row 4 data — defect notes value | action fill
+                        // Row 6 — Defect / action data
                         dTable.Cell().ColumnSpan(2).Background(Colors.White).MinHeight(20).Padding(3)
                             .Text(Blank(fp.VisibleDefectsNotes)).FontSize(8);
                         dTable.Cell().ColumnSpan(3).Background(Colors.White).MinHeight(20).Padding(3)
                             .Text("").FontSize(8);
 
-                        // Row 5 — 5-column sub-header for maintenance certification
+                        // Row 7 — CERTIFICATE sub-header
                         dTable.Cell().Element(DLabelCell).Text("CERTIFICATE").Bold().FontSize(6);
                         dTable.Cell().Element(DLabelCell).Text("DEFECT").Bold().FontSize(6);
                         dTable.Cell().Element(DLabelCell).Text("AUTHORITY").Bold().FontSize(6);
                         dTable.Cell().Element(DLabelCell).Text("INITIALS").Bold().FontSize(6);
                         dTable.Cell().Element(DLabelCell).Text("DATE").Bold().FontSize(6);
-                        // Row 5 data — fill spaces
+                        // Row 8 — Maintenance fill data
                         dTable.Cell().Background(Colors.White).MinHeight(20).Padding(3).Text("").FontSize(8);
                         dTable.Cell().Background(Colors.White).MinHeight(20).Padding(3).Text("").FontSize(8);
                         dTable.Cell().Background(Colors.White).MinHeight(20).Padding(3).Text("").FontSize(8);
                         dTable.Cell().Background(Colors.White).MinHeight(20).Padding(3).Text("").FontSize(8);
                         dTable.Cell().Background(Colors.White).MinHeight(20).Padding(3).Text("").FontSize(8);
 
-                        // Row 6 — disclaimer text spanning all columns
+                        // Row 9 — PART-ML disclaimer
                         dTable.Cell().ColumnSpan(5).Background(LightBg).Padding(4)
                             .Text("THIS CONFIRMS THAT THE SPECIFIED ACTIONS WERE EXECUTED ACCORDING PART-ML AND THAT THE AIRCRAFT IS DECLARED AS READY FOR THE NEXT FLIGHT.")
                             .Bold().FontSize(6).Italic();
