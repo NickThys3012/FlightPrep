@@ -47,7 +47,6 @@ public partial class BalloonSettings: ComponentBase
             Type = b.Type,
             VolumeM3 = b.VolumeM3,
             InternalEnvelopeTempC = b.InternalEnvelopeTempC,
-            EmptyWeightKg = b.EmptyWeightKg,
             EnvelopeOnlyWeightKg = b.EnvelopeOnlyWeightKg,
             BasketWeightKg = b.BasketWeightKg,
             BurnerWeightKg = b.BurnerWeightKg,

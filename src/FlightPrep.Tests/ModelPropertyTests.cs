@@ -17,7 +17,10 @@ public class ModelPropertyTests
             Registration = "OO-BAL",
             Type = "Cameron A-180",
             VolumeM3 = 180,
-            EmptyWeightKg = 250.5
+            EnvelopeOnlyWeightKg = 150.0,
+            BasketWeightKg = 60.5,
+            BurnerWeightKg = 25.0,
+            CylindersWeightKg = 15.0
         };
 
         Assert.Equal(1, b.Id);

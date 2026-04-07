@@ -640,7 +640,8 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                     .Text(fp.ZichtbaarheidKm.HasValue ? $"{fp.ZichtbaarheidKm} km" : "—").FontSize(8);
 
                                 wTable.Cell().Element(WLabelCell).Text("CLOUDS").Bold().FontSize(7);
-                                wTable.Cell().Element(WValueCell).Text("—").FontSize(8);
+                                wTable.Cell().Element(WValueCell)
+                                    .Text(!string.IsNullOrWhiteSpace(fp.Neerslag) ? fp.Neerslag : "—").FontSize(8);
 
                                 wTable.Cell().Element(WLabelCell).Text("TEMP").Bold().FontSize(7);
                                 wTable.Cell().Element(WValueCell)
@@ -655,7 +656,18 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                 if (windLevels.Count == 0)
                                 {
                                     wTable.Cell().Element(WLabelCell).Text("SURFACE WIND").Bold().FontSize(7);
-                                    wTable.Cell().Element(WValueCell).Text("—").FontSize(8);
+                                    string surfaceWindText;
+                                    if (fp.SurfaceWindDirectionDeg.HasValue || fp.SurfaceWindSpeedKt.HasValue)
+                                    {
+                                        var dir = fp.SurfaceWindDirectionDeg?.ToString("D3") ?? "---";
+                                        var spd = fp.SurfaceWindSpeedKt?.ToString("F0").PadLeft(2, '0') ?? "--";
+                                        surfaceWindText = $"{dir}/{spd}kt";
+                                    }
+                                    else
+                                    {
+                                        surfaceWindText = "—";
+                                    }
+                                    wTable.Cell().Element(WValueCell).Text(surfaceWindText).FontSize(8);
                                 }
                                 else
                                 {

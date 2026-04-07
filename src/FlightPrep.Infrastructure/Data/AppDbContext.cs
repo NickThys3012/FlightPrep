@@ -48,6 +48,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
         modelBuilder.Entity<WindLevel>()
             .HasIndex(w => new { w.FlightPreparationId, w.Order });
 
+        modelBuilder.Entity<Balloon>().Ignore(b => b.EmptyWeightKg);
+
         // Ignore computed properties
         modelBuilder.Entity<FlightPreparation>()
             .Ignore(f => f.TotaalGewicht)
@@ -66,7 +68,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
                 Type = "BB22N",
                 VolumeM3 = 2200,
                 InternalEnvelopeTempC = 80,
-                EmptyWeightKg = 323.4
             }
         );
 
