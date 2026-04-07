@@ -116,11 +116,7 @@
     window._hoverMarker = null;
 
     window.initFlightMap = function (mapId, points) {
-
-        // Start met OSM + luchtruim standaard aan
-        const map = L.map(mapId, {layers: [osmLayer, airspaceLayer]})
-            .setView([points[0][0], points[0][1]], 13);
-// points: array of [lat, lon, altM]
+        // points: array of [lat, lon, altM]
         if (!points || points.length === 0) return;
 
         // ── Base layers ──────────────────────────────────────────────────
@@ -144,6 +140,10 @@
                 minZoom: 5
             }
         );
+
+        // Start met OSM + luchtruim standaard aan (layers declared above first)
+        const map = L.map(mapId, {layers: [osmLayer, airspaceLayer]})
+            .setView([points[0][0], points[0][1]], 13);
 
         // Hoogspanningslijnen via Overpass API (OSM data, gratis, geen key)
         var powerGeoJson = L.geoJSON(null, {
