@@ -1,6 +1,15 @@
 {
-  "currentVersion": "11.1.0",
+  "currentVersion": "11.1.1",
   "entries": [
+    {
+      "pr": 67,
+      "version": "11.1.1",
+      "title": "fix: Leaflet map crash — undefined layer in initFlightMap",
+      "description": "De Leaflet-kaartfunctionaliteit is verbeterd om crashes te voorkomen.  \n- De volgorde van de declaratie van de `osmLayer` en `airspaceLayer` is aangepast, zodat ze correct zijn gedefinieerd voordat ze aan de kaart worden toegevoegd.  \n- Dit voorkomt dat de applicatie crasht bij het laden van de FlightView-pagina met een KML-track, wat zorgt voor een soepelere gebruikerservaring voor piloten.  \n- De stabiliteit van de kaartweergave is verbeterd, waardoor piloten nu betrouwbaarder toegang hebben tot belangrijke luchtvaartinformatie tijdens hun vluchtvoorbereiding.",
+      "author": "NickThys3012",
+      "labels": [],
+      "date": "2026-04-07T06:54:39Z"
+    },
     {
       "pr": 64,
       "version": "11.1.0",
