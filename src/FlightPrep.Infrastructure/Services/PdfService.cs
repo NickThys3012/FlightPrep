@@ -1006,7 +1006,7 @@ public partial class PdfService(ISunriseService sunriseSvc, ITrajectoryMapServic
     private static partial Regex AnyHtmlTagRegex();
     [GeneratedRegex(@"ql-indent-(\d+)")]
     private static partial Regex QuillIndentLevelRegex();
-    [GeneratedRegex(@"</?(p|h[1-6]|li|br|ul|ol|div)[^>]*>", RegexOptions.IgnoreCase, "en-BE")]
+    [GeneratedRegex("</?(p|h[1-6]|li|br|ul|ol|div)[^>]*>", RegexOptions.IgnoreCase, "en-BE")]
     private static partial Regex BlockLevelHtmlTagRegex();
     [GeneratedRegex(@"\n{3,}")]
     private static partial Regex ExcessiveNewLinesRegex();

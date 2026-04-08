@@ -9,7 +9,7 @@ namespace FlightPrep.Services;
 ///     Centralizes the logic previously spread across entity computed properties
 ///     and direct callers.
 /// </summary>
-public class FlightAssessmentService(IGoNoGoService goNoGoSvc) : IFlightAssessmentService
+internal class FlightAssessmentService(IGoNoGoService goNoGoSvc) : IFlightAssessmentService
 {
     /// <summary>
     ///     Computes the <see cref="FlightAssessment" /> for the given flight preparation.

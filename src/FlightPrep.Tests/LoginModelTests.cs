@@ -63,7 +63,7 @@ public class LoginModelTests
     ///     and an IUrlHelper mock whose <c>IsLocalUrl</c> returns true for paths
     ///     starting with "/" and false for everything else (null, absolute URLs, etc.).
     /// </summary>
-    private static (LoginModel model, Mock<IUrlHelper> urlHelper)
+    private static LoginModel 
         BuildSut(
             Mock<SignInManager<ApplicationUser>> signInMgr,
             Mock<UserManager<ApplicationUser>> userMgr)
@@ -94,7 +94,7 @@ public class LoginModelTests
             .Returns(false);
         model.Url = urlHelper.Object;
 
-        return (model, urlHelper);
+        return model;
     }
 
     // ── Happy path ────────────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ public class LoginModelTests
         userMgr.Setup(u => u.FindByEmailAsync("pilot@example.com"))
             .ReturnsAsync(new ApplicationUser { IsApproved = true });
 
-        var (model, _) = BuildSut(signInMgr, userMgr);
+        var model = BuildSut(signInMgr, userMgr);
         model.Input = new LoginModel.InputModel { Email = "pilot@example.com", Password = "P@ss!" };
 
         // Act
@@ -138,7 +138,7 @@ public class LoginModelTests
         userMgr.Setup(u => u.FindByEmailAsync(It.IsAny<string>()))
             .ReturnsAsync(new ApplicationUser { IsApproved = true });
 
-        var (model, _) = BuildSut(signInMgr, userMgr);
+        var model = BuildSut(signInMgr, userMgr);
         model.Input = new LoginModel.InputModel { Email = "pilot@example.com", Password = "P@ss!" };
 
         // Act
@@ -163,7 +163,7 @@ public class LoginModelTests
         userMgr.Setup(u => u.FindByEmailAsync(It.IsAny<string>()))
             .ReturnsAsync(new ApplicationUser { IsApproved = true });
 
-        var (model, _) = BuildSut(signInMgr, userMgr);
+        var model = BuildSut(signInMgr, userMgr);
         model.Input = new LoginModel.InputModel { Email = "pilot@example.com", Password = "P@ss!" };
 
         // Act — supply an absolute (non-local) URL
@@ -192,7 +192,7 @@ public class LoginModelTests
         userMgr.Setup(u => u.FindByEmailAsync(It.IsAny<string>()))
             .ReturnsAsync(new ApplicationUser { IsApproved = false });
 
-        var (model, _) = BuildSut(signInMgr, userMgr);
+        var model = BuildSut(signInMgr, userMgr);
         model.Input = new LoginModel.InputModel { Email = "newpilot@example.com", Password = "P@ss!" };
 
         // Act
@@ -222,7 +222,7 @@ public class LoginModelTests
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()))
             .ReturnsAsync(IdentitySignInResult.LockedOut);
 
-        var (model, _) = BuildSut(signInMgr, userMgr);
+        var model = BuildSut(signInMgr, userMgr);
         model.Input = new LoginModel.InputModel { Email = "locked@example.com", Password = "wrong" };
 
         // Act
@@ -251,7 +251,7 @@ public class LoginModelTests
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()))
             .ReturnsAsync(IdentitySignInResult.Failed);
 
-        var (model, _) = BuildSut(signInMgr, userMgr);
+        var model = BuildSut(signInMgr, userMgr);
         model.Input = new LoginModel.InputModel { Email = "pilot@example.com", Password = "wrongpassword" };
 
         // Act
@@ -276,7 +276,7 @@ public class LoginModelTests
         // Arrange — simulate model-binding failure (e.g. missing required Email)
         var userMgr = CreateUserManagerMock();
         var signInMgr = CreateSignInManagerMock(userMgr);
-        var (model, _) = BuildSut(signInMgr, userMgr);
+        var model = BuildSut(signInMgr, userMgr);
 
         model.ModelState.AddModelError("Input.Email", "E-mailadres is verplicht.");
 

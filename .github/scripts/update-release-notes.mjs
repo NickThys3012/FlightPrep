@@ -18,11 +18,11 @@ const aiDesc = readFileSync('/tmp/ai_description.txt', 'utf8').trim();
 //   [refactor] / label refactor  → minor  (X.X+1.0)
 //   [BUG] / [fix] / label bug    → patch  (X.X.X+1)
 let bumpType = 'patch';
-if (/\[feature\]/i.test(title) || labelStr.includes('feature') || labelStr.includes('enhancement'))
+if (/\[feature]/i.test(title) || labelStr.includes('feature') || labelStr.includes('enhancement'))
     bumpType = 'major';
-else if (/\[refactor\]/i.test(title) || labelStr.includes('refactor'))
+else if (/\[refactor]/i.test(title) || labelStr.includes('refactor'))
     bumpType = 'minor';
-else if (/\[bug\]/i.test(title) || /\[fix\]/i.test(title) || labelStr.includes('bug') || labelStr.includes('fix'))
+else if (/\[bug]/i.test(title) || /\[fix]/i.test(title) || labelStr.includes('bug') || labelStr.includes('fix'))
     bumpType = 'patch';
 
 const [maj, min, pat] = (data.currentVersion || '0.0.0').split('.').map(Number);

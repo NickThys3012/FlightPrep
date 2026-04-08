@@ -8,7 +8,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FlightPrep.Pages;
 
-public class LoginModel(
+internal class LoginModel(
     SignInManager<ApplicationUser> signInManager,
     UserManager<ApplicationUser> userManager,
     ILogger<LoginModel> logger,

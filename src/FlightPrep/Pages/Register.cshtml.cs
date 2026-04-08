@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FlightPrep.Pages;
 
-public class RegisterModel(UserManager<ApplicationUser> userManager) : PageModel
+internal class RegisterModel(UserManager<ApplicationUser> userManager) : PageModel
 {
     [BindProperty] public InputModel Input { get; set; } = new();
 
@@ -37,7 +37,7 @@ public class RegisterModel(UserManager<ApplicationUser> userManager) : PageModel
         return Page();
     }
 
-    public class InputModel
+    internal class InputModel
     {
         [Required(ErrorMessage = "E-mailadres is verplicht.")]
         [EmailAddress(ErrorMessage = "Ongeldig e-mailadres.")]

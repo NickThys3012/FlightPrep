@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace FlightPrep.Pages;
 
-public class LogoutModel(SignInManager<ApplicationUser> signInManager) : PageModel
+internal class LogoutModel(SignInManager<ApplicationUser> signInManager) : PageModel
 {
     public IActionResult OnGet() => LocalRedirect("/");
 

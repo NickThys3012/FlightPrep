@@ -18,5 +18,5 @@ public class ReleaseEntry
 
     [JsonPropertyName("labels")] public List<string> Labels { get; } = [];
 
-    public DateTime Date { get; set; }
+    public DateTime Date { get; }
 }

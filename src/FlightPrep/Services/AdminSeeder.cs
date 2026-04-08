@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace FlightPrep.Services;
 
-public static class AdminSeeder
+internal static class AdminSeeder
 {
     public static async Task SeedAdminAsync(IServiceProvider services)
     {
