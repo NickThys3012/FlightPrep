@@ -39,7 +39,7 @@ public partial class FlightView:ComponentBase
 
     // ── Sharing state ──────────────────────────────────────────────────────────
     private bool _isOwner;
-    private List<FlightPreparationShare> _shares = [];
+    private List<ApplicationUserSummary> _shares = [];
     private List<ApplicationUserSummary> _shareableUsers = [];
     private string? _selectedShareUserId;
 

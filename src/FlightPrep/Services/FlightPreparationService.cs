@@ -386,7 +386,7 @@ public class FlightPreparationService(
     ///     Returns all shares for a flight, but only if <paramref name="ownerId" /> matches
     ///     the flight's <c>CreatedByUserId</c>.
     /// </summary>
-    public async Task<List<FlightPreparationShare>> GetSharesAsync(int flightId, string ownerId)
+    public async Task<List<ApplicationUserSummary>> GetSharesAsync(int flightId, string ownerId)
     {
         ArgumentNullException.ThrowIfNull(ownerId);
         await using var db = await dbFactory.CreateDbContextAsync();
@@ -399,6 +399,10 @@ public class FlightPreparationService(
 
         return await db.FlightPreparationShares
             .Where(s => s.FlightPreparationId == flightId)
+            .Join(db.Users,
+                s => s.SharedWithUserId,
+                u => u.Id,
+                (s, u) => new ApplicationUserSummary(u.Id, u.UserName ?? u.Email ?? u.Id, null))
             .ToListAsync();
     }
 

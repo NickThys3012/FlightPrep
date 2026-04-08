@@ -21,7 +21,7 @@ public interface IFlightPreparationService
 
     // ── Sharing ───────────────────────────────────────────────────────────────
     Task<List<ApplicationUserSummary>> GetShareableUsersAsync(int flightId, string ownerId);
-    Task<List<FlightPreparationShare>> GetSharesAsync(int flightId, string ownerId);
+    Task<List<ApplicationUserSummary>> GetSharesAsync(int flightId, string ownerId);
     Task ShareAsync(int flightId, string ownerId, string targetUserId);
     Task RevokeShareAsync(int flightId, string ownerId, string targetUserId);
     Task<bool> IsSharedWithAsync(int flightId, string userId);

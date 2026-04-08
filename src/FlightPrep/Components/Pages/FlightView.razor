@@ -451,9 +451,9 @@ else
                                 @foreach (var share in _shares)
                                 {
                                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        <span>@share.SharedWithUserId</span>
+                                        <span>@share.UserName</span>
                                         <button class="btn btn-sm btn-outline-danger"
-                                                @onclick="() => RemoveShare(share.SharedWithUserId)">
+                                                @onclick="() => RemoveShare(share.Id)">
                                             ❌ Verwijderen
                                         </button>
                                     </li>
