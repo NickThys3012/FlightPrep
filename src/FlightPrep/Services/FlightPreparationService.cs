@@ -140,6 +140,7 @@ public class FlightPreparationService(
         List<Passenger> passengers = [];
         List<FlightImage> images = [];
         List<WindLevel> windLevels = [];
+        List<FlightPreparationShare> shares = [];
 
         try
         {
@@ -158,6 +159,9 @@ public class FlightPreparationService(
             fp.Images.Clear();
             windLevels = fp.WindLevels.ToList();
             fp.WindLevels.Clear();
+            // Shares are managed by ShareAsync/RevokeShareAsync — never let SaveAsync touch them.
+            shares = fp.Shares.ToList();
+            fp.Shares.Clear();
 
             await using var tx = await db.Database.BeginTransactionAsync();
             try
@@ -262,6 +266,7 @@ public class FlightPreparationService(
             fp.Passengers = passengers;
             fp.Images = images;
             fp.WindLevels = windLevels;
+            fp.Shares = shares;
         }
     }
 
