@@ -18,4 +18,11 @@ public interface IFlightPreparationService
     Task<(int Total, int ThisYear, int Flown)> GetFlightCountsAsync();
     Task<List<FlightPreparation>> GetRecentAsync(int count);
     Task<List<FlightPreparation>> GetAllWithNavAsync(string? userId, bool isAdmin);
+
+    // ── Sharing ───────────────────────────────────────────────────────────────
+    Task<List<ApplicationUserSummary>> GetShareableUsersAsync(int flightId, string ownerId);
+    Task<List<FlightPreparationShare>> GetSharesAsync(int flightId, string ownerId);
+    Task ShareAsync(int flightId, string ownerId, string targetUserId);
+    Task RevokeShareAsync(int flightId, string ownerId, string targetUserId);
+    Task<bool> IsSharedWithAsync(int flightId, string userId);
 }

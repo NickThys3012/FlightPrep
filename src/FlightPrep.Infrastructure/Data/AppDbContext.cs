@@ -16,6 +16,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<GoNoGoSettings> GoNoGoSettings => Set<GoNoGoSettings>();
     public DbSet<LoginEvent> LoginEvents { get; set; }
     public DbSet<OFPSettings> OFPSettings { get; set; }
+    public DbSet<FlightPreparationShare> FlightPreparationShares => Set<FlightPreparationShare>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -113,6 +114,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 
         modelBuilder.Entity<OFPSettings>()
             .HasIndex(o => o.UserId)
+            .IsUnique();
+
+        modelBuilder.Entity<FlightPreparationShare>()
+            .HasOne<FlightPreparation>()
+            .WithMany(f => f.Shares)
+            .HasForeignKey(s => s.FlightPreparationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<FlightPreparationShare>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(s => s.SharedWithUserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<FlightPreparationShare>()
+            .HasIndex(s => new { s.FlightPreparationId, s.SharedWithUserId })
             .IsUnique();
 
         modelBuilder.Entity<LoginEvent>(e =>

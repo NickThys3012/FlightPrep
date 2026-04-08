@@ -37,6 +37,12 @@ public partial class FlightView:ComponentBase
     private List<SimulatedTrajectory>? _savedEnhancedTrajectories;
     private bool _savedCombinedMapRendered;
 
+    // ── Sharing state ──────────────────────────────────────────────────────────
+    private bool _isOwner;
+    private List<FlightPreparationShare> _shares = [];
+    private List<ApplicationUserSummary> _shareableUsers = [];
+    private string? _selectedShareUserId;
+
     private void OpenLightbox(FlightImage img)
     {
         _lightboxImg = img;
@@ -64,12 +70,15 @@ public partial class FlightView:ComponentBase
 
         if (_fp != null)
         {
-            // Ownership check — redirect if the flight belongs to another user
-            if (_fp.CreatedByUserId != null && _fp.CreatedByUserId != userId && !isAdmin)
+            // Allow access to owner, admin, or shared user
+            var isSharedWithMe = userId != null && await FpSvc.IsSharedWithAsync(Id, userId);
+            if (_fp.CreatedByUserId != null && _fp.CreatedByUserId != userId && !isAdmin && !isSharedWithMe)
             {
                 Nav.NavigateTo("/flights");
                 return;
             }
+
+            _isOwner = isAdmin || _fp.CreatedByUserId == userId;
 
             // Compute assessment (TotaalGewicht, LiftVoldoende, GoNoGo via service)
             _assessment = await AssessmentSvc.ComputeAsync(_fp, userId);
@@ -109,7 +118,36 @@ public partial class FlightView:ComponentBase
                     _savedTrajectories = null;
                 }
             }
+
+            // Load sharing data for the owner
+            if (_isOwner && userId != null)
+            {
+                await RefreshSharesAsync(userId);
+            }
         }
+    }
+
+    // ── Sharing helpers ────────────────────────────────────────────────────────
+
+    private async Task RefreshSharesAsync(string ownerId)
+    {
+        _shares = await FpSvc.GetSharesAsync(Id, ownerId);
+        _shareableUsers = await FpSvc.GetShareableUsersAsync(Id, ownerId);
+        _selectedShareUserId = _shareableUsers.FirstOrDefault()?.Id;
+    }
+
+    private async Task AddShare()
+    {
+        if (_userId == null || _selectedShareUserId == null) return;
+        await FpSvc.ShareAsync(Id, _userId, _selectedShareUserId);
+        await RefreshSharesAsync(_userId);
+    }
+
+    private async Task RemoveShare(string targetUserId)
+    {
+        if (_userId == null) return;
+        await FpSvc.RevokeShareAsync(Id, _userId, targetUserId);
+        await RefreshSharesAsync(_userId);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

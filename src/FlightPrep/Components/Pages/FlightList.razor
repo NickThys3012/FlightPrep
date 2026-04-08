@@ -60,13 +60,20 @@ else
                         {
                             <span class="badge bg-success ms-1">Gevlogen</span>
                         }
+                        @if (f.IsShared)
+                        {
+                            <span class="badge bg-secondary ms-1">Gedeeld door @f.SharedByName</span>
+                        }
                     </td>
                     <td>
                         <div class="btn-group btn-group-sm">
                             <a href="/flights/@f.Id" class="btn btn-outline-primary">Bekijken</a>
-                            <a href="/flights/@f.Id/edit" class="btn btn-outline-secondary">Bewerken</a>
-                            <button class="btn btn-outline-danger" @onclick="() => ConfirmDelete(f.Id)">Verwijder
-                            </button>
+                            @if (!f.IsShared)
+                            {
+                                <a href="/flights/@f.Id/edit" class="btn btn-outline-secondary">Bewerken</a>
+                                <button class="btn btn-outline-danger" @onclick="() => ConfirmDelete(f.Id)">Verwijder
+                                </button>
+                            }
                         </div>
                     </td>
                 </tr>
