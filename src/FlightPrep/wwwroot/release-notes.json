@@ -1,6 +1,15 @@
 {
-  "currentVersion": "12.0.0",
+  "currentVersion": "12.0.1",
   "entries": [
+    {
+      "pr": 68,
+      "version": "12.0.1",
+      "title": "Fix/questpdf keep sections together",
+      "description": "Deze release bevat belangrijke verbeteringen voor de ballonvlucht voorbereiding en PDF-generatie.  \n- De `EmptyWeightKg` eigenschap is nu een berekende waarde op basis van componentgewichten, wat zorgt voor meer nauwkeurigheid en consistentie in de gegevens.  \n- Er zijn uitgebreide eenheidstests toegevoegd voor de nieuwe berekening van `EmptyWeightKg`, wat de betrouwbaarheid van de applicatie verhoogt.  \n- Diverse verbeteringen in de PDF-generatie zorgen voor een betere lay-out en presentatie van inhoud, wat de leesbaarheid voor de piloot vergroot.  \n- De weergave van weergegevens in de PDF is verbeterd, zodat belangrijke informatie zoals neerslag en winddata nu correct en duidelijk wordt weergegeven.",
+      "author": "NickThys3012",
+      "labels": [],
+      "date": "2026-04-08T08:34:48Z"
+    },
     {
       "pr": 66,
       "version": "12.0.0",
