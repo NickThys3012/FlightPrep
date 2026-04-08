@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 
 namespace FlightPrep.Infrastructure.Services;
 
-public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc, IFlightAssessmentService assessmentSvc) : IPdfService
+public partial class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc, IFlightAssessmentService assessmentSvc) : IPdfService
 {
     private const string PrimaryColor = "#1a3a5c";
     private const string LightBg = "#f0f4f8";
@@ -403,14 +403,10 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
         }
 
         // Remove Quill's internal UI marker spans (empty, just for visual bullets)
-        var clean = Regex.Replace(html,
-            @"<span\s[^>]*class=""ql-ui""[^>]*>.*?</span>",
-            "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var clean = QuillUiMarkerRegex().Replace(html, "");
 
         // Extract block elements one by one
-        var blockRx = new Regex(
-            @"<(h[1-6]|p|li)([^>]*)>(.*?)</\1>",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var blockRx = ExtractBlockElementsRegex();
 
         var any = false;
         foreach (Match m in blockRx.Matches(clean))
@@ -418,7 +414,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
             var tag = m.Groups[1].Value.ToLowerInvariant();
             var attrs = m.Groups[2].Value;
             // Strip all remaining inline tags, decode entities
-            var text = Regex.Replace(m.Groups[3].Value, "<[^>]+>", "")
+            var text = AnyHtmlTagRegex().Replace(m.Groups[3].Value, "")
                 .Replace("&nbsp;", " ").Replace("&amp;", "&")
                 .Replace("&lt;", "<").Replace("&gt;", ">")
                 .Replace("&quot;", "\"").Trim();
@@ -430,7 +426,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
 
             any = true;
 
-            var indentMatch = Regex.Match(attrs, @"ql-indent-(\d+)");
+            var indentMatch = QuillIndentLevelRegex().Match(attrs);
             var indent = indentMatch.Success ? int.Parse(indentMatch.Groups[1].Value) * 12 : 0;
 
             switch (tag)
@@ -959,14 +955,24 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
             return "–";
         }
 
-        var text = Regex.Replace(html, @"<span\s[^>]*class=""ql-ui""[^>]*>.*?</span>", "",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
-        text = Regex.Replace(text, @"</?(p|h[1-6]|li|br|ul|ol|div)[^>]*>",
-            m => m.Value.StartsWith("</") || m.Value.Contains("br") ? "\n" : "",
-            RegexOptions.IgnoreCase);
-        text = Regex.Replace(text, "<[^>]+>", "");
+        var text = QuillUiMarkerRegex().Replace(html, "");
+        text = BlockLevelHtmlTagRegex().Replace(text, m => m.Value.StartsWith("</") || m.Value.Contains("br") ? "\n" : "");
+        text = AnyHtmlTagRegex().Replace(text, "");
         text = text.Replace("&nbsp;", " ").Replace("&amp;", "&")
             .Replace("&lt;", "<").Replace("&gt;", ">").Replace("&quot;", "\"");
-        return Regex.Replace(text, @"\n{3,}", "\n\n").Trim();
+        return ExcessiveNewLinesRegex().Replace(text, "\n\n").Trim();
     }
+
+    [GeneratedRegex("""<span\s[^>]*class="ql-ui"[^>]*>.*?</span>""", RegexOptions.IgnoreCase | RegexOptions.Singleline, "en-BE")]
+    private static partial Regex QuillUiMarkerRegex();
+    [GeneratedRegex(@"<(h[1-6]|p|li)([^>]*)>(.*?)</\1>", RegexOptions.IgnoreCase | RegexOptions.Singleline, "en-BE")]
+    private static partial Regex ExtractBlockElementsRegex();
+    [GeneratedRegex("<[^>]+>")]
+    private static partial Regex AnyHtmlTagRegex();
+    [GeneratedRegex(@"ql-indent-(\d+)")]
+    private static partial Regex QuillIndentLevelRegex();
+    [GeneratedRegex(@"</?(p|h[1-6]|li|br|ul|ol|div)[^>]*>", RegexOptions.IgnoreCase, "en-BE")]
+    private static partial Regex BlockLevelHtmlTagRegex();
+    [GeneratedRegex(@"\n{3,}")]
+    private static partial Regex ExcessiveNewLinesRegex();
 }
