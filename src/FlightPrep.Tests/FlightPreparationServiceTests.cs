@@ -567,7 +567,7 @@ public class FlightPreparationServiceTests
         await sut.SaveAsync(newest);
 
         // Act — ask for 2 most recent
-        var result = await sut.GetRecentAsync(2);
+        var result = await sut.GetRecentAsync(2, "owner-1", false);
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -584,7 +584,7 @@ public class FlightPreparationServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
-            sut.GetRecentAsync(0));
+            sut.GetRecentAsync(0, "owner-1", false));
     }
 
     [Fact]
@@ -596,7 +596,7 @@ public class FlightPreparationServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
-            sut.GetRecentAsync(-5));
+            sut.GetRecentAsync(-5, "owner-1", false));
     }
 
     // ── GetAllWithNavAsync ────────────────────────────────────────────────────

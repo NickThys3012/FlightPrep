@@ -537,14 +537,28 @@ public class FlightPreparationService(
     ///     Returns the <paramref name="count" /> most recent flights with Balloon, Pilot, and Location
     ///     navigation properties loaded. Used by the Home dashboard.
     /// </summary>
-    public async Task<List<FlightPreparation>> GetRecentAsync(int count)
+    public async Task<List<FlightPreparation>> GetRecentAsync(int count, string? userId, bool isAdmin)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
         await using var db = await dbFactory.CreateDbContextAsync();
-        return await db.FlightPreparations
+        var query = db.FlightPreparations
             .Include(f => f.Balloon)
             .Include(f => f.Pilot)
             .Include(f => f.Location)
+            .AsQueryable();
+
+        if (!isAdmin && userId != null)
+        {
+            query = query.Where(f =>
+                f.CreatedByUserId == userId ||
+                f.Shares.Any(s => s.SharedWithUserId == userId));
+        }
+        else if (!isAdmin)
+        {
+            return [];
+        }
+
+        return await query
             .OrderByDescending(f => f.Datum)
             .ThenByDescending(f => f.Tijdstip)
             .Take(count)

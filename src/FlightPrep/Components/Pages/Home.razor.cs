@@ -16,6 +16,7 @@ public partial class Home : ComponentBase
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var isAdmin = authState.User.IsInRole("Admin");
 
         _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync(userId);
 
@@ -24,7 +25,7 @@ public partial class Home : ComponentBase
         _flightsThisYear = thisYear;
         _flightsFlown = flown;
 
-        _recentFlights = await FpSvc.GetRecentAsync(5);
+        _recentFlights = await FpSvc.GetRecentAsync(5, userId, isAdmin);
     }
 
 }
