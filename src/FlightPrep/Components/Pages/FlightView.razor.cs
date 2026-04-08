@@ -39,6 +39,7 @@ public partial class FlightView:ComponentBase
 
     // ── Sharing state ──────────────────────────────────────────────────────────
     private bool _isOwner;
+    private bool _isShared;  // true when viewing a prep shared with me (not my own)
     private List<ApplicationUserSummary> _shares = [];
     private List<ApplicationUserSummary> _shareableUsers = [];
     private string? _selectedShareUserId;
@@ -79,6 +80,7 @@ public partial class FlightView:ComponentBase
             }
 
             _isOwner = isAdmin || _fp.CreatedByUserId == userId;
+            _isShared = !_isOwner && isSharedWithMe;
 
             // Compute assessment (TotaalGewicht, LiftVoldoende, GoNoGo via service)
             _assessment = await AssessmentSvc.ComputeAsync(_fp, userId);
