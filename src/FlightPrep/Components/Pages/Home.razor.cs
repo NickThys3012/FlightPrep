@@ -20,7 +20,7 @@ public partial class Home : ComponentBase
 
         _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync(userId);
 
-        var (total, thisYear, flown) = await FpSvc.GetFlightCountsAsync();
+        var (total, thisYear, flown) = await FpSvc.GetFlightCountsAsync(userId, isAdmin);
         _totalFlights = total;
         _flightsThisYear = thisYear;
         _flightsFlown = flown;

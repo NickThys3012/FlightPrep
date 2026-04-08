@@ -523,13 +523,20 @@ public class FlightPreparationService(
     /// <summary>
     ///     Returns aggregate flight counts for the dashboard.
     /// </summary>
-    public async Task<(int Total, int ThisYear, int Flown)> GetFlightCountsAsync()
+    public async Task<(int Total, int ThisYear, int Flown)> GetFlightCountsAsync(string? userId, bool isAdmin)
     {
         await using var db = await dbFactory.CreateDbContextAsync();
         var currentYear = DateTime.UtcNow.Year;
-        var total = await db.FlightPreparations.CountAsync();
-        var thisYear = await db.FlightPreparations.CountAsync(f => f.Datum.Year == currentYear);
-        var flown = await db.FlightPreparations.CountAsync(f => f.IsFlown);
+
+        IQueryable<FlightPreparation> query = db.FlightPreparations;
+        if (!isAdmin && userId != null)
+            query = query.Where(f => f.CreatedByUserId == userId);
+        else if (!isAdmin)
+            return (0, 0, 0);
+
+        var total = await query.CountAsync();
+        var thisYear = await query.CountAsync(f => f.Datum.Year == currentYear);
+        var flown = await query.CountAsync(f => f.IsFlown);
         return (total, thisYear, flown);
     }
 

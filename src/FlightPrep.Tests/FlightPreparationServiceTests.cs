@@ -509,7 +509,7 @@ public class FlightPreparationServiceTests
         var sut = BuildSut(factory);
 
         // Act
-        var (total, thisYear, flown) = await sut.GetFlightCountsAsync();
+        var (total, thisYear, flown) = await sut.GetFlightCountsAsync("owner-1", false);
 
         // Assert
         Assert.Equal(0, total);
@@ -538,7 +538,7 @@ public class FlightPreparationServiceTests
         await sut.SaveAsync(fp3);
 
         // Act
-        var (total, thisYear, flown) = await sut.GetFlightCountsAsync();
+        var (total, thisYear, flown) = await sut.GetFlightCountsAsync("owner-1", false);
 
         // Assert
         Assert.Equal(3, total);
