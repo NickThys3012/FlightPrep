@@ -10,7 +10,7 @@ namespace FlightPrep.Services;
 ///     Pages must not inject <see cref="IDbContextFactory{AppDbContext}" /> directly;
 ///     all persistence flows through this service.
 /// </summary>
-internal class FlightPreparationService(
+public class FlightPreparationService(
     IDbContextFactory<AppDbContext> dbFactory,
     ILogger<FlightPreparationService> logger) : IFlightPreparationService
 {

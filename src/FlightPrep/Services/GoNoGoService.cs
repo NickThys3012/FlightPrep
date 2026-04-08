@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FlightPrep.Services;
 
-internal class GoNoGoService(IDbContextFactory<AppDbContext> dbFactory) : IGoNoGoService
+public class GoNoGoService(IDbContextFactory<AppDbContext> dbFactory) : IGoNoGoService
 {
     public async Task<GoNoGoSettings> GetSettingsAsync(string? userId)
     {
