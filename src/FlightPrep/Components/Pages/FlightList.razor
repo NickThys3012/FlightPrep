@@ -31,6 +31,28 @@ else if (!_flights.Any())
 else
 {
     <div class="fp-card p-0 overflow-hidden">
+        <!-- Filter bar -->
+        <div class="d-flex gap-2 p-3 border-bottom flex-wrap">
+            <button class="btn btn-sm @(_statusFilter == "alle" ? "btn-primary" : "btn-outline-secondary")"
+                    @onclick='() => SetFilter("alle")'>
+                Alle (@_flights!.Count)
+            </button>
+            <button class="btn btn-sm @(_statusFilter == "gevlogen" ? "btn-success" : "btn-outline-secondary")"
+                    @onclick='() => SetFilter("gevlogen")'>
+                ✈️ Gevlogen (@_flights!.Count(f => f.IsFlown))
+            </button>
+            <button class="btn btn-sm @(_statusFilter == "niet-gevlogen" ? "btn-warning" : "btn-outline-secondary")"
+                    @onclick='() => SetFilter("niet-gevlogen")'>
+                📋 Niet gevlogen (@_flights!.Count(f => !f.IsFlown))
+            </button>
+            @if (_flights!.Any(f => f.IsShared))
+            {
+                <button class="btn btn-sm @(_statusFilter == "gedeeld" ? "btn-info" : "btn-outline-secondary")"
+                        @onclick='() => SetFilter("gedeeld")'>
+                    🔗 Gedeeld (@_flights!.Count(f => f.IsShared))
+                </button>
+            }
+        </div>
         <table class="table mb-0">
             <thead>
             <tr>
@@ -46,6 +68,12 @@ else
             </tr>
             </thead>
             <tbody>
+            @if (!PagedFlights.Any())
+            {
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">Geen vaarten gevonden voor dit filter.</td>
+                </tr>
+            }
             @foreach (var f in PagedFlights)
             {
                 <tr>
@@ -60,13 +88,20 @@ else
                         {
                             <span class="badge bg-success ms-1">Gevlogen</span>
                         }
+                        @if (f.IsShared)
+                        {
+                            <span class="badge bg-secondary ms-1">Gedeeld door @f.SharedByName</span>
+                        }
                     </td>
                     <td>
                         <div class="btn-group btn-group-sm">
                             <a href="/flights/@f.Id" class="btn btn-outline-primary">Bekijken</a>
-                            <a href="/flights/@f.Id/edit" class="btn btn-outline-secondary">Bewerken</a>
-                            <button class="btn btn-outline-danger" @onclick="() => ConfirmDelete(f.Id)">Verwijder
-                            </button>
+                            @if (!f.IsShared)
+                            {
+                                <a href="/flights/@f.Id/edit" class="btn btn-outline-secondary">Bewerken</a>
+                                <button class="btn btn-outline-danger" @onclick="() => ConfirmDelete(f.Id)">Verwijder
+                                </button>
+                            }
                         </div>
                     </td>
                 </tr>

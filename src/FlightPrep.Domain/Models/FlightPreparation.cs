@@ -79,6 +79,9 @@ public class FlightPreparation
     // Wind profile (stored in a separate table)
     public List<WindLevel> WindLevels { get; set; } = [];
 
+    // Shares (users this prep has been shared with)
+    public ICollection<FlightPreparationShare> Shares { get; set; } = new List<FlightPreparationShare>();
+
     // Section 9 - Ballonbulletin
     public string? Ballonbulletin { get; set; }
 

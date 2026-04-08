@@ -41,6 +41,7 @@ public class FlightPreparationService(
 
     /// <summary>
     ///     Returns a lightweight summary list for the FlightList page.
+    ///     Includes flights owned by the user and flights shared with the user.
     ///     No heavy navigation collections are loaded.
     /// </summary>
     public async Task<List<FlightPreparationSummary>> GetSummariesAsync(string? userId, bool isAdmin)
@@ -54,23 +55,53 @@ public class FlightPreparationService(
                 return [];
             }
 
-            query = query.Where(f => f.CreatedByUserId == userId);
+            query = query.Where(f =>
+                f.CreatedByUserId == userId ||
+                f.Shares.Any(s => s.SharedWithUserId == userId));
         }
 
-        return await query
+        // Load all matching flights with their shares so we can determine IsShared and SharedByName.
+        // We perform a left join to AspNetUsers to get the owner's UserName for shared preps.
+        var flights = await query
+            .Include(f => f.Shares)
+            .Select(f => new
+            {
+                f.Id,
+                f.Datum,
+                f.Tijdstip,
+                f.IsFlown,
+                BalloonRegistration = f.Balloon != null ? f.Balloon.Registration : null,
+                PilotName = f.Pilot != null ? f.Pilot.Name : null,
+                LocationName = f.Location != null ? f.Location.Name : null,
+                f.SurfaceWindSpeedKt,
+                f.ZichtbaarheidKm,
+                f.CapeJkg,
+                f.CreatedByUserId,
+                IsShared = isAdmin ? false : f.CreatedByUserId != userId,
+                OwnerUserName = f.CreatedByUserId == null
+                    ? null
+                    : db.Users.Where(u => u.Id == f.CreatedByUserId).Select(u => u.UserName).FirstOrDefault()
+            })
+            .ToListAsync();
+
+        return flights
             .Select(f => new FlightPreparationSummary(
                 f.Id,
                 f.Datum,
                 f.Tijdstip,
                 f.IsFlown,
-                f.Balloon != null ? f.Balloon.Registration : null,
-                f.Pilot != null ? f.Pilot.Name : null,
-                f.Location != null ? f.Location.Name : null,
+                f.BalloonRegistration,
+                f.PilotName,
+                f.LocationName,
                 f.SurfaceWindSpeedKt,
                 f.ZichtbaarheidKm,
                 f.CapeJkg,
-                f.CreatedByUserId))
-            .ToListAsync();
+                f.CreatedByUserId)
+            {
+                IsShared = f.IsShared,
+                SharedByName = f.IsShared ? (f.OwnerUserName ?? f.CreatedByUserId) : null
+            })
+            .ToList();
     }
 
     /// <summary>
@@ -240,17 +271,21 @@ public class FlightPreparationService(
     }
 
     /// <summary>Hard-deletes a flight preparation and all cascade-related entities.</summary>
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(int id, string userId, bool isAdmin = false)
     {
+        ArgumentNullException.ThrowIfNull(userId);
         try
         {
             await using var db = await dbFactory.CreateDbContextAsync();
             var fp = await db.FlightPreparations.FindAsync(id);
-            if (fp != null)
+            if (fp == null) return;
+            if (fp.CreatedByUserId != userId && !isAdmin)
             {
-                db.FlightPreparations.Remove(fp);
-                await db.SaveChangesAsync();
+                logger.LogWarning("DeleteAsync blocked: user {UserId} is not the owner of flight {FlightId}", userId, id);
+                return;
             }
+            db.FlightPreparations.Remove(fp);
+            await db.SaveChangesAsync();
         }
         catch (Exception ex)
         {
@@ -345,18 +380,163 @@ public class FlightPreparationService(
         }
     }
 
+    // ── Sharing ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    ///     Returns all shares for a flight, but only if <paramref name="ownerId" /> matches
+    ///     the flight's <c>CreatedByUserId</c>.
+    /// </summary>
+    public async Task<List<ApplicationUserSummary>> GetSharesAsync(int flightId, string ownerId)
+    {
+        ArgumentNullException.ThrowIfNull(ownerId);
+        await using var db = await dbFactory.CreateDbContextAsync();
+        var isOwner = await db.FlightPreparations
+            .AnyAsync(f => f.Id == flightId && f.CreatedByUserId == ownerId);
+        if (!isOwner)
+        {
+            return [];
+        }
+
+        return await db.FlightPreparationShares
+            .Where(s => s.FlightPreparationId == flightId)
+            .Join(db.Users,
+                s => s.SharedWithUserId,
+                u => u.Id,
+                (s, u) => new ApplicationUserSummary(u.Id, u.UserName ?? u.Email ?? u.Id, null))
+            .ToListAsync();
+    }
+
+    /// <summary>
+    ///     Returns all application users except the owner and users already shared with.
+    ///     Only callable by the flight owner.
+    /// </summary>
+    public async Task<List<ApplicationUserSummary>> GetShareableUsersAsync(int flightId, string ownerId)
+    {
+        ArgumentNullException.ThrowIfNull(ownerId);
+        await using var db = await dbFactory.CreateDbContextAsync();
+        var isOwner = await db.FlightPreparations
+            .AnyAsync(f => f.Id == flightId && f.CreatedByUserId == ownerId);
+        if (!isOwner)
+        {
+            return [];
+        }
+
+        var alreadySharedIds = await db.FlightPreparationShares
+            .Where(s => s.FlightPreparationId == flightId)
+            .Select(s => s.SharedWithUserId)
+            .ToListAsync();
+
+        return await db.Users
+            .Where(u => u.Id != ownerId && !alreadySharedIds.Contains(u.Id))
+            .Select(u => new ApplicationUserSummary(u.Id, u.UserName!, null))
+            .ToListAsync();
+    }
+
+    /// <summary>
+    ///     Shares a flight with <paramref name="targetUserId" />.
+    ///     No-op if already shared. Only the owner may share.
+    /// </summary>
+    public async Task ShareAsync(int flightId, string ownerId, string targetUserId)
+    {
+        ArgumentNullException.ThrowIfNull(ownerId);
+        ArgumentNullException.ThrowIfNull(targetUserId);
+        try
+        {
+            await using var db = await dbFactory.CreateDbContextAsync();
+            var isOwner = await db.FlightPreparations
+                .AnyAsync(f => f.Id == flightId && f.CreatedByUserId == ownerId);
+            if (!isOwner)
+            {
+                logger.LogWarning("ShareAsync: user {UserId} is not the owner of flight {FlightId}", ownerId, flightId);
+                return;
+            }
+
+            var alreadyShared = await db.FlightPreparationShares
+                .AnyAsync(s => s.FlightPreparationId == flightId && s.SharedWithUserId == targetUserId);
+            if (alreadyShared)
+            {
+                return;
+            }
+
+            db.FlightPreparationShares.Add(new FlightPreparationShare
+            {
+                FlightPreparationId = flightId,
+                SharedWithUserId = targetUserId,
+                SharedAt = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "ShareAsync failed for FlightPreparation Id={FlightId}, TargetUser={TargetUserId}", flightId, targetUserId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    ///     Revokes a share for <paramref name="targetUserId" />.
+    ///     Only the owner may revoke.
+    /// </summary>
+    public async Task RevokeShareAsync(int flightId, string ownerId, string targetUserId)
+    {
+        ArgumentNullException.ThrowIfNull(ownerId);
+        ArgumentNullException.ThrowIfNull(targetUserId);
+        try
+        {
+            await using var db = await dbFactory.CreateDbContextAsync();
+            var isOwner = await db.FlightPreparations
+                .AnyAsync(f => f.Id == flightId && f.CreatedByUserId == ownerId);
+            if (!isOwner)
+            {
+                logger.LogWarning("RevokeShareAsync: user {UserId} is not the owner of flight {FlightId}", ownerId, flightId);
+                return;
+            }
+
+            var share = await db.FlightPreparationShares
+                .FirstOrDefaultAsync(s => s.FlightPreparationId == flightId && s.SharedWithUserId == targetUserId);
+            if (share != null)
+            {
+                db.FlightPreparationShares.Remove(share);
+                await db.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "RevokeShareAsync failed for FlightPreparation Id={FlightId}, TargetUser={TargetUserId}", flightId, targetUserId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    ///     Returns <c>true</c> if a share row exists for the given flight and user.
+    /// </summary>
+    public async Task<bool> IsSharedWithAsync(int flightId, string userId)
+    {
+        ArgumentNullException.ThrowIfNull(userId);
+        await using var db = await dbFactory.CreateDbContextAsync();
+        return await db.FlightPreparationShares
+            .AnyAsync(s => s.FlightPreparationId == flightId && s.SharedWithUserId == userId);
+    }
+
     // ── Additional queries ────────────────────────────────────────────────────
 
     /// <summary>
     ///     Returns aggregate flight counts for the dashboard.
     /// </summary>
-    public async Task<(int Total, int ThisYear, int Flown)> GetFlightCountsAsync()
+    public async Task<(int Total, int ThisYear, int Flown)> GetFlightCountsAsync(string? userId, bool isAdmin)
     {
         await using var db = await dbFactory.CreateDbContextAsync();
         var currentYear = DateTime.UtcNow.Year;
-        var total = await db.FlightPreparations.CountAsync();
-        var thisYear = await db.FlightPreparations.CountAsync(f => f.Datum.Year == currentYear);
-        var flown = await db.FlightPreparations.CountAsync(f => f.IsFlown);
+
+        IQueryable<FlightPreparation> query = db.FlightPreparations;
+        if (!isAdmin && userId != null)
+            query = query.Where(f => f.CreatedByUserId == userId);
+        else if (!isAdmin)
+            return (0, 0, 0);
+
+        var total = await query.CountAsync();
+        var thisYear = await query.CountAsync(f => f.Datum.Year == currentYear);
+        var flown = await query.CountAsync(f => f.IsFlown);
         return (total, thisYear, flown);
     }
 
@@ -364,14 +544,28 @@ public class FlightPreparationService(
     ///     Returns the <paramref name="count" /> most recent flights with Balloon, Pilot, and Location
     ///     navigation properties loaded. Used by the Home dashboard.
     /// </summary>
-    public async Task<List<FlightPreparation>> GetRecentAsync(int count)
+    public async Task<List<FlightPreparation>> GetRecentAsync(int count, string? userId, bool isAdmin)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
         await using var db = await dbFactory.CreateDbContextAsync();
-        return await db.FlightPreparations
+        var query = db.FlightPreparations
             .Include(f => f.Balloon)
             .Include(f => f.Pilot)
             .Include(f => f.Location)
+            .AsQueryable();
+
+        if (!isAdmin && userId != null)
+        {
+            query = query.Where(f =>
+                f.CreatedByUserId == userId ||
+                f.Shares.Any(s => s.SharedWithUserId == userId));
+        }
+        else if (!isAdmin)
+        {
+            return [];
+        }
+
+        return await query
             .OrderByDescending(f => f.Datum)
             .ThenByDescending(f => f.Tijdstip)
             .Take(count)
@@ -380,6 +574,7 @@ public class FlightPreparationService(
 
     /// <summary>
     ///     Returns all flights with Balloon, Pilot, and Location navigation properties loaded.
+    ///     Includes flights owned by the user and flights shared with the user.
     ///     Used by the Logboek page for statistics and charts.
     ///     Heavy collections (Passengers, Images, WindLevels) are NOT loaded.
     /// </summary>
@@ -398,7 +593,9 @@ public class FlightPreparationService(
                 return [];
             }
 
-            query = query.Where(f => f.CreatedByUserId == userId);
+            query = query.Where(f =>
+                f.CreatedByUserId == userId ||
+                f.Shares.Any(s => s.SharedWithUserId == userId));
         }
 
         return await query

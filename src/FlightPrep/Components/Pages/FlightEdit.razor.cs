@@ -136,7 +136,15 @@ public partial class FlightEdit(
             // Ownership check — block access if flight belongs to another user
             if (_fp.CreatedByUserId != null && _fp.CreatedByUserId != userId && !isAdmin)
             {
-                nav.NavigateTo("/flights");
+                // If the user is a shared viewer, redirect to view page instead of the list
+                if (userId != null && await fpSvc.IsSharedWithAsync(Id.Value, userId))
+                {
+                    nav.NavigateTo($"/flights/{Id.Value}");
+                }
+                else
+                {
+                    nav.NavigateTo("/flights");
+                }
                 return;
             }
 
@@ -361,6 +369,15 @@ public partial class FlightEdit(
     private async Task<FlightPreparation?> SaveInternal()
     {
         if (_fp == null) return null;
+
+        // Guard: shared viewers cannot save
+        var isAdmin = (await authStateProvider.GetAuthenticationStateAsync()).User.IsInRole("Admin");
+        if (_fp.CreatedByUserId != null && _fp.CreatedByUserId != _userId && !isAdmin)
+        {
+            logger.LogWarning("SaveInternal blocked: user {UserId} is not the owner of flight {FlightId}", _userId, _fp.Id);
+            return null;
+        }
+
         MergeSimulationsToFp(); // ensure any in-memory simulations are persisted with the record
         await ReadQuillContent(); // pull latest HTML from editor
         _saving = true; _saveMessage = null;

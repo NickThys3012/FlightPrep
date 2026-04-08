@@ -16,4 +16,11 @@ public record FlightPreparationSummary(
     double? SurfaceWindSpeedKt,
     double? ZichtbaarheidKm,
     double? CapeJkg,
-    string? CreatedByUserId);
+    string? CreatedByUserId)
+{
+    /// <summary>True when this prep belongs to another user and was shared with the current user.</summary>
+    public bool IsShared { get; init; }
+
+    /// <summary>Display name of the owner who shared this prep (null when not shared).</summary>
+    public string? SharedByName { get; init; }
+}

@@ -55,7 +55,8 @@ public class FlightPreparationServiceTests
         Tijdstip = TimeOnly.FromDateTime(DateTime.Now),
         Balloon = balloon,
         Pilot = pilot,
-        Location = location
+        Location = location,
+        CreatedByUserId = "owner-1"
     };
 
     // ── GetSummariesAsync ─────────────────────────────────────────────────────
@@ -275,7 +276,7 @@ public class FlightPreparationServiceTests
         Assert.NotNull(await sut.GetByIdAsync(id));
 
         // Act
-        await sut.DeleteAsync(id);
+        await sut.DeleteAsync(id, "owner-1");
 
         // Assert
         Assert.Null(await sut.GetByIdAsync(id));
@@ -289,7 +290,7 @@ public class FlightPreparationServiceTests
         var sut = BuildSut(factory);
 
         // Act & Assert — must complete without exception
-        var ex = await Record.ExceptionAsync(() => sut.DeleteAsync(99999));
+        var ex = await Record.ExceptionAsync(() => sut.DeleteAsync(99999, "owner-1"));
         Assert.Null(ex);
     }
 
@@ -317,7 +318,7 @@ public class FlightPreparationServiceTests
         await sut.SaveAsync(fp3);
 
         // Act
-        var (total, thisYear, flown) = await sut.GetFlightCountsAsync();
+        var (total, thisYear, flown) = await sut.GetFlightCountsAsync("owner-1", false);
 
         // Assert
         Assert.Equal(3, total);
@@ -346,7 +347,7 @@ public class FlightPreparationServiceTests
         await sut.SaveAsync(newest);
 
         // Act — ask for the 2 most recent
-        var result = await sut.GetRecentAsync(2);
+        var result = await sut.GetRecentAsync(2, "owner-1", false);
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -363,7 +364,7 @@ public class FlightPreparationServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
-            sut.GetRecentAsync(0));
+            sut.GetRecentAsync(0, "owner-1", false));
     }
 
     // ── PatchTrajectoryJsonAsync ───────────────────────────────────────────────

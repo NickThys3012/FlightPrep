@@ -14,13 +14,23 @@ public partial class FlightList : ComponentBase
     private const int PageSize = 20;
     private string? _userId;
     private bool _isAdmin;
+    private string _statusFilter = "alle"; // "alle" | "gevlogen" | "niet-gevlogen" | "gedeeld"
+
+    private IEnumerable<FlightPreparationSummary> FilteredFlights =>
+        _statusFilter switch
+        {
+            "gevlogen"      => _flights!.Where(f => f.IsFlown),
+            "niet-gevlogen" => _flights!.Where(f => !f.IsFlown),
+            "gedeeld"       => _flights!.Where(f => f.IsShared),
+            _               => _flights!
+        };
 
     private IEnumerable<FlightPreparationSummary> SortedFlights =>
         _sortDesc
-            ? _flights!.OrderByDescending(f => f.Datum).ThenByDescending(f => f.Tijdstip)
-            : _flights!.OrderBy(f => f.Datum).ThenBy(f => f.Tijdstip);
+            ? FilteredFlights.OrderByDescending(f => f.Datum).ThenByDescending(f => f.Tijdstip)
+            : FilteredFlights.OrderBy(f => f.Datum).ThenBy(f => f.Tijdstip);
 
-    private int TotalPages => (int)Math.Ceiling((_flights?.Count ?? 0) / (double)PageSize);
+    private int TotalPages => (int)Math.Ceiling(FilteredFlights.Count() / (double)PageSize);
 
     private IEnumerable<FlightPreparationSummary> PagedFlights =>
         SortedFlights.Skip((_currentPage - 1) * PageSize).Take(PageSize);
@@ -28,6 +38,12 @@ public partial class FlightList : ComponentBase
     private void ToggleSort()
     {
         _sortDesc = !_sortDesc;
+        _currentPage = 1;
+    }
+
+    private void SetFilter(string filter)
+    {
+        _statusFilter = filter;
         _currentPage = 1;
     }
 
@@ -52,7 +68,7 @@ public partial class FlightList : ComponentBase
     private async Task DeleteFlight()
     {
         if (!_deleteId.HasValue) return;
-        await FpSvc.DeleteAsync(_deleteId.Value);
+        await FpSvc.DeleteAsync(_deleteId.Value, _userId!, _isAdmin);
         _deleteId = null;
         await LoadFlights();
     }

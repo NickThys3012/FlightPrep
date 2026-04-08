@@ -31,6 +31,13 @@ else
                 ✈️ Deze vaart is gevlogen
             </div>
         }
+        @if (_isShared)
+        {
+            <div class="alert alert-info d-flex align-items-center gap-2 py-2 mb-2">
+                <i class="bi bi-share"></i>
+                <span>Deze vluchtvoorbereiding is met u gedeeld — u heeft enkel leestoegang.</span>
+            </div>
+        }
 
         <div class="fp-page-header">
             <div>
@@ -42,13 +49,19 @@ else
                 <FlightGoNoGoBadge GoNoGoResult="@gng" ShowEmoji="true"/>
             </div>
             <div class="fp-toolbar">
-                <a href="/flights/@_fp.Id/edit" class="btn btn-outline-secondary">Bewerken</a>
+                @if (_isOwner)
+                {
+                    <a href="/flights/@_fp.Id/edit" class="btn btn-outline-secondary">Bewerken</a>
+                }
                 <button class="btn btn-success" @onclick="DownloadPdf">Download PDF</button>
                 <button class="btn btn-outline-primary" @onclick="DownloadOfp">
                     <i class="bi bi-file-earmark-text"></i> Download OFP
                 </button>
-                <button class="btn btn-outline-primary" @onclick="OpenFlownModal">Markeer als gevlogen
-                </button>
+                @if (_isOwner)
+                {
+                    <button class="btn btn-outline-primary" @onclick="OpenFlownModal">Markeer als gevlogen
+                    </button>
+                }
                 <a href="/flights" class="btn btn-outline-secondary">Terug</a>
             </div>
         </div>
@@ -372,13 +385,16 @@ else
                     <div class="card-header d-flex justify-content-between align-items-center"
                          style="background:#1a3a5c;color:white;">
                         <span>Vlucht Track</span>
-                        <button class="btn btn-sm btn-outline-light"
-                                @onclick="() => _showTrackUpload = !_showTrackUpload">
-                            @(_fp!.KmlTrack != null ? "Vervangen" : "KML Uploaden")
-                        </button>
+                        @if (_isOwner)
+                        {
+                            <button class="btn btn-sm btn-outline-light"
+                                    @onclick="() => _showTrackUpload = !_showTrackUpload">
+                                @(_fp!.KmlTrack != null ? "Vervangen" : "KML Uploaden")
+                            </button>
+                        }
                     </div>
                     <div class="card-body p-0">
-                        @if (_showTrackUpload || _fp!.KmlTrack == null)
+                        @if (_isOwner && (_showTrackUpload || _fp!.KmlTrack == null))
                         {
                             <div class="p-3">
                                 <p class="text-muted small mb-2">Upload een KML bestand van de Hot Air app (of ander GPS
@@ -422,13 +438,69 @@ else
                         }
                         else if (_fp!.KmlTrack == null)
                         {
-                            <div class="p-3 text-muted small">Nog geen track geüpload.</div>
+                            <div class="p-3 text-muted small">@(_isOwner ? "Nog geen track geüpload." : "Geen track beschikbaar.")</div>
                         }
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- ── Delen (owner only) ────────────────────────────────────────────────── -->
+    @if (_isOwner)
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex align-items-center gap-2"
+                         style="background:#1a3a5c;color:white;">
+                        <span>🔗 Delen</span>
+                    </div>
+                    <div class="card-body">
+                        @if (_shares.Count == 0)
+                        {
+                            <p class="text-muted small mb-2">Deze vaartvoorbereiding is nog niet gedeeld.</p>
+                        }
+                        else
+                        {
+                            <ul class="list-group list-group-flush mb-3">
+                                @foreach (var share in _shares)
+                                {
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span>@share.UserName</span>
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                @onclick="() => RemoveShare(share.Id)">
+                                            ❌ Verwijderen
+                                        </button>
+                                    </li>
+                                }
+                            </ul>
+                        }
+
+                        @if (_shareableUsers.Count > 0)
+                        {
+                            <div class="d-flex gap-2 align-items-center flex-wrap">
+                                <select class="form-select form-select-sm" style="max-width:300px;"
+                                        @bind="_selectedShareUserId">
+                                    @foreach (var u in _shareableUsers)
+                                    {
+                                        <option value="@u.Id">@u.UserName</option>
+                                    }
+                                </select>
+                                <button class="btn btn-sm btn-outline-primary" @onclick="AddShare">
+                                    ➕ Delen
+                                </button>
+                            </div>
+                        }
+                        else if (_shares.Count > 0)
+                        {
+                            <p class="text-muted small mb-0">Geen andere gebruikers beschikbaar om te delen.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 }
 
 <!-- Mark as flown modal -->
