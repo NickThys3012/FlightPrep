@@ -52,7 +52,7 @@ public partial class FlightList : ComponentBase
     private async Task DeleteFlight()
     {
         if (!_deleteId.HasValue) return;
-        await FpSvc.DeleteAsync(_deleteId.Value, _userId!);
+        await FpSvc.DeleteAsync(_deleteId.Value, _userId!, _isAdmin);
         _deleteId = null;
         await LoadFlights();
     }

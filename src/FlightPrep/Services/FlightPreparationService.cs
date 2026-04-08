@@ -271,7 +271,7 @@ public class FlightPreparationService(
     }
 
     /// <summary>Hard-deletes a flight preparation and all cascade-related entities.</summary>
-    public async Task DeleteAsync(int id, string userId)
+    public async Task DeleteAsync(int id, string userId, bool isAdmin = false)
     {
         ArgumentNullException.ThrowIfNull(userId);
         try
@@ -279,7 +279,7 @@ public class FlightPreparationService(
             await using var db = await dbFactory.CreateDbContextAsync();
             var fp = await db.FlightPreparations.FindAsync(id);
             if (fp == null) return;
-            if (fp.CreatedByUserId != userId)
+            if (fp.CreatedByUserId != userId && !isAdmin)
             {
                 logger.LogWarning("DeleteAsync blocked: user {UserId} is not the owner of flight {FlightId}", userId, id);
                 return;
