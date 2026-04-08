@@ -64,6 +64,18 @@ public class FlightPreparationSharingTests
         string sharedWithUserId)
     {
         await using var db = await factory.CreateDbContextAsync();
+        if (!await db.Users.AnyAsync(u => u.Id == sharedWithUserId))
+        {
+            db.Users.Add(new ApplicationUser
+            {
+                Id = sharedWithUserId,
+                UserName = $"{sharedWithUserId}@test.com",
+                NormalizedUserName = $"{sharedWithUserId}@test.com".ToUpperInvariant(),
+                Email = $"{sharedWithUserId}@test.com",
+                NormalizedEmail = $"{sharedWithUserId}@test.com".ToUpperInvariant(),
+                SecurityStamp = Guid.NewGuid().ToString()
+            });
+        }
         db.FlightPreparationShares.Add(new FlightPreparationShare
         {
             FlightPreparationId = flightId,
@@ -349,8 +361,8 @@ public class FlightPreparationSharingTests
 
         // Assert
         Assert.Equal(2, shares.Count);
-        Assert.Contains(shares, s => s.SharedWithUserId == "viewer-1");
-        Assert.Contains(shares, s => s.SharedWithUserId == "viewer-2");
+        Assert.Contains(shares, s => s.Id == "viewer-1");
+        Assert.Contains(shares, s => s.Id == "viewer-2");
     }
 
     [Fact]
