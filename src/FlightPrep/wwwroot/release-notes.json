@@ -1,6 +1,15 @@
 {
-  "currentVersion": "12.0.1",
+  "currentVersion": "13.0.0",
   "entries": [
+    {
+      "pr": 69,
+      "version": "13.0.0",
+      "title": "[feature] Share a flight preparation with another user (read-only)",
+      "description": "Nieuwe functie toegevoegd voor het delen van vluchtvoorbereidingen met andere gebruikers.\n- Piloten kunnen nu hun vluchtvoorbereidingen delen met andere geregistreerde gebruikers in een alleen-lezen modus, wat samenwerking en feedback vergemakkelijkt.\n- De gebruikersinterface is uitgebreid met een \"Delen\" panel in de vluchtweergave, waar gebruikers eenvoudig andere gebruikers kunnen toevoegen of delen kunnen intrekken.\n- Gedeelde vluchtvoorbereidingen tonen nu een badge met de naam van de persoon die de voorbereiding heeft gedeeld, waardoor het voor gebruikers duidelijk is wie toegang heeft.",
+      "author": "NickThys3012",
+      "labels": [],
+      "date": "2026-04-08T17:27:18Z"
+    },
     {
       "pr": 68,
       "version": "12.0.1",
