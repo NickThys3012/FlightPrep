@@ -10,9 +10,11 @@ namespace FlightPrep.Tests.UI;
 public class FlightSharingTest : BaseTest
 #pragma warning restore CA1501
 {
-    // ── Viewer credentials ────────────────────────────────────────────────────
-    private const string ViewerEmail = "viewer@e2etest.local";
-    private const string ViewerPassword = "E2eTest_Viewer_123!";
+    // ── Viewer credentials (must match SEED_VIEWER_USERNAME / SEED_VIEWER_PASSWORD) ──
+    private static readonly string ViewerEmail =
+        Environment.GetEnvironmentVariable("E2E_VIEWER_EMAIL") ?? "viewer@e2etest.local";
+    private static readonly string ViewerPassword =
+        Environment.GetEnvironmentVariable("E2E_VIEWER_PASSWORD") ?? "E2eTest_Viewer_123!";
 
     // ── Shared state across ordered tests ─────────────────────────────────────
     private static int _testFlightId = -1;
@@ -293,8 +295,9 @@ public class FlightSharingTest : BaseTest
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Registers viewer@e2etest.local if not yet registered, then logs in and saves
-    /// the auth state to a temp file. Idempotent — if login succeeds directly, skips registration.
+    /// Logs in as the seeded viewer account and saves the auth state to a temp file.
+    /// The viewer is seeded at startup (SEED_VIEWER_USERNAME / SEED_VIEWER_PASSWORD)
+    /// with IsApproved = true, so no UI registration is needed.
     /// </summary>
     private static async Task CreateViewerAuthStateAsync()
     {
@@ -307,7 +310,6 @@ public class FlightSharingTest : BaseTest
         });
         var page = await ctx.NewPageAsync();
 
-        // Try direct login first (viewer may already exist from a prior run)
         await page.GotoAsync($"{BaseUrl}/Login");
         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await page.Locator("input[name='Input.Email']").FillAsync(ViewerEmail);
@@ -315,30 +317,8 @@ public class FlightSharingTest : BaseTest
         await page.Locator("button[type='submit']").ClickAsync();
         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-        // If login was successful, the URL will have changed away from /Login
-        if (!page.Url.Contains("/Login", StringComparison.OrdinalIgnoreCase))
-        {
-            _viewerAuthStatePath = Path.Combine(Path.GetTempPath(), $"e2e-viewer-auth-{Guid.NewGuid()}.json");
-            await ctx.StorageStateAsync(new() { Path = _viewerAuthStatePath });
-            return;
-        }
-
-        // Login failed — register the viewer first
-        await page.GotoAsync($"{BaseUrl}/Register");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-        await page.Locator("input[name='Input.Email']").FillAsync(ViewerEmail);
-        await page.Locator("input[name='Input.Password']").FillAsync(ViewerPassword);
-        await page.Locator("input[name='Input.ConfirmPassword']").FillAsync(ViewerPassword);
-        await page.Locator("button[type='submit']").ClickAsync();
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
-        // Now log in with the freshly registered account
-        await page.GotoAsync($"{BaseUrl}/Login");
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-        await page.Locator("input[name='Input.Email']").FillAsync(ViewerEmail);
-        await page.Locator("input[name='Input.Password']").FillAsync(ViewerPassword);
-        await page.Locator("button[type='submit']").ClickAsync();
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        Assert.That(page.Url, Does.Not.Contain("/Login"),
+            $"Viewer login failed — ensure SEED_VIEWER_USERNAME={ViewerEmail} is seeded with IsApproved=true");
 
         _viewerAuthStatePath = Path.Combine(Path.GetTempPath(), $"e2e-viewer-auth-{Guid.NewGuid()}.json");
         await ctx.StorageStateAsync(new() { Path = _viewerAuthStatePath });
