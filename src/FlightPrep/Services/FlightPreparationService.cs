@@ -311,7 +311,11 @@ public class FlightPreparationService(
         bool isFlown,
         string? landingNotes,
         int? durationMinutes,
-        string? remarks)
+        string? remarks,
+        double? fuelConsumptionL,
+        string? landingLocationText,
+        bool? visibleDefects,
+        string? visibleDefectsNotes)
     {
         try
         {
@@ -327,6 +331,10 @@ public class FlightPreparationService(
             fp.ActualLandingNotes = landingNotes;
             fp.ActualFlightDurationMinutes = durationMinutes;
             fp.ActualRemarks = remarks;
+            fp.FuelConsumptionL = fuelConsumptionL;
+            fp.LandingLocationText = landingLocationText;
+            fp.VisibleDefects = visibleDefects;
+            fp.VisibleDefectsNotes = visibleDefectsNotes;
             fp.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
         }

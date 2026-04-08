@@ -81,6 +81,9 @@
     <tr>
         <th>Naam</th>
         <th style="width:150px">Gewicht (kg)</th>
+        <th style="width:40px" title="Kind (Child)">C</th>
+        <th style="width:40px" title="Bijstand nodig (Assistance)">A</th>
+        <th style="width:40px" title="Transport">T</th>
         <th style="width:60px"></th>
     </tr>
     </thead>
@@ -91,6 +94,9 @@
             <em>Piloot: @(CurrentPilot?.Name ?? "–")</em>
         </td>
         <td>@(CurrentPilot?.WeightKg?.ToString("F1") ?? "–")</td>
+        <td></td>
+        <td></td>
+        <td></td>
         <td></td>
     </tr>
     @for (var i = 0; i < Fp.Passengers.Count; i++)
@@ -108,6 +114,15 @@
                        @bind="Fp.Passengers[idx].WeightKg"
                        @bind:culture="System.Globalization.CultureInfo.InvariantCulture"/>
             </td>
+            <td class="text-center">
+                <input type="checkbox" class="form-check-input" @bind="Fp.Passengers[idx].IsChild" title="Kind"/>
+            </td>
+            <td class="text-center">
+                <input type="checkbox" class="form-check-input" @bind="Fp.Passengers[idx].NeedsAssistance" title="Bijstand nodig"/>
+            </td>
+            <td class="text-center">
+                <input type="checkbox" class="form-check-input" @bind="Fp.Passengers[idx].IsTransport" title="Transport"/>
+            </td>
             <td>
                 <button class="btn btn-sm btn-outline-danger" @onclick="() => RemovePassenger(idx)">✕</button>
             </td>
@@ -116,14 +131,14 @@
     </tbody>
     <tfoot>
     <tr>
-        <td colspan="3">
+        <td colspan="6">
             <button class="btn btn-sm btn-outline-success" @onclick="AddPassenger">+ Passagier toevoegen</button>
         </td>
     </tr>
     <tr class="table-secondary fw-bold">
         <td>Totaal gewicht</td>
         <td>@(CalcTotalWeight().ToString("F1")) kg</td>
-        <td></td>
+        <td colspan="4"></td>
     </tr>
     </tfoot>
 </table>

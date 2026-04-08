@@ -40,7 +40,19 @@ public partial class BalloonSettings: ComponentBase
     private void StartEdit(Balloon b)
     {
         _editId = b.Id;
-        _editBalloon = new Balloon { Id = b.Id, Registration = b.Registration, Type = b.Type, VolumeM3 = b.VolumeM3, InternalEnvelopeTempC = b.InternalEnvelopeTempC, EmptyWeightKg = b.EmptyWeightKg };
+        _editBalloon = new Balloon
+        {
+            Id = b.Id,
+            Registration = b.Registration,
+            Type = b.Type,
+            VolumeM3 = b.VolumeM3,
+            InternalEnvelopeTempC = b.InternalEnvelopeTempC,
+            EmptyWeightKg = b.EmptyWeightKg,
+            EnvelopeOnlyWeightKg = b.EnvelopeOnlyWeightKg,
+            BasketWeightKg = b.BasketWeightKg,
+            BurnerWeightKg = b.BurnerWeightKg,
+            CylindersWeightKg = b.CylindersWeightKg
+        };
     }
 
     private void CancelEdit()

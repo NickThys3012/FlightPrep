@@ -8,4 +8,9 @@ public class Passenger
     public string Name { get; set; } = string.Empty;
     public double WeightKg { get; set; }
     public int Order { get; set; }
+
+    // OFP manifest flags
+    public bool IsChild         { get; set; }
+    public bool NeedsAssistance { get; set; }
+    public bool IsTransport     { get; set; }
 }

@@ -15,6 +15,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<WindLevel> WindLevels => Set<WindLevel>();
     public DbSet<GoNoGoSettings> GoNoGoSettings => Set<GoNoGoSettings>();
     public DbSet<LoginEvent> LoginEvents { get; set; }
+    public DbSet<OFPSettings> OFPSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -101,6 +102,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 
         modelBuilder.Entity<GoNoGoSettings>()
             .HasIndex(g => g.UserId)
+            .IsUnique();
+
+        modelBuilder.Entity<OFPSettings>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(o => o.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<OFPSettings>()
+            .HasIndex(o => o.UserId)
             .IsUnique();
 
         modelBuilder.Entity<LoginEvent>(e =>

@@ -14,6 +14,7 @@
 @inject IJSRuntime Js
 @inject IKmlService KmlSvc
 @inject ILogger<FlightView> Logger
+@inject IOFPSettingsService OfpSettingsSvc
 
 <PageTitle>Vaart Bekijken – FlightPrep</PageTitle>
 
@@ -43,7 +44,10 @@ else
             <div class="fp-toolbar">
                 <a href="/flights/@_fp.Id/edit" class="btn btn-outline-secondary">Bewerken</a>
                 <button class="btn btn-success" @onclick="DownloadPdf">Download PDF</button>
-                <button class="btn btn-outline-primary" @onclick="() => _showFlownModal = true">Markeer als gevlogen
+                <button class="btn btn-outline-primary" @onclick="DownloadOfp">
+                    <i class="bi bi-file-earmark-text"></i> Download OFP
+                </button>
+                <button class="btn btn-outline-primary" @onclick="OpenFlownModal">Markeer als gevlogen
                 </button>
                 <a href="/flights" class="btn btn-outline-secondary">Terug</a>
             </div>
@@ -449,6 +453,29 @@ else
                         <label class="form-label">Opmerkingen</label>
                         <textarea class="form-control" rows="3" @bind="_flownRemarks"></textarea>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Brandstofverbruik (L)</label>
+                        <input type="number" step="0.1" class="form-control" @bind="_ofpFuelConsumptionL" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Landingslocatie</label>
+                        <input type="text" class="form-control" @bind="_ofpLandingLocation" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Zichtbare gebreken</label>
+                        <select class="form-select" @bind="_ofpVisibleDefects">
+                            <option value="">— Selecteer —</option>
+                            <option value="False">Neen</option>
+                            <option value="True">Ja</option>
+                        </select>
+                    </div>
+                    @if (_ofpVisibleDefects == "True")
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Toelichting gebreken</label>
+                            <textarea class="form-control" rows="3" @bind="_ofpVisibleDefectsNotes"></textarea>
+                        </div>
+                    }
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-success" @onclick="SaveFlown">Opslaan</button>
