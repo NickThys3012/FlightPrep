@@ -66,22 +66,31 @@
             <div class="list-group list-group-flush">
                 @foreach (var f in _recentFlights)
                 {
+                    var isShared = f.CreatedByUserId != _userId;
                     <a href="/flights/@f.Id"
-                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
-                        <div>
-                            <div class="fw-semibold">@f.Datum.ToString("dd/MM/yyyy") @f.Tijdstip.ToString("HH:mm")</div>
-                            <div class="text-muted small">
-                                @(f.Balloon?.Registration ?? "–") &nbsp;·&nbsp;
-                                @(f.Pilot?.Name ?? "–") &nbsp;·&nbsp;
-                                @(f.Location?.Name ?? "–")
+                       class="list-group-item list-group-item-action py-3 @(isShared ? "border-start border-4 border-info" : "")">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold">
+                                    @f.Datum.ToString("dd/MM/yyyy") @f.Tijdstip.ToString("HH:mm")
+                                    @if (isShared)
+                                    {
+                                        <span class="badge bg-info text-dark ms-2 small">Gedeeld</span>
+                                    }
+                                </div>
+                                <div class="text-muted small">
+                                    @(f.Balloon?.Registration ?? "–") &nbsp;·&nbsp;
+                                    @(f.Pilot?.Name ?? "–") &nbsp;·&nbsp;
+                                    @(f.Location?.Name ?? "–")
+                                </div>
                             </div>
-                        </div>
-                        <div class="d-flex gap-2 align-items-center">
-                            <FlightGoNoGoBadge GoNoGoResult="@GoNoGoSvc.Compute(f, _goNoGoSettings)"/>
-                            @if (f.IsFlown)
-                            {
-                                <span class="badge bg-success">Gevlogen</span>
-                            }
+                            <div class="d-flex gap-2 align-items-center">
+                                <FlightGoNoGoBadge GoNoGoResult="@GoNoGoSvc.Compute(f, _goNoGoSettings)"/>
+                                @if (f.IsFlown)
+                                {
+                                    <span class="badge bg-success">Gevlogen</span>
+                                }
+                            </div>
                         </div>
                     </a>
                 }
