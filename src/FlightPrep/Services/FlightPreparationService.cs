@@ -271,17 +271,21 @@ public class FlightPreparationService(
     }
 
     /// <summary>Hard-deletes a flight preparation and all cascade-related entities.</summary>
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(int id, string userId)
     {
+        ArgumentNullException.ThrowIfNull(userId);
         try
         {
             await using var db = await dbFactory.CreateDbContextAsync();
             var fp = await db.FlightPreparations.FindAsync(id);
-            if (fp != null)
+            if (fp == null) return;
+            if (fp.CreatedByUserId != userId)
             {
-                db.FlightPreparations.Remove(fp);
-                await db.SaveChangesAsync();
+                logger.LogWarning("DeleteAsync blocked: user {UserId} is not the owner of flight {FlightId}", userId, id);
+                return;
             }
+            db.FlightPreparations.Remove(fp);
+            await db.SaveChangesAsync();
         }
         catch (Exception ex)
         {

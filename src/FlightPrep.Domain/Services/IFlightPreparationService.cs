@@ -10,7 +10,7 @@ public interface IFlightPreparationService
     Task<List<FlightPreparationSummary>> GetSummariesAsync(string? userId, bool isAdmin);
     Task<FlightPreparation?> GetByIdAsync(int id);
     Task<int> SaveAsync(FlightPreparation fp);
-    Task DeleteAsync(int id);
+    Task DeleteAsync(int id, string userId);
     Task PatchTrajectoryJsonAsync(int id, string? json);
     Task PatchKmlTrackAsync(int id, string kml);
     Task PatchFlownAsync(int id, bool isFlown, string? landingNotes, int? durationMinutes, string? remarks,

@@ -51,7 +51,8 @@ public class FlightPreparationServiceTests
         Tijdstip = TimeOnly.FromDateTime(DateTime.Now),
         Balloon = balloon,
         Pilot = pilot,
-        Location = location
+        Location = location,
+        CreatedByUserId = "owner-1"
     };
 
     // ── GetBalloonsAsync ──────────────────────────────────────────────────────
@@ -480,7 +481,7 @@ public class FlightPreparationServiceTests
         Assert.NotNull(await sut.GetByIdAsync(id));
 
         // Act
-        await sut.DeleteAsync(id);
+        await sut.DeleteAsync(id, "owner-1");
 
         // Assert
         Assert.Null(await sut.GetByIdAsync(id));
@@ -494,7 +495,7 @@ public class FlightPreparationServiceTests
         var sut = BuildSut(factory);
 
         // Act & Assert
-        var ex = await Record.ExceptionAsync(() => sut.DeleteAsync(99999));
+        var ex = await Record.ExceptionAsync(() => sut.DeleteAsync(99999, "owner-1"));
         Assert.Null(ex);
     }
 
