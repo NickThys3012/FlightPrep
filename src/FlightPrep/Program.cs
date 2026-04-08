@@ -133,7 +133,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
-    using var db = dbFactory.CreateDbContext();
+    await using var db = dbFactory.CreateDbContext();
     db.Database.Migrate();
     await AdminSeeder.SeedAdminAsync(scope.ServiceProvider);
 }

@@ -77,7 +77,7 @@ public class FlightPreparationService(
                 f.ZichtbaarheidKm,
                 f.CapeJkg,
                 f.CreatedByUserId,
-                IsShared = isAdmin ? false : f.CreatedByUserId != userId,
+                IsShared = !isAdmin && f.CreatedByUserId != userId,
                 OwnerUserName = f.CreatedByUserId == null
                     ? null
                     : db.Users.Where(u => u.Id == f.CreatedByUserId).Select(u => u.UserName).FirstOrDefault()

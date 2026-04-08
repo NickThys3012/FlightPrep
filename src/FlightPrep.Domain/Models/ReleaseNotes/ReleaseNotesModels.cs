@@ -13,10 +13,10 @@ public class ReleaseEntry
     public int Pr { get; set; }
     public string Version { get; set; } = "";
     public string Title { get; set; } = "";
-    public string Description { get; set; } = "";
-    public string Author { get; set; } = "";
+    public string Description { get; } = "";
+    public string Author { get; } = "";
 
-    [JsonPropertyName("labels")] public List<string> Labels { get; set; } = [];
+    [JsonPropertyName("labels")] public List<string> Labels { get; } = [];
 
     public DateTime Date { get; set; }
 }

@@ -154,8 +154,7 @@ public partial class FlightEdit(
         }
         else
         {
-            _fp = new FlightPreparation { PaxBriefing = DefaultPaxBriefing };
-            _fp.CreatedByUserId = userId;
+            _fp = new FlightPreparation { PaxBriefing = DefaultPaxBriefing, CreatedByUserId = userId };
 
             // Populate OFP snapshot fields from ApplicationUser for new flights
             if (userId != null)
@@ -177,9 +176,9 @@ public partial class FlightEdit(
     {
         await base.OnAfterRenderAsync(firstRender);
         // Combined trajectory map: render once whenever either DR or 3D trajectories are available
-        var hasDr       = _simulatedTrajectories != null && _simulatedTrajectories.Count > 0;
+        var hasDr       = _simulatedTrajectories is { Count: > 0 };
         var hasEnh      = _enhancedTrajectories  != null && _enhancedTrajectories.Any(t => t.Points.Count > 0);
-        var hasLocation = _fp?.Location?.Latitude != null && _fp.Location.Longitude != null;
+        var hasLocation = _fp?.Location is { Latitude: not null, Longitude: not null };
 
         if ((hasDr || hasEnh) && !_combinedMapRendered && hasLocation)
         {
@@ -223,7 +222,7 @@ public partial class FlightEdit(
             return;
         }
         var valid = _fp.WindLevels
-            .Where(w => w.DirectionDeg.HasValue && w.SpeedKt is > 0)
+            .Where(w => w is { DirectionDeg: not null, SpeedKt: > 0 })
             .OrderBy(w => w.AltitudeFt)
             .ToList();
         if (!valid.Any())

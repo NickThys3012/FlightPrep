@@ -152,7 +152,7 @@ public partial class FlightMeteoSection : ComponentBase
 
     private void OnWindProfileToggleChanged(ChangeEventArgs e)
     {
-        var enabled = e.Value is bool and true;
+        var enabled = e.Value is true;
         if (enabled && Fp is { WindLevels.Count: 0 })
             PopulateDefaultWindLevels();
         ShowWindProfile = enabled;
