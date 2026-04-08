@@ -9,6 +9,7 @@ using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Primitives;
 using OpenTelemetry.Trace;
 using QuestPDF;
 using QuestPDF.Infrastructure;
@@ -30,12 +31,14 @@ builder.Host.UseSerilog((ctx, cfg) =>
         .WriteTo.Console();
 
     var connStr = ctx.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
-    if (!string.IsNullOrEmpty(connStr))
+    if (string.IsNullOrEmpty(connStr))
     {
-        var telemetryClient = new TelemetryClient(
-            new TelemetryConfiguration { ConnectionString = connStr });
-        cfg.WriteTo.ApplicationInsights(telemetryClient, TelemetryConverter.Traces);
+        return;
     }
+
+    var telemetryClient = new TelemetryClient(
+        new TelemetryConfiguration { ConnectionString = connStr });
+    cfg.WriteTo.ApplicationInsights(telemetryClient, TelemetryConverter.Traces);
 });
 
 builder.Services.AddDbContextFactory<AppDbContext>(opts =>
@@ -157,11 +160,13 @@ app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = ctx =>
     {
-        if (ctx.File.Name == "service-worker.js")
+        if (ctx.File.Name != "service-worker.js")
         {
-            ctx.Context.Response.Headers["Service-Worker-Allowed"] = "/";
-            ctx.Context.Response.Headers["Cache-Control"] = "no-cache";
+            return;
         }
+
+        ctx.Context.Response.Headers["Service-Worker-Allowed"] = "/";
+        ctx.Context.Response.Headers.CacheControl = new StringValues(["no-cache"]);
     }
 });
 app.MapStaticAssets();
@@ -180,7 +185,7 @@ app.MapGet("/api/powerlines", async (double south, double west, double north, do
 });
 
 // Tile proxy — serves OSM tiles same-origin so html2canvas can capture maps for PDF
-app.MapGet("/tiles/{z}/{x}/{y}", async (int z, int x, int y, IHttpClientFactory httpFactory, HttpContext ctx) =>
+app.MapGet("/tiles/{z:int}/{x:int}/{y:int}", async (int z, int x, int y, IHttpClientFactory httpFactory, HttpContext ctx) =>
 {
     if (z is < 0 or > 19 || x < 0 || y < 0)
     {

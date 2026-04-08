@@ -87,10 +87,10 @@ public class LoginModelTests
         // URL helper — local paths (starting with "/") are considered valid.
         var urlHelper = new Mock<IUrlHelper>();
         urlHelper
-            .Setup(u => u.IsLocalUrl(It.Is<string?>(s => s != null && s.StartsWith("/"))))
+            .Setup(u => u.IsLocalUrl(It.Is<string?>(s => s != null && s.StartsWith('/'))))
             .Returns(true);
         urlHelper
-            .Setup(u => u.IsLocalUrl(It.Is<string?>(s => s == null || !s.StartsWith("/"))))
+            .Setup(u => u.IsLocalUrl(It.Is<string?>(s => s == null || !s.StartsWith('/'))))
             .Returns(false);
         model.Url = urlHelper.Object;
 
@@ -235,7 +235,7 @@ public class LoginModelTests
             .SelectMany(v => v.Errors)
             .Select(e => e.ErrorMessage)
             .ToList();
-        Assert.Contains(errors, e => e.Contains("vergrendeld") || e.ToLower().Contains("locked"));
+        Assert.Contains(errors, e => e.Contains("vergrendeld") || e.Contains("locked",StringComparison.OrdinalIgnoreCase));
     }
 
     // ── Invalid credentials ───────────────────────────────────────────────────

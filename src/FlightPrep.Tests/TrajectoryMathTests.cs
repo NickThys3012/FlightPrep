@@ -59,7 +59,7 @@ public class TrajectoryMathTests
     {
         // On a sphere of radius R, 1000 m along a meridian = 1000/(R * π/180) degrees
         const double distM = 1000.0;
-        var expectedDeltaDeg = distM / (R * Math.PI / 180.0);
+        const double expectedDeltaDeg = distM / (R * Math.PI / 180.0);
 
         var (lat, _) = TrajectoryMath.HaversineDestination(51.0, 3.5, 0.0, distM);
 

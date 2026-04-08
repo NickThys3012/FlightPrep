@@ -170,12 +170,14 @@ public class EnhancedTrajectoryService(
         WindSnapshot? s1 = null, s2 = null;
         for (var i = 0; i < snapshots.Count - 1; i++)
         {
-            if (snapshots[i].TimeUtc <= time && snapshots[i + 1].TimeUtc > time)
+            if (snapshots[i].TimeUtc > time || snapshots[i + 1].TimeUtc <= time)
             {
-                s1 = snapshots[i];
-                s2 = snapshots[i + 1];
-                break;
+                continue;
             }
+
+            s1 = snapshots[i];
+            s2 = snapshots[i + 1];
+            break;
         }
 
         if (s1 == null)
@@ -238,14 +240,16 @@ public class EnhancedTrajectoryService(
         {
             var lo = levels[i];
             var hi = levels[i + 1];
-            if (altitudeFt >= lo.AltitudeFt && altitudeFt <= hi.AltitudeFt)
+            if (!(altitudeFt >= lo.AltitudeFt) || !(altitudeFt <= hi.AltitudeFt))
             {
-                double span = hi.AltitudeFt - lo.AltitudeFt;
-                var f = span > 0 ? (altitudeFt - lo.AltitudeFt) / span : 0;
-                var speed = (lo.SpeedKt ?? 0) + (((hi.SpeedKt ?? 0) - (lo.SpeedKt ?? 0)) * f);
-                var dir = LerpAngle(lo.DirectionDeg ?? 0, hi.DirectionDeg ?? 0, f);
-                return (speed, dir);
+                continue;
             }
+
+            double span = hi.AltitudeFt - lo.AltitudeFt;
+            var f = span > 0 ? (altitudeFt - lo.AltitudeFt) / span : 0;
+            var speed = (lo.SpeedKt ?? 0) + (((hi.SpeedKt ?? 0) - (lo.SpeedKt ?? 0)) * f);
+            var dir = LerpAngle(lo.DirectionDeg ?? 0, hi.DirectionDeg ?? 0, f);
+            return (speed, dir);
         }
 
         return (0, 0);

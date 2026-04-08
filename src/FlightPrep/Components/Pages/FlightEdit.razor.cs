@@ -184,7 +184,7 @@ public partial class FlightEdit(
         if ((hasDr || hasEnh) && !_combinedMapRendered && hasLocation)
         {
             _combinedMapRendered = true;
-            var drTrajsJs = (_simulatedTrajectories ?? new())
+            var drTrajsJs = (_simulatedTrajectories ?? [])
                 .Select(t => new
                 {
                     color       = t.Color,
@@ -193,7 +193,7 @@ public partial class FlightEdit(
                     hasAltitude = false,
                     points      = t.Points.Select(p => new[] { p.Lat, p.Lon }).ToArray()
                 });
-            var enhTrajsJs = (_enhancedTrajectories ?? new())
+            var enhTrajsJs = (_enhancedTrajectories ?? [])
                 .Where(t => t.Points.Count > 0)
                 .Select(t => new
                 {
@@ -248,7 +248,7 @@ public partial class FlightEdit(
     private void MergeSimulationsToFp()
     {
         if (_fp is null) return;
-        var all = new List<SimulatedTrajectory>(_simulatedTrajectories ?? new());
+        var all = new List<SimulatedTrajectory>(_simulatedTrajectories ?? []);
         if (_enhancedTrajectories != null)
             all.AddRange(_enhancedTrajectories.Where(t => t.Points.Count > 0));
         if (all.Count > 0)
@@ -278,7 +278,7 @@ public partial class FlightEdit(
             _enhancedError = "Voer minstens één kruishoogte in.";
             return;
         }
-        if (_enhCruiseAltsFt.Any(a => a < 500 || a > 20000))
+        if (_enhCruiseAltsFt.Any(a => a is < 500 or > 20000))
         {
             _enhancedError = "Kruishoogte(s) moeten tussen 500 en 20000 ft liggen.";
             return;
@@ -325,13 +325,15 @@ public partial class FlightEdit(
             _fp.EnvelopeWeightKg = balloon.EmptyWeightKg;
 
         // Populate OFP weight snapshots from balloon reference weights (only if currently null)
-        if (balloon != null)
+        if (balloon == null)
         {
-            if (_fp.OFPEnvelopeWeightKg == null) _fp.OFPEnvelopeWeightKg = balloon.EnvelopeOnlyWeightKg;
-            if (_fp.OFPBasketWeightKg   == null) _fp.OFPBasketWeightKg   = balloon.BasketWeightKg;
-            if (_fp.OFPBurnerWeightKg   == null) _fp.OFPBurnerWeightKg   = balloon.BurnerWeightKg;
-            if (_fp.CylindersWeightKg   == null) _fp.CylindersWeightKg   = balloon.CylindersWeightKg;
+            return;
         }
+
+        _fp.OFPEnvelopeWeightKg ??= balloon.EnvelopeOnlyWeightKg;
+        _fp.OFPBasketWeightKg ??= balloon.BasketWeightKg;
+        _fp.OFPBurnerWeightKg ??= balloon.BurnerWeightKg;
+        _fp.CylindersWeightKg ??= balloon.CylindersWeightKg;
     }
 
     private void OnPilotChanged()

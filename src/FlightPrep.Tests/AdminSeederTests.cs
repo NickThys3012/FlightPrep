@@ -53,7 +53,7 @@ public class AdminSeederTests
     ///     Builds a real <see cref="IServiceProvider" /> that returns the provided
     ///     mocked instances when <c>GetRequiredService&lt;T&gt;</c> is called.
     /// </summary>
-    private static IServiceProvider BuildProvider(
+    private static ServiceProvider BuildProvider(
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole> roleManager,
         IConfiguration config)

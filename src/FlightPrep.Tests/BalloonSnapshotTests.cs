@@ -57,14 +57,14 @@ public class BalloonSnapshotTests
             OFPEnvelopeWeightKg = null,
             OFPBasketWeightKg   = null,
             OFPBurnerWeightKg   = null,
-            CylindersWeightKg   = null,
+            CylindersWeightKg   = null
         };
         var balloon = new Balloon
         {
             EnvelopeOnlyWeightKg = 250,
             BasketWeightKg       = 70,
             BurnerWeightKg       = 18,
-            CylindersWeightKg    = 80,
+            CylindersWeightKg    = 80
         };
 
         // Act – replicate the full OnBalloonChanged guard block
@@ -89,14 +89,14 @@ public class BalloonSnapshotTests
             OFPEnvelopeWeightKg = 260,
             OFPBasketWeightKg   = 72,
             OFPBurnerWeightKg   = 20,
-            CylindersWeightKg   = 60,
+            CylindersWeightKg   = 60
         };
         var balloon = new Balloon
         {
             EnvelopeOnlyWeightKg = 250,
             BasketWeightKg       = 70,
             BurnerWeightKg       = 18,
-            CylindersWeightKg    = 80,
+            CylindersWeightKg    = 80
         };
 
         // Act

@@ -51,11 +51,13 @@ public partial class FlightMeteoSection : ComponentBase
         ArgumentNullException.ThrowIfNull(MeteoImages);
 
         // Initialize the wind-profile toggle at once when Fp first arrives from the parent.
-        if (!_initialized)
+        if (_initialized)
         {
-            _initialized = true;
-            _showWindProfile = Fp.WindLevels.Count > 0;
+            return;
         }
+
+        _initialized = true;
+        _showWindProfile = Fp.WindLevels.Count > 0;
     }
 
     // ── Weather fetching ────────────────────────────────────────────────────

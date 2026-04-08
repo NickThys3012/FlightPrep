@@ -193,10 +193,6 @@ public class FlightPreparationService(
                         windLevels[i].Id = 0;
                         windLevels[i].Order = i;
                     }
-
-                    db.WindLevels.AddRange(windLevels);
-
-                    await db.SaveChangesAsync();
                 }
                 else
                 {
@@ -236,11 +232,10 @@ public class FlightPreparationService(
                         windLevels[i].Id = 0;
                         windLevels[i].Order = i;
                     }
-
-                    db.WindLevels.AddRange(windLevels);
-
-                    await db.SaveChangesAsync();
                 }
+
+                db.WindLevels.AddRange(windLevels);
+                await db.SaveChangesAsync();
 
                 await tx.CommitAsync();
             }
@@ -529,10 +524,14 @@ public class FlightPreparationService(
         var currentYear = DateTime.UtcNow.Year;
 
         IQueryable<FlightPreparation> query = db.FlightPreparations;
-        if (!isAdmin && userId != null)
-            query = query.Where(f => f.CreatedByUserId == userId);
-        else if (!isAdmin)
-            return (0, 0, 0);
+        switch (isAdmin)
+        {
+            case false when userId != null:
+                query = query.Where(f => f.CreatedByUserId == userId);
+                break;
+            case false:
+                return (0, 0, 0);
+        }
 
         var total = await query.CountAsync();
         var thisYear = await query.CountAsync(f => f.Datum.Year == currentYear);
@@ -554,15 +553,15 @@ public class FlightPreparationService(
             .Include(f => f.Location)
             .AsQueryable();
 
-        if (!isAdmin && userId != null)
+        switch (isAdmin)
         {
-            query = query.Where(f =>
-                f.CreatedByUserId == userId ||
-                f.Shares.Any(s => s.SharedWithUserId == userId));
-        }
-        else if (!isAdmin)
-        {
-            return [];
+            case false when userId != null:
+                query = query.Where(f =>
+                    f.CreatedByUserId == userId ||
+                    f.Shares.Any(s => s.SharedWithUserId == userId));
+                break;
+            case false:
+                return [];
         }
 
         return await query
@@ -586,7 +585,13 @@ public class FlightPreparationService(
             .Include(f => f.Pilot)
             .Include(f => f.Location)
             .AsQueryable();
-        if (!isAdmin)
+        if (isAdmin)
+        {
+            return await query
+                .OrderBy(f => f.Datum)
+                .ToListAsync();
+        }
+
         {
             if (userId == null)
             {

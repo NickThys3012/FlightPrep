@@ -56,18 +56,18 @@ public class KmlServiceTests
     public void ParseCoordinates_KmlMissingNamespace_ReturnsEmptyList()
     {
         // No xmlns="http://www.opengis.net/kml/2.2" — service won't find the element
-        var kml = """
-                  <?xml version="1.0"?>
-                  <kml>
-                    <Document>
-                      <Placemark>
-                        <LineString>
-                          <coordinates>4.35,50.85,100</coordinates>
-                        </LineString>
-                      </Placemark>
-                    </Document>
-                  </kml>
-                  """;
+        const string kml = """
+                           <?xml version="1.0"?>
+                           <kml>
+                             <Document>
+                               <Placemark>
+                                 <LineString>
+                                   <coordinates>4.35,50.85,100</coordinates>
+                                 </LineString>
+                               </Placemark>
+                             </Document>
+                           </kml>
+                           """;
 
         var result = _sut.ParseCoordinates(kml);
 
