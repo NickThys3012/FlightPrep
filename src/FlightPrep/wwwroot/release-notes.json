@@ -1,6 +1,15 @@
 {
-  "currentVersion": "13.0.0",
+  "currentVersion": "13.0.1",
   "entries": [
+    {
+      "pr": 78,
+      "version": "13.0.1",
+      "title": "Add qodana CI checks",
+      "description": "Er is een nieuwe functionaliteit toegevoegd om de codekwaliteit te verbeteren.  \n- Qodana statische analyse is nu geïntegreerd in de GitHub-workflow, wat zorgt voor automatische kwaliteitscontroles bij elke pull request.  \n- De toevoeging van een qodana.yaml-bestand stelt ons in staat om specifieke analysetools en regels te configureren voor onze codebasis.  \n- Deze verbeteringen helpen om bugs en technische schulden vroegtijdig te identificeren, wat de algehele stabiliteit en prestaties van de applicatie ten goede komt voor de gebruikers.",
+      "author": "qodana-cloud[bot]",
+      "labels": [],
+      "date": "2026-04-08T20:00:02Z"
+    },
     {
       "pr": 69,
       "version": "13.0.0",
