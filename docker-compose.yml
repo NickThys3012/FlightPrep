@@ -8,7 +8,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=${CONNECTIONSTRINGS__DEFAULTCONNECTION}
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=flightprep;Username=${POSTGRES_USER:-fpuser};Password=${POSTGRES_PASSWORD:-fppass}
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
       - SEED_ADMIN_USERNAME=${SEED_ADMIN_USERNAME:-admin@e2etest.local}
       - SEED_ADMIN_PASSWORD=${SEED_ADMIN_PASSWORD:-E2eTest_Admin_123!}
