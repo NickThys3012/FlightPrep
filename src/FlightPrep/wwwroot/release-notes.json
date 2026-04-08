@@ -1,6 +1,15 @@
 {
-  "currentVersion": "11.1.1",
+  "currentVersion": "12.0.0",
   "entries": [
+    {
+      "pr": 66,
+      "version": "12.0.0",
+      "title": "[feature] OFP PDF export (#65)",
+      "description": "De nieuwe release van FlightPrep introduceert belangrijke verbeteringen voor de voorbereiding van ballonvluchten.  \n- Het is nu mogelijk om een Operational Flight Plan (OFP) als PDF te exporteren, wat de documentatie van de vlucht vergemakkelijkt en de professionaliteit verhoogt.  \n- Er zijn 12 nieuwe velden toegevoegd aan het OFP, waaronder gewichten voor de verschillende onderdelen van de ballon, waardoor piloten nauwkeuriger hun lading kunnen berekenen en plannen.  \n- Een nieuwe pagina voor OFP-instellingen stelt gebruikers in staat om een configurabel gewichtsoffset voor passagiersuitrusting in te stellen, wat zorgt voor meer flexibiliteit en personalisatie.  \n- De gebruikersinterface is verbeterd met nieuwe secties en knoppen, waaronder een downloadknop voor het OFP, wat de toegang en het gebruiksgemak vergroot.",
+      "author": "NickThys3012",
+      "labels": [],
+      "date": "2026-04-08T06:28:25Z"
+    },
     {
       "pr": 67,
       "version": "11.1.1",
