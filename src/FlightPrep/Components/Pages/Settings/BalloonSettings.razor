@@ -38,8 +38,7 @@
                                @bind="_editBalloon.VolumeM3"/></td>
                     <td><input type="number" min="0" max="100" class="form-control form-control-sm"
                                @bind="_editBalloon.InternalEnvelopeTempC"/></td>
-                    <td><input type="number" step="0.1" class="form-control form-control-sm"
-                               @bind="_editBalloon.EmptyWeightKg"/></td>
+                    <td>@(_editBalloon.EmptyWeightKg?.ToString("F1") ?? "–")</td>
                     <td><input type="number" step="0.1" class="form-control form-control-sm"
                                @bind="_editBalloon.EnvelopeOnlyWeightKg"/></td>
                     <td><input type="number" step="0.1" class="form-control form-control-sm"
@@ -83,8 +82,7 @@
                            @bind="_newBalloon.VolumeM3" placeholder="2200"/></td>
                 <td><input type="number" min="0" max="100" class="form-control form-control-sm"
                            @bind="_newBalloon.InternalEnvelopeTempC" placeholder="80"/></td>
-                <td><input type="number" step="0.1" class="form-control form-control-sm"
-                           @bind="_newBalloon.EmptyWeightKg"/></td>
+                <td>@(_newBalloon.EmptyWeightKg?.ToString("F1") ?? "–")</td>
                 <td><input type="number" step="0.1" class="form-control form-control-sm"
                            @bind="_newBalloon.EnvelopeOnlyWeightKg" placeholder="envelop kg"/></td>
                 <td><input type="number" step="0.1" class="form-control form-control-sm"

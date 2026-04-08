@@ -106,7 +106,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     // Wind levels table
                     if (fp.WindLevels.Count > 0)
                     {
-                        col.Item().PaddingTop(4).Column(wSection =>
+                        col.Item().PaddingTop(4).ShowEntire().Column(wSection =>
                         {
                             wSection.Item().Background(LightBg).Padding(3).Row(row =>
                             {
@@ -151,7 +151,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     ]);
 
                     // Section 5 - Technische Controle with checkboxes
-                    col.Item().PaddingTop(6).Background(PrimaryColor).Padding(4)
+                    col.Item().PaddingTop(6).ShowEntire().Background(PrimaryColor).Padding(4)
                         .Text("5. Technische Controle").Bold().FontColor(Colors.White).FontSize(10);
                     var checks = new[]
                     {
@@ -167,13 +167,13 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         alt5 = !alt5;
                     }
 
-                    col.Item().PaddingTop(6).Background(PrimaryColor).Padding(4)
+                    col.Item().PaddingTop(6).ShowEntire().Background(PrimaryColor).Padding(4)
                         .Text("6. Pax Briefing").Bold().FontColor(Colors.White).FontSize(10);
-                    col.Item().Background(Colors.White).Padding(4).Column(body =>
+                    col.Item().ShowEntire().Background(Colors.White).Padding(4).Column(body =>
                         RenderHtmlToColumn(body, fp.PaxBriefing));
 
                     // Section 7 - Load Calculation (items added directly to outer col for proper page-break support)
-                    col.Item().PaddingTop(6).Background(PrimaryColor).Padding(4)
+                    col.Item().PaddingTop(6).ShowEntire().Background(PrimaryColor).Padding(4)
                         .Text("7. Load Berekening").Bold().FontColor(Colors.White).FontSize(10);
                     col.Item().Background(LightBg).Padding(3)
                         .Text($"Gewicht envelop+brander+mand+flessen: {fp.EnvelopeWeightKg?.ToString("F1") ?? "–"} kg");
@@ -312,14 +312,14 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         AddImageGrid(col, trajImgs);
                     }
 
-                    col.Item().PaddingTop(6).Background(PrimaryColor).Padding(4)
+                    col.Item().PaddingTop(6).ShowEntire().Background(PrimaryColor).Padding(4)
                         .Text("9. Ballonbulletin").Bold().FontColor(Colors.White).FontSize(10);
-                    col.Item().Background(Colors.White).Padding(4)
+                    col.Item().ShowEntire().Background(Colors.White).Padding(4)
                         .Text(fp.Ballonbulletin ?? "–").FontFamily("Courier New").FontSize(7.5f);
 
                     if (fp.IsFlown)
                     {
-                        col.Item().PaddingTop(6).Background(Colors.Green.Darken1).Padding(4)
+                        col.Item().PaddingTop(6).ShowEntire().Background(Colors.Green.Darken1).Padding(4)
                             .Text("Vluchtverslag").Bold().FontColor(Colors.White).FontSize(10);
                         col.Item().Background(LightBg).Padding(3).Row(row =>
                         {
@@ -374,7 +374,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
     }
 
     private static void AddSection(ColumnDescriptor col, string title, (string Label, string Value)[] rows) =>
-        col.Item().PaddingTop(6).Column(section =>
+        col.Item().PaddingTop(6).ShowEntire().Column(section =>
         {
             section.Item().Background(PrimaryColor).Padding(4)
                 .Text(title).Bold().FontColor(Colors.White).FontSize(10);
@@ -609,7 +609,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     col.Item().PaddingTop(2).Text("(C) CHILD   (A) ASSISTANCE   (T) TRANSPORT")
                         .FontSize(7).Italic().FontColor(Colors.Grey.Darken1);
 
-                    col.Item().PaddingTop(6).Row(mainRow =>
+                    col.Item().PaddingTop(6).ShowEntire().Row(mainRow =>
                     {
                         // ── Left column: weather + fuel + load ──────────────
                         mainRow.RelativeItem(3).Column(left =>
@@ -640,7 +640,8 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                     .Text(fp.ZichtbaarheidKm.HasValue ? $"{fp.ZichtbaarheidKm} km" : "—").FontSize(8);
 
                                 wTable.Cell().Element(WLabelCell).Text("CLOUDS").Bold().FontSize(7);
-                                wTable.Cell().Element(WValueCell).Text("—").FontSize(8);
+                                wTable.Cell().Element(WValueCell)
+                                    .Text(!string.IsNullOrWhiteSpace(fp.Neerslag) ? fp.Neerslag : "—").FontSize(8);
 
                                 wTable.Cell().Element(WLabelCell).Text("TEMP").Bold().FontSize(7);
                                 wTable.Cell().Element(WValueCell)
@@ -655,7 +656,18 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                 if (windLevels.Count == 0)
                                 {
                                     wTable.Cell().Element(WLabelCell).Text("SURFACE WIND").Bold().FontSize(7);
-                                    wTable.Cell().Element(WValueCell).Text("—").FontSize(8);
+                                    string surfaceWindText;
+                                    if (fp.SurfaceWindDirectionDeg.HasValue || fp.SurfaceWindSpeedKt.HasValue)
+                                    {
+                                        var dir = fp.SurfaceWindDirectionDeg?.ToString("D3") ?? "---";
+                                        var spd = fp.SurfaceWindSpeedKt?.ToString("F0").PadLeft(2, '0') ?? "--";
+                                        surfaceWindText = $"{dir}/{spd}kt";
+                                    }
+                                    else
+                                    {
+                                        surfaceWindText = "—";
+                                    }
+                                    wTable.Cell().Element(WValueCell).Text(surfaceWindText).FontSize(8);
                                 }
                                 else
                                 {
@@ -809,7 +821,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     });
 
                     // ── Signature block ──────────────────────────────────────
-                    col.Item().PaddingTop(8).Border(0.5f).Padding(6).Column(sig =>
+                    col.Item().PaddingTop(8).ShowEntire().Border(0.5f).Padding(6).Column(sig =>
                     {
                         sig.Item().Text("SIGNATURE").Bold().FontSize(9).FontColor(PrimaryColor);
                         sig.Item().PaddingTop(2).Text("The pilot's signature confirms the following:").FontSize(8);
@@ -829,7 +841,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     });
 
                     // ── Post-flight record ────────────────────────────────────
-                    col.Item().PaddingTop(6).Border(0.5f).Table(pfTable =>
+                    col.Item().PaddingTop(6).ShowEntire().Border(0.5f).Table(pfTable =>
                     {
                         pfTable.ColumnsDefinition(cols =>
                         {
@@ -865,7 +877,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     });
 
                     // ── After flight / Visible defects ──────────────────────
-                    col.Item().PaddingTop(6).Border(0.5f).Table(dTable =>
+                    col.Item().PaddingTop(6).ShowEntire().Border(0.5f).Table(dTable =>
                     {
                         dTable.ColumnsDefinition(cols =>
                         {

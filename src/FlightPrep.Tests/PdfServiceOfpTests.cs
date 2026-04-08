@@ -309,4 +309,198 @@ public class PdfServiceOfpTests
         Assert.NotNull(result);
         Assert.True(result.Length > 0);
     }
+
+    // ── CLOUDS block (Neerslag fallback) ──────────────────────────────────────
+
+    [Fact]
+    public async Task GenerateOfpAsync_NeerslagSet_RendersWithoutException()
+    {
+        // Arrange – Neerslag is non-empty; CLOUDS cell should display its value
+        var sut = BuildSut();
+        var fp = new FlightPreparation
+        {
+            Datum    = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip = new TimeOnly(9, 0),
+            Neerslag = "SCT030 BKN050",
+        };
+
+        // Act
+        var result = await sut.GenerateOfpAsync(fp);
+
+        // Assert – Neerslag value path: non-empty PDF, no exception
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
+    }
+
+    [Fact]
+    public async Task GenerateOfpAsync_NeerslagNull_RendersFallbackDash()
+    {
+        // Arrange – Neerslag is null; CLOUDS cell should fall back to "—"
+        var sut = BuildSut();
+        var fp = new FlightPreparation
+        {
+            Datum    = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip = new TimeOnly(9, 0),
+            Neerslag = null,
+        };
+
+        // Act
+        var result = await sut.GenerateOfpAsync(fp);
+
+        // Assert – null fallback path: non-empty PDF, no exception
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
+    }
+
+    [Fact]
+    public async Task GenerateOfpAsync_NeerslagEmpty_RendersFallbackDash()
+    {
+        // Arrange – Neerslag is empty string; IsNullOrWhiteSpace → "—" path
+        var sut = BuildSut();
+        var fp = new FlightPreparation
+        {
+            Datum    = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip = new TimeOnly(9, 0),
+            Neerslag = string.Empty,
+        };
+
+        // Act
+        var result = await sut.GenerateOfpAsync(fp);
+
+        // Assert – empty-string fallback path: non-empty PDF, no exception
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
+    }
+
+    [Fact]
+    public async Task GenerateOfpAsync_NeerslagWhitespace_RendersFallbackDash()
+    {
+        // Arrange – Neerslag is whitespace only; IsNullOrWhiteSpace → "—" path
+        var sut = BuildSut();
+        var fp = new FlightPreparation
+        {
+            Datum    = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip = new TimeOnly(9, 0),
+            Neerslag = "   ",
+        };
+
+        // Act
+        var result = await sut.GenerateOfpAsync(fp);
+
+        // Assert – whitespace fallback path: non-empty PDF, no exception
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
+    }
+
+    // ── SURFACE WIND block (WindLevels empty, fallback formatting) ────────────
+
+    [Fact]
+    public async Task GenerateOfpAsync_NoWindLevels_BothSurfaceWindFieldsNull_RendersDash()
+    {
+        // Arrange – no wind levels and no surface wind data; should render "—"
+        var sut = BuildSut();
+        var fp = new FlightPreparation
+        {
+            Datum                    = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip                 = new TimeOnly(9, 0),
+            SurfaceWindDirectionDeg  = null,
+            SurfaceWindSpeedKt       = null,
+            // WindLevels is an empty list by default
+        };
+
+        // Act
+        var result = await sut.GenerateOfpAsync(fp);
+
+        // Assert – "—" fallback path: non-empty PDF, no exception
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
+    }
+
+    [Fact]
+    public async Task GenerateOfpAsync_NoWindLevels_BothSurfaceWindFieldsSet_FormatsAsDddSskt()
+    {
+        // Arrange – no wind levels but both surface wind direction and speed are set
+        //   → should render e.g. "270/15kt"
+        var sut = BuildSut();
+        var fp = new FlightPreparation
+        {
+            Datum                    = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip                 = new TimeOnly(9, 0),
+            SurfaceWindDirectionDeg  = 270,
+            SurfaceWindSpeedKt       = 15,
+        };
+
+        // Act
+        var result = await sut.GenerateOfpAsync(fp);
+
+        // Assert – "DDD/SSkt" format path: non-empty PDF, no exception
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
+    }
+
+    [Fact]
+    public async Task GenerateOfpAsync_NoWindLevels_OnlyDirectionSet_FormatsWithSpeedPlaceholder()
+    {
+        // Arrange – direction set, speed null → speed placeholder "--", e.g. "270/--kt"
+        var sut = BuildSut();
+        var fp = new FlightPreparation
+        {
+            Datum                    = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip                 = new TimeOnly(9, 0),
+            SurfaceWindDirectionDeg  = 270,
+            SurfaceWindSpeedKt       = null,
+        };
+
+        // Act
+        var result = await sut.GenerateOfpAsync(fp);
+
+        // Assert – partial-direction path: non-empty PDF, no exception
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
+    }
+
+    [Fact]
+    public async Task GenerateOfpAsync_NoWindLevels_OnlySpeedSet_FormatsWithDirectionPlaceholder()
+    {
+        // Arrange – speed set, direction null → direction placeholder "---", e.g. "---/15kt"
+        var sut = BuildSut();
+        var fp = new FlightPreparation
+        {
+            Datum                    = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip                 = new TimeOnly(9, 0),
+            SurfaceWindDirectionDeg  = null,
+            SurfaceWindSpeedKt       = 15,
+        };
+
+        // Act
+        var result = await sut.GenerateOfpAsync(fp);
+
+        // Assert – partial-speed path: non-empty PDF, no exception
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
+    }
+
+    [Fact]
+    public async Task GenerateOfpAsync_WithWindLevels_RendersLevelsInsteadOfSurfaceFallback()
+    {
+        // Arrange – wind levels present; SURFACE WIND fallback block must NOT render;
+        //   instead the per-level rows are rendered (existing behaviour, regression guard)
+        var sut = BuildSut();
+        var fp = new FlightPreparation
+        {
+            Datum                    = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip                 = new TimeOnly(9, 0),
+            SurfaceWindDirectionDeg  = null,
+            SurfaceWindSpeedKt       = null,
+        };
+        fp.WindLevels.Add(new WindLevel { AltitudeFt = 0,    DirectionDeg = 270, SpeedKt = 12, Order = 0 });
+        fp.WindLevels.Add(new WindLevel { AltitudeFt = 3000, DirectionDeg = 280, SpeedKt = 18, Order = 1 });
+
+        // Act
+        var result = await sut.GenerateOfpAsync(fp);
+
+        // Assert – wind-levels path: non-empty PDF, no exception
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
+    }
 }

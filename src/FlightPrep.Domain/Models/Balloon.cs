@@ -7,7 +7,10 @@ public class Balloon
     public string Type { get; set; } = string.Empty;
     public double? VolumeM3 { get; set; }
     public double? InternalEnvelopeTempC { get; set; }
-    public double? EmptyWeightKg { get; set; }
+    public double? EmptyWeightKg =>
+        (EnvelopeOnlyWeightKg ?? 0) + (BasketWeightKg ?? 0) + (BurnerWeightKg ?? 0) + (CylindersWeightKg ?? 0) > 0
+            ? (EnvelopeOnlyWeightKg ?? 0) + (BasketWeightKg ?? 0) + (BurnerWeightKg ?? 0) + (CylindersWeightKg ?? 0)
+            : (double?)null;
     public string? OwnerId { get; set; }
 
     // OFP reference weights (defaults; never used at PDF generation time — OFP snapshots are stored on FlightPreparation)
