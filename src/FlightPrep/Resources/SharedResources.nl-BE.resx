@@ -31,4 +31,5 @@
   <data name="No"><value>Nee</value></data>
   <data name="Error"><value>Fout</value></data>
   <data name="Success"><value>Gelukt</value></data>
+  <data name="ManualDutchOnly"><value>Deze handleiding is alleen beschikbaar in het Nederlands.</value></data>
 </root>

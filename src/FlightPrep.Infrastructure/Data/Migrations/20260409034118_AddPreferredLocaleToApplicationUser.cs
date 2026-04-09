@@ -15,7 +15,7 @@ namespace FlightPrep.Data.Migrations
                 table: "AspNetUsers",
                 type: "text",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "nl-BE");
         }
 
         /// <inheritdoc />

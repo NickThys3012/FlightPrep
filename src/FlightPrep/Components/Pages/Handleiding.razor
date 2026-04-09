@@ -1,5 +1,6 @@
 @page "/handleiding"
 @rendermode InteractiveServer
+@inject IStringLocalizer<SharedResources> Loc
 @using System.Globalization
 
 <PageTitle>Handleiding – FlightPrep</PageTitle>
@@ -7,7 +8,7 @@
 @if (CultureInfo.CurrentUICulture.Name == "en-GB")
 {
     <div class="alert alert-info" role="alert">
-        This manual is only available in Dutch.
+        @Loc["ManualDutchOnly"]
     </div>
 }
 
