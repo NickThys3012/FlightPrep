@@ -1,6 +1,17 @@
 {
-  "currentVersion": "14.0.1",
+  "currentVersion": "15.0.0",
   "entries": [
+    {
+      "pr": 83,
+      "version": "15.0.0",
+      "title": "fix: switch to qodana-community-dotnet linter and fix deprecated args",
+      "description": "De Qodana CI-integratie is verbeterd voor een betere codekwaliteit.  \n- Overgestapt van de `qodana-dotnet` naar de `qodana-community-dotnet` linter, waardoor de CI nu compatibel is met de Community-licentie.  \n- De verouderde argumenten voor de baseline zijn aangepast, wat toekomstige problemen met de CI voorkomt en zorgt voor een soepelere workflow.",
+      "author": "NickThys3012",
+      "labels": [
+        "enhancement"
+      ],
+      "date": "2026-04-09T08:41:35Z"
+    },
     {
       "pr": 82,
       "version": "14.0.1",
