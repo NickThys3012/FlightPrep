@@ -20,10 +20,10 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
-  <data name="Title"><value>Vlucht bewerken</value></data>
-  <data name="NewFlight"><value>Nieuwe vlucht</value></data>
-  <data name="FlightDate"><value>Vluchtdatum</value></data>
+  <data name="Title"><value>Vaart bewerken</value></data>
+  <data name="NewFlight"><value>Nieuwe vaart</value></data>
+  <data name="FlightDate"><value>Vaartdatum</value></data>
   <data name="DepartureLocation"><value>Vertreklocatie</value></data>
   <data name="Notes"><value>Notities</value></data>
-  <data name="SaveFlight"><value>Vlucht opslaan</value></data>
+  <data name="SaveFlight"><value>Vaart opslaan</value></data>
 </root>

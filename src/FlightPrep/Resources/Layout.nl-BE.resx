@@ -21,7 +21,7 @@
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <data name="Home"><value>Home</value></data>
-  <data name="Flights"><value>Vluchten</value></data>
+  <data name="Flights"><value>Vaarten</value></data>
   <data name="Settings"><value>Instellingen</value></data>
   <data name="Help"><value>Handleiding</value></data>
   <data name="Logout"><value>Afmelden</value></data>
