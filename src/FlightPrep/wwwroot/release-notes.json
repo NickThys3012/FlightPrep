@@ -1,6 +1,18 @@
 {
-  "currentVersion": "15.0.0",
+  "currentVersion": "16.0.0",
   "entries": [
+    {
+      "pr": 85,
+      "version": "16.0.0",
+      "title": "fix: remove hardcoded DB credentials from appsettings [fix]",
+      "description": "De hardcoded database-credentials zijn verwijderd voor verbeterde veiligheid.  \n- De echte verbindingsstring in `appsettings.json` is vervangen door een `CHANGE_ME` placeholder om gevoelige informatie te beschermen.  \n- De echte inloggegevens in `appsettings.Development.json` zijn eveneens vervangen door `CHANGE_ME` placeholders.  \n- Een nieuwe sjabloonbestand `appsettings.Development.json.example` is toegevoegd voor lokale ontwikkelaars om veilig hun eigen instellingen te configureren.  \n- De `.gitignore` is bijgewerkt om te voorkomen dat lokale wijzigingen in `appsettings.Development.json` per ongeluk worden gecommit.",
+      "author": "NickThys3012",
+      "labels": [
+        "bug",
+        "enhancement"
+      ],
+      "date": "2026-04-09T12:31:37Z"
+    },
     {
       "pr": 83,
       "version": "15.0.0",
