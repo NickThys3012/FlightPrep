@@ -1,0 +1,5 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5433;Database=flightprep;Username=fpuser;Password=fppass"
+  }
+}
