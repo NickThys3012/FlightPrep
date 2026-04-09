@@ -13,9 +13,6 @@
     --fp-text: #1A2B3C;
     --fp-muted: #6B7E90;
     --fp-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-    /* Semantic aliases */
-    --fp-primary: var(--fp-blue);
-    --fp-surface: var(--fp-light);
 }
 
 /* ── Base ── */

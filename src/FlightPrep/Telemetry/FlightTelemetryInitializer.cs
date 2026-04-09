@@ -7,7 +7,7 @@ namespace FlightPrep.Telemetry;
 ///     OpenTelemetry processor that enriches every trace span with flight and pilot context.
 ///     Runs at HTTP level only — Blazor circuit messages do not carry an HttpContext.
 /// </summary>
-internal sealed class FlightTelemetryInitializer : BaseProcessor<Activity>
+public sealed class FlightTelemetryInitializer : BaseProcessor<Activity>
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
 

@@ -15,7 +15,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<WindLevel> WindLevels => Set<WindLevel>();
     public DbSet<GoNoGoSettings> GoNoGoSettings => Set<GoNoGoSettings>();
     public DbSet<LoginEvent> LoginEvents { get; set; }
-    public DbSet<OFPSettings> OfpSettings => Set<OFPSettings>();
+    public DbSet<OFPSettings> OFPSettings { get; set; }
     public DbSet<FlightPreparationShare> FlightPreparationShares => Set<FlightPreparationShare>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -68,7 +68,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
                 Registration = "OO-BUT",
                 Type = "BB22N",
                 VolumeM3 = 2200,
-                InternalEnvelopeTempC = 80
+                InternalEnvelopeTempC = 80,
             }
         );
 

@@ -12,8 +12,6 @@ services:
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
       - SEED_ADMIN_USERNAME=${SEED_ADMIN_USERNAME:-admin@e2etest.local}
       - SEED_ADMIN_PASSWORD=${SEED_ADMIN_PASSWORD:-E2eTest_Admin_123!}
-      - SEED_VIEWER_USERNAME=${SEED_VIEWER_USERNAME:-viewer@e2etest.local}
-      - SEED_VIEWER_PASSWORD=${SEED_VIEWER_PASSWORD:-E2eTest_Viewer_123!}
     volumes:
       - dpkeys:/root/.aspnet/DataProtection-Keys
     depends_on:

@@ -5,13 +5,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FlightPrep.Services;
 
-public class OfpSettingsService(IDbContextFactory<AppDbContext> dbFactory) : IOFPSettingsService
+public class OFPSettingsService(IDbContextFactory<AppDbContext> dbFactory) : IOFPSettingsService
 {
     public async Task<OFPSettings> GetSettingsAsync(string? userId)
     {
         await using var db = await dbFactory.CreateDbContextAsync();
-        return await db.OfpSettings.FirstOrDefaultAsync(o => o.UserId == userId)
-               ?? await db.OfpSettings.FirstOrDefaultAsync(o => o.UserId == null)
+        return await db.OFPSettings.FirstOrDefaultAsync(o => o.UserId == userId)
+               ?? await db.OFPSettings.FirstOrDefaultAsync(o => o.UserId == null)
                ?? new OFPSettings();
     }
 
@@ -19,7 +19,7 @@ public class OfpSettingsService(IDbContextFactory<AppDbContext> dbFactory) : IOF
     {
         await using var db = await dbFactory.CreateDbContextAsync();
         s.UserId = userId;
-        var existing = await db.OfpSettings
+        var existing = await db.OFPSettings
             .FirstOrDefaultAsync(o => o.UserId == userId);
         if (existing != null)
         {
@@ -28,7 +28,7 @@ public class OfpSettingsService(IDbContextFactory<AppDbContext> dbFactory) : IOF
         }
         else
         {
-            db.OfpSettings.Add(new OFPSettings
+            db.OFPSettings.Add(new OFPSettings
             {
                 UserId                     = userId,
                 PassengerEquipmentWeightKg = s.PassengerEquipmentWeightKg

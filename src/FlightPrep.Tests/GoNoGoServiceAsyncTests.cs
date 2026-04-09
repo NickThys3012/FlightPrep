@@ -11,7 +11,7 @@ namespace FlightPrep.Tests;
 /// </summary>
 public class GoNoGoServiceAsyncTests
 {
-    private static TestDbContextFactory CreateFactory(string dbName)
+    private static IDbContextFactory<AppDbContext> CreateFactory(string dbName)
     {
         var opts = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(dbName)

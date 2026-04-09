@@ -165,8 +165,6 @@ jobs:
         env:
           SEED_ADMIN_USERNAME: admin@e2etest.local
           SEED_ADMIN_PASSWORD: E2eTest_Admin_123!
-          SEED_VIEWER_USERNAME: viewer@e2etest.local
-          SEED_VIEWER_PASSWORD: E2eTest_Viewer_123!
 
       - name: Wait for app to be ready
         run: |

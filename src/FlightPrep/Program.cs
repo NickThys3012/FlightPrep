@@ -9,7 +9,6 @@ using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Primitives;
 using OpenTelemetry.Trace;
 using QuestPDF;
 using QuestPDF.Infrastructure;
@@ -31,14 +30,12 @@ builder.Host.UseSerilog((ctx, cfg) =>
         .WriteTo.Console();
 
     var connStr = ctx.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
-    if (string.IsNullOrEmpty(connStr))
+    if (!string.IsNullOrEmpty(connStr))
     {
-        return;
+        var telemetryClient = new TelemetryClient(
+            new TelemetryConfiguration { ConnectionString = connStr });
+        cfg.WriteTo.ApplicationInsights(telemetryClient, TelemetryConverter.Traces);
     }
-
-    var telemetryClient = new TelemetryClient(
-        new TelemetryConfiguration { ConnectionString = connStr });
-    cfg.WriteTo.ApplicationInsights(telemetryClient, TelemetryConverter.Traces);
 });
 
 builder.Services.AddDbContextFactory<AppDbContext>(opts =>
@@ -74,7 +71,7 @@ builder.Services.AddHttpClient<IWeatherService, WeatherService>();
 builder.Services.AddSingleton<ISunriseService, SunriseService>();
 builder.Services.AddScoped<IPdfService, PdfService>();
 builder.Services.AddScoped<IGoNoGoService, GoNoGoService>();
-builder.Services.AddScoped<IOFPSettingsService, OfpSettingsService>();
+builder.Services.AddScoped<IOFPSettingsService, OFPSettingsService>();
 builder.Services.AddScoped<IFlightAssessmentService, FlightAssessmentService>();
 builder.Services.AddScoped<IFlightPreparationService, FlightPreparationService>();
 // Data protection keys persist to /root/.aspnet/DataProtection-Keys (mounted as Docker volume)
@@ -133,7 +130,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
-    await using var db = dbFactory.CreateDbContext();
+    using var db = dbFactory.CreateDbContext();
     db.Database.Migrate();
     await AdminSeeder.SeedAdminAsync(scope.ServiceProvider);
 }
@@ -160,13 +157,11 @@ app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = ctx =>
     {
-        if (ctx.File.Name != "service-worker.js")
+        if (ctx.File.Name == "service-worker.js")
         {
-            return;
+            ctx.Context.Response.Headers["Service-Worker-Allowed"] = "/";
+            ctx.Context.Response.Headers["Cache-Control"] = "no-cache";
         }
-
-        ctx.Context.Response.Headers["Service-Worker-Allowed"] = "/";
-        ctx.Context.Response.Headers.CacheControl = new StringValues(["no-cache"]);
     }
 });
 app.MapStaticAssets();
@@ -185,7 +180,7 @@ app.MapGet("/api/powerlines", async (double south, double west, double north, do
 });
 
 // Tile proxy — serves OSM tiles same-origin so html2canvas can capture maps for PDF
-app.MapGet("/tiles/{z:int}/{x:int}/{y:int}", async (int z, int x, int y, IHttpClientFactory httpFactory, HttpContext ctx) =>
+app.MapGet("/tiles/{z}/{x}/{y}", async (int z, int x, int y, IHttpClientFactory httpFactory, HttpContext ctx) =>
 {
     if (z is < 0 or > 19 || x < 0 || y < 0)
     {

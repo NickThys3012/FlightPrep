@@ -249,7 +249,7 @@ public class FlightPreparationTests
             OFPBasketWeightKg   = 80,
             OFPBurnerWeightKg   = 20,
             CylindersWeightKg   = 30,
-            PicWeightKg         = 85
+            PicWeightKg         = 85,
         };
         fp.Passengers.Add(new Passenger { WeightKg = 70 });
 
@@ -270,7 +270,7 @@ public class FlightPreparationTests
             OFPBasketWeightKg   = null,
             OFPBurnerWeightKg   = null,
             CylindersWeightKg   = null,
-            PicWeightKg         = 80
+            PicWeightKg         = 80,
         };
 
         // Act
@@ -286,7 +286,7 @@ public class FlightPreparationTests
         // Arrange: 3 passengers each 60 kg, equipment offset = 10
         var fp = new FlightPreparation
         {
-            PicWeightKg = 0
+            PicWeightKg = 0,
         };
         fp.Passengers.Add(new Passenger { WeightKg = 60 });
         fp.Passengers.Add(new Passenger { WeightKg = 60 });
@@ -306,7 +306,7 @@ public class FlightPreparationTests
         var fp = new FlightPreparation
         {
             PicWeightKg = null,
-            Pilot       = new Pilot { WeightKg = 75 }
+            Pilot       = new Pilot { WeightKg = 75 },
         };
 
         // Act
@@ -323,7 +323,7 @@ public class FlightPreparationTests
         var fp = new FlightPreparation
         {
             PicWeightKg = null,
-            Pilot       = null
+            Pilot       = null,
         };
 
         // Act
@@ -343,7 +343,7 @@ public class FlightPreparationTests
             OFPBasketWeightKg   = 50,
             OFPBurnerWeightKg   = 15,
             CylindersWeightKg   = 25,
-            PicWeightKg         = 90
+            PicWeightKg         = 90,
         };
         // Passengers list intentionally empty
 

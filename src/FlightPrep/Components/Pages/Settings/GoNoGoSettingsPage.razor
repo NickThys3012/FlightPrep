@@ -1,8 +1,10 @@
 @page "/settings/gonogo"
+@using FlightPrep.Domain.Models
 @using FlightPrep.Domain.Services
 @attribute [Authorize]
 @rendermode InteractiveServer
 @inject IGoNoGoService GoNoGoSvc
+@inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Go/No-Go Instellingen</PageTitle>

@@ -143,8 +143,6 @@ public sealed class ReleaseNotesServiceTests : IDisposable
         // Assert — every caller received a fully populated, non-null document
         Assert.All(results, r =>
         {
-            ArgumentNullException.ThrowIfNull(r);
-            
             Assert.NotNull(r);
             Assert.Equal("2.0.0", r.CurrentVersion);
             Assert.Equal(2, r.Entries.Count);

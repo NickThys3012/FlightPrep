@@ -72,7 +72,7 @@ public class WeatherServiceTests
     }
 }
 
-internal class MockWeatherHandler(
+public class MockWeatherHandler(
     string? metar = null,
     string? taf = null,
     bool throwException = false,
