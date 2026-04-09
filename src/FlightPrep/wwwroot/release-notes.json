@@ -1,6 +1,19 @@
 {
-  "currentVersion": "16.0.1",
+  "currentVersion": "16.0.2",
   "entries": [
+    {
+      "pr": 87,
+      "version": "16.0.2",
+      "title": "fix: address 7 architecture issues + 22 new tests [fix]",
+      "description": "Er zijn verschillende belangrijke verbeteringen en tests toegevoegd aan de FlightPrep-webapplicatie.  \n- De architectuur is verbeterd door de `TrajectoryMath` te verplaatsen naar de juiste laag, wat zorgt voor een schonere code en betere onderhoudbaarheid.  \n- De nieuwe `TileProxyEndpoint` biedt verbeterde validatie en waarschuwing logging, wat de betrouwbaarheid van de kaartfunctionaliteit vergroot.  \n- Server-side paginering is toegevoegd aan de `FlightList`, waardoor de prestaties verbeteren bij het laden van grote datasets.  \n- Er zijn 22 nieuwe tests toegevoegd, wat de testdekking vergroot en zorgt voor een hogere kwaliteit van de applicatie.",
+      "author": "NickThys3012",
+      "labels": [
+        "bug",
+        "testing",
+        "architecture"
+      ],
+      "date": "2026-04-09T17:54:37Z"
+    },
     {
       "pr": 86,
       "version": "16.0.1",
