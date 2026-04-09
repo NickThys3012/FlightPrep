@@ -1,6 +1,17 @@
 {
-  "currentVersion": "16.0.2",
+  "currentVersion": "16.0.3",
   "entries": [
+    {
+      "pr": 88,
+      "version": "16.0.3",
+      "title": "fix: #58 #60 #70 #75 — auth, logout, missing flight redirect, min=0 inputs [fix]",
+      "description": "Er zijn verschillende verbeteringen en bugfixes doorgevoerd in de applicatie.  \n- De FlightView toont nu een directe redirect naar de vluchtlijst als er een niet-bestaande vlucht wordt opgevraagd, wat de gebruikservaring verbetert.  \n- Invoervelden voor gewicht en hoogte accepteren nu geen negatieve waarden meer, waardoor invoerfouten worden voorkomen en de nauwkeurigheid van de gegevens wordt gegarandeerd.  \n- De minimale waarden voor specifieke invoervelden zijn ingesteld, waardoor gebruikers gedwongen worden om geldige en logische gegevens in te voeren.",
+      "author": "NickThys3012",
+      "labels": [
+        "bug"
+      ],
+      "date": "2026-04-09T18:45:10Z"
+    },
     {
       "pr": 87,
       "version": "16.0.2",
