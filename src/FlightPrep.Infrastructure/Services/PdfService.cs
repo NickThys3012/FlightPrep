@@ -16,7 +16,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
     private const string PrimaryColor = "#1a3a5c";
     private const string LightBg = "#f0f4f8";
 
-    public async Task<byte[]> GenerateAsync(FlightPreparation fp, byte[]? mapPng = null, string? userId = null)
+    public async Task<byte[]> GenerateAsync(FlightPreparation fp, byte[]? mapPng = null, string? userId = null, string locale = "nl-BE")
     {
         // Generate a trajectory map server-side if the caller didn't provide a pre-rendered one
         mapPng ??= await mapSvc.RenderAsync(fp.TrajectorySimulationJson);

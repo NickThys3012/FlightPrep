@@ -1,0 +1,12 @@
+@inject NavigationManager Nav
+
+<div class="language-switcher d-flex gap-1">
+    @{
+        var currentUri = new Uri(Nav.Uri);
+        var redirectUri = currentUri.PathAndQuery;
+    }
+    <a href="/Culture/Set?culture=nl-BE&redirectUri=@Uri.EscapeDataString(redirectUri)"
+       class="btn btn-sm btn-outline-secondary">NL</a>
+    <a href="/Culture/Set?culture=en-GB&redirectUri=@Uri.EscapeDataString(redirectUri)"
+       class="btn btn-sm btn-outline-secondary">EN</a>
+</div>

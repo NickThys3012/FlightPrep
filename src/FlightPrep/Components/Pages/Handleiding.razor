@@ -1,7 +1,16 @@
 @page "/handleiding"
 @rendermode InteractiveServer
+@inject IStringLocalizer<SharedResources> Loc
+@using System.Globalization
 
 <PageTitle>Handleiding – FlightPrep</PageTitle>
+
+@if (CultureInfo.CurrentUICulture.Name == "en-GB")
+{
+    <div class="alert alert-info" role="alert">
+        @Loc["ManualDutchOnly"]
+    </div>
+}
 
 <div class="container py-4" style="max-width:900px">
     <h1 class="mb-1">📖 Handleiding</h1>

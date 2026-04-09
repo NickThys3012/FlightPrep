@@ -8,6 +8,7 @@ using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Trace;
 using QuestPDF;
@@ -123,6 +124,7 @@ builder.Services.AddSingleton<IReleaseNotesService, ReleaseNotesService>();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddRazorPages();
+builder.Services.AddLocalization(opts => opts.ResourcesPath = "Resources");
 
 var app = builder.Build();
 
@@ -152,6 +154,17 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 app.UseAuthentication();
 app.UseAuthorization();
+
+var supportedCultures = new[] { "nl-BE", "en-GB" };
+var localizationOptions = new RequestLocalizationOptions()
+    .SetDefaultCulture(supportedCultures[0])
+    .AddSupportedCultures(supportedCultures)
+    .AddSupportedUICultures(supportedCultures);
+localizationOptions.RequestCultureProviders.Clear();
+localizationOptions.RequestCultureProviders.Add(new CookieRequestCultureProvider());
+localizationOptions.RequestCultureProviders.Add(new QueryStringRequestCultureProvider());
+localizationOptions.RequestCultureProviders.Add(new AcceptLanguageHeaderRequestCultureProvider());
+app.UseRequestLocalization(localizationOptions);
 app.MapRazorPages();
 app.UseStaticFiles(new StaticFileOptions
 {
