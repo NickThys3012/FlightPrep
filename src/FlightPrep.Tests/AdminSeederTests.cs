@@ -1,6 +1,8 @@
 using FlightPrep.Infrastructure.Data;
 using FlightPrep.Services;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -52,16 +54,25 @@ public class AdminSeederTests
     /// <summary>
     ///     Builds a real <see cref="IServiceProvider" /> that returns the provided
     ///     mocked instances when <c>GetRequiredService&lt;T&gt;</c> is called.
+    ///     An isolated EF Core InMemory database is registered so that the
+    ///     <c>GoNoGoSettings</c> seeding step inside <see cref="AdminSeeder.SeedAdminAsync" />
+    ///     does not throw a missing-service exception.
     /// </summary>
     private static IServiceProvider BuildProvider(
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole> roleManager,
-        IConfiguration config)
-        => new ServiceCollection()
-            .AddSingleton(userManager)
-            .AddSingleton(roleManager)
-            .AddSingleton(config)
-            .BuildServiceProvider();
+        IConfiguration config,
+        string? dbName = null)
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton(userManager);
+        services.AddSingleton(roleManager);
+        services.AddSingleton(config);
+        services.AddDbContextFactory<AppDbContext>(o =>
+            o.UseInMemoryDatabase(dbName ?? Guid.NewGuid().ToString())
+             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
+        return services.BuildServiceProvider();
+    }
 
     // ── Early-exit: missing env-var ───────────────────────────────────────────
 
@@ -227,5 +238,102 @@ public class AdminSeederTests
         // Assert — no exception, roles not re-created
         Assert.Null(ex);
         roleMgr.Verify(r => r.CreateAsync(It.IsAny<IdentityRole>()), Times.Never);
+    }
+
+    // ── GoNoGoSettings seeding ────────────────────────────────────────────────
+
+    /// <summary>Helper that creates a service provider wired to a real InMemory DB by name.</summary>
+    private static IServiceProvider BuildProviderWithDb(string dbName)
+    {
+        var userMgr = CreateUserManagerMock();
+        var roleMgr = CreateRoleManagerMock();
+        roleMgr.Setup(r => r.RoleExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
+        userMgr.Setup(u => u.FindByNameAsync(It.IsAny<string>()))
+            .ReturnsAsync((ApplicationUser?)null);
+        userMgr.Setup(u => u.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
+            .ReturnsAsync(IdentityResult.Success);
+        userMgr.Setup(u => u.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
+            .ReturnsAsync(IdentityResult.Success);
+        var config = BuildConfig("admin@example.com", "P@ssw0rd!");
+        return BuildProvider(userMgr.Object, roleMgr.Object, config, dbName);
+    }
+
+    [Fact]
+    public async Task SeedAdminAsync_FreshDatabase_CreatesGlobalGoNoGoSettingsRow()
+    {
+        // Arrange
+        var dbName = nameof(SeedAdminAsync_FreshDatabase_CreatesGlobalGoNoGoSettingsRow);
+        var sp = BuildProviderWithDb(dbName);
+
+        // Act
+        await AdminSeeder.SeedAdminAsync(sp);
+
+        // Assert — exactly one row with UserId == null exists
+        var factory = sp.GetRequiredService<IDbContextFactory<AppDbContext>>();
+        await using var db = await factory.CreateDbContextAsync();
+        var settings = await db.GoNoGoSettings.Where(g => g.UserId == null).ToListAsync();
+        Assert.Single(settings);
+    }
+
+    [Fact]
+    public async Task SeedAdminAsync_FreshDatabase_GoNoGoSettingsHaveSensibleDefaults()
+    {
+        // Arrange
+        var dbName = nameof(SeedAdminAsync_FreshDatabase_GoNoGoSettingsHaveSensibleDefaults);
+        var sp = BuildProviderWithDb(dbName);
+
+        // Act
+        await AdminSeeder.SeedAdminAsync(sp);
+
+        // Assert — the seeded row has the expected threshold values
+        var factory = sp.GetRequiredService<IDbContextFactory<AppDbContext>>();
+        await using var db = await factory.CreateDbContextAsync();
+        var s = await db.GoNoGoSettings.SingleAsync(g => g.UserId == null);
+        Assert.Equal(10,  s.WindYellowKt);
+        Assert.Equal(15,  s.WindRedKt);
+        Assert.Equal(5,   s.VisYellowKm);
+        Assert.Equal(3,   s.VisRedKm);
+        Assert.Equal(300, s.CapeYellowJkg);
+        Assert.Equal(500, s.CapeRedJkg);
+    }
+
+    [Fact]
+    public async Task SeedAdminAsync_RowAlreadyExists_DoesNotInsertDuplicate()
+    {
+        // Arrange — pre-seed the DB with a global row
+        var dbName = nameof(SeedAdminAsync_RowAlreadyExists_DoesNotInsertDuplicate);
+        var sp = BuildProviderWithDb(dbName);
+        var factory = sp.GetRequiredService<IDbContextFactory<AppDbContext>>();
+        await using (var db = await factory.CreateDbContextAsync())
+        {
+            db.GoNoGoSettings.Add(new FlightPrep.Domain.Models.GoNoGoSettings { UserId = null });
+            await db.SaveChangesAsync();
+        }
+
+        // Act — run seeder a second time
+        await AdminSeeder.SeedAdminAsync(sp);
+
+        // Assert — still only one row
+        await using var db2 = await factory.CreateDbContextAsync();
+        var count = await db2.GoNoGoSettings.CountAsync(g => g.UserId == null);
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public async Task SeedAdminAsync_CalledTwiceOnFreshDb_StillOnlyOneRow()
+    {
+        // Arrange
+        var dbName = nameof(SeedAdminAsync_CalledTwiceOnFreshDb_StillOnlyOneRow);
+        var sp = BuildProviderWithDb(dbName);
+
+        // Act — invoke the seeder twice in a row
+        await AdminSeeder.SeedAdminAsync(sp);
+        await AdminSeeder.SeedAdminAsync(sp);
+
+        // Assert — idempotent: exactly one global settings row
+        var factory = sp.GetRequiredService<IDbContextFactory<AppDbContext>>();
+        await using var db = await factory.CreateDbContextAsync();
+        var count = await db.GoNoGoSettings.CountAsync(g => g.UserId == null);
+        Assert.Equal(1, count);
     }
 }
