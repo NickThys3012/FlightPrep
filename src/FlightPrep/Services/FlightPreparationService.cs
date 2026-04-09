@@ -105,6 +105,89 @@ public class FlightPreparationService(
     }
 
     /// <summary>
+    ///     Returns a single page of flight summaries filtered by <paramref name="statusFilter" />
+    ///     (alle / gevlogen / niet-gevlogen / gedeeld) with a total count for pagination controls.
+    ///     Filtering and pagination are applied at the database level to avoid loading all rows.
+    /// </summary>
+    public async Task<(List<FlightPreparationSummary> Items, int Total)> GetSummariesPagedAsync(
+        string? userId, bool isAdmin, string statusFilter, int page, int pageSize, bool sortDescending = true)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+
+        await using var db = await dbFactory.CreateDbContextAsync();
+        var query = db.FlightPreparations.AsQueryable();
+
+        if (!isAdmin)
+        {
+            if (userId == null) return ([], 0);
+            query = query.Where(f =>
+                f.CreatedByUserId == userId ||
+                f.Shares.Any(s => s.SharedWithUserId == userId));
+        }
+
+        // Apply status filter at the database level
+        query = statusFilter switch
+        {
+            "gevlogen"      => query.Where(f => f.IsFlown),
+            "niet-gevlogen" => query.Where(f => !f.IsFlown),
+            "gedeeld"       => query.Where(f => f.CreatedByUserId != userId && f.Shares.Any(s => s.SharedWithUserId == userId)),
+            _               => query
+        };
+
+        var total = await query.CountAsync();
+
+        var ordered = sortDescending
+            ? query.OrderByDescending(f => f.Datum).ThenByDescending(f => f.Tijdstip)
+            : query.OrderBy(f => f.Datum).ThenBy(f => f.Tijdstip);
+
+        var flights = await ordered
+            .Include(f => f.Shares)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(f => new
+            {
+                f.Id,
+                f.Datum,
+                f.Tijdstip,
+                f.IsFlown,
+                BalloonRegistration = f.Balloon != null ? f.Balloon.Registration : null,
+                PilotName = f.Pilot != null ? f.Pilot.Name : null,
+                LocationName = f.Location != null ? f.Location.Name : null,
+                f.SurfaceWindSpeedKt,
+                f.ZichtbaarheidKm,
+                f.CapeJkg,
+                f.CreatedByUserId,
+                IsShared = isAdmin ? false : f.CreatedByUserId != userId,
+                OwnerUserName = f.CreatedByUserId == null
+                    ? null
+                    : db.Users.Where(u => u.Id == f.CreatedByUserId).Select(u => u.UserName).FirstOrDefault()
+            })
+            .ToListAsync();
+
+        var items = flights
+            .Select(f => new FlightPreparationSummary(
+                f.Id,
+                f.Datum,
+                f.Tijdstip,
+                f.IsFlown,
+                f.BalloonRegistration,
+                f.PilotName,
+                f.LocationName,
+                f.SurfaceWindSpeedKt,
+                f.ZichtbaarheidKm,
+                f.CapeJkg,
+                f.CreatedByUserId)
+            {
+                IsShared = f.IsShared,
+                SharedByName = f.IsShared ? (f.OwnerUserName ?? f.CreatedByUserId) : null
+            })
+            .ToList();
+
+        return (items, total);
+    }
+
+    /// <summary>
     ///     Returns the full <see cref="FlightPreparation" /> with all navigation properties
     ///     eagerly loaded, or <c>null</c> if not found.
     /// </summary>

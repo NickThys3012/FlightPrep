@@ -132,6 +132,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             .HasIndex(s => new { s.FlightPreparationId, s.SharedWithUserId })
             .IsUnique();
 
+        // Store trajectory JSON as PostgreSQL jsonb for efficient storage and querying
+        modelBuilder.Entity<FlightPreparation>()
+            .Property(f => f.TrajectorySimulationJson)
+            .HasColumnType("jsonb");
+
         modelBuilder.Entity<LoginEvent>(e =>
         {
             e.HasIndex(x => x.Email);

@@ -837,4 +837,292 @@ public class FlightPreparationServiceTests
         Assert.Single(loaded.Images);
         Assert.Equal("after.jpg", loaded.Images[0].FileName);
     }
+
+    // ── GetSummariesPagedAsync ────────────────────────────────────────────────
+
+    // Helper: build a flight owned by a user with optional IsFlown and date offset
+    private static FlightPreparation MakeFlight(
+        string userId,
+        bool isFlown = false,
+        int dateDeltaDays = 0) => new()
+    {
+        Datum           = DateOnly.FromDateTime(DateTime.Today.AddDays(dateDeltaDays)),
+        Tijdstip        = TimeOnly.MinValue,
+        CreatedByUserId = userId,
+        IsFlown         = isFlown,
+    };
+
+    [Fact]
+    public async Task GetSummariesPagedAsync_SinglePage_ReturnsAllItems()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(GetSummariesPagedAsync_SinglePage_ReturnsAllItems));
+        var sut     = BuildSut(factory);
+        await using var db = await factory.CreateDbContextAsync();
+        db.FlightPreparations.AddRange(MakeFlight("u1"), MakeFlight("u1"), MakeFlight("u1"));
+        await db.SaveChangesAsync();
+
+        // Act
+        var (items, total) = await sut.GetSummariesPagedAsync("u1", false, "alle", 1, 10);
+
+        // Assert
+        Assert.Equal(3, total);
+        Assert.Equal(3, items.Count);
+    }
+
+    [Fact]
+    public async Task GetSummariesPagedAsync_RespectsPageSize_NeverReturnsMore()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(GetSummariesPagedAsync_RespectsPageSize_NeverReturnsMore));
+        var sut     = BuildSut(factory);
+        await using var db = await factory.CreateDbContextAsync();
+        for (var i = 0; i < 5; i++) db.FlightPreparations.Add(MakeFlight("u1"));
+        await db.SaveChangesAsync();
+
+        // Act — page size 2
+        var (items, total) = await sut.GetSummariesPagedAsync("u1", false, "alle", 1, 2);
+
+        // Assert
+        Assert.Equal(5, total);   // total is always the unsliced count
+        Assert.Equal(2, items.Count);
+    }
+
+    [Fact]
+    public async Task GetSummariesPagedAsync_SecondPage_SkipsFirstPageItems()
+    {
+        // Arrange — 5 flights; page 2 with pageSize 2 should return items 3-4
+        var factory = CreateFactory(nameof(GetSummariesPagedAsync_SecondPage_SkipsFirstPageItems));
+        var sut     = BuildSut(factory);
+        await using var db = await factory.CreateDbContextAsync();
+        for (var i = 0; i < 5; i++) db.FlightPreparations.Add(MakeFlight("u1", dateDeltaDays: i));
+        await db.SaveChangesAsync();
+
+        var (page1, _) = await sut.GetSummariesPagedAsync("u1", false, "alle", 1, 2);
+        var (page2, _) = await sut.GetSummariesPagedAsync("u1", false, "alle", 2, 2);
+
+        // Assert — no IDs in common between pages
+        var ids1 = page1.Select(f => f.Id).ToHashSet();
+        Assert.All(page2, f => Assert.DoesNotContain(f.Id, ids1));
+    }
+
+    [Fact]
+    public async Task GetSummariesPagedAsync_SortDescending_MostRecentFirst()
+    {
+        // Arrange — create 3 flights with different dates
+        var factory = CreateFactory(nameof(GetSummariesPagedAsync_SortDescending_MostRecentFirst));
+        var sut     = BuildSut(factory);
+        await using var db = await factory.CreateDbContextAsync();
+        db.FlightPreparations.AddRange(
+            MakeFlight("u1", dateDeltaDays: 0),
+            MakeFlight("u1", dateDeltaDays: -5),
+            MakeFlight("u1", dateDeltaDays: -10));
+        await db.SaveChangesAsync();
+
+        // Act
+        var (items, _) = await sut.GetSummariesPagedAsync("u1", false, "alle", 1, 10, sortDescending: true);
+
+        // Assert — dates descending
+        for (var i = 1; i < items.Count; i++)
+            Assert.True(items[i].Datum <= items[i - 1].Datum,
+                $"Expected descending dates but got {items[i - 1].Datum} then {items[i].Datum}");
+    }
+
+    [Fact]
+    public async Task GetSummariesPagedAsync_SortAscending_OldestFirst()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(GetSummariesPagedAsync_SortAscending_OldestFirst));
+        var sut     = BuildSut(factory);
+        await using var db = await factory.CreateDbContextAsync();
+        db.FlightPreparations.AddRange(
+            MakeFlight("u1", dateDeltaDays: -10),
+            MakeFlight("u1", dateDeltaDays: -5),
+            MakeFlight("u1", dateDeltaDays: 0));
+        await db.SaveChangesAsync();
+
+        // Act
+        var (items, _) = await sut.GetSummariesPagedAsync("u1", false, "alle", 1, 10, sortDescending: false);
+
+        // Assert — dates ascending
+        for (var i = 1; i < items.Count; i++)
+            Assert.True(items[i].Datum >= items[i - 1].Datum,
+                $"Expected ascending dates but got {items[i - 1].Datum} then {items[i].Datum}");
+    }
+
+    [Fact]
+    public async Task GetSummariesPagedAsync_IsAdmin_ReturnsAllUsersFlights()
+    {
+        // Arrange — flights belonging to two different users
+        var factory = CreateFactory(nameof(GetSummariesPagedAsync_IsAdmin_ReturnsAllUsersFlights));
+        var sut     = BuildSut(factory);
+        await using var db = await factory.CreateDbContextAsync();
+        db.FlightPreparations.AddRange(MakeFlight("u1"), MakeFlight("u2"), MakeFlight("u3"));
+        await db.SaveChangesAsync();
+
+        // Act — admin sees everyone's flights
+        var (items, total) = await sut.GetSummariesPagedAsync(null, isAdmin: true, "alle", 1, 10);
+
+        // Assert
+        Assert.Equal(3, total);
+        Assert.Equal(3, items.Count);
+    }
+
+    [Fact]
+    public async Task GetSummariesPagedAsync_NonAdmin_ReturnsOnlyOwnFlights()
+    {
+        // Arrange — flights from two different users
+        var factory = CreateFactory(nameof(GetSummariesPagedAsync_NonAdmin_ReturnsOnlyOwnFlights));
+        var sut     = BuildSut(factory);
+        await using var db = await factory.CreateDbContextAsync();
+        db.FlightPreparations.AddRange(MakeFlight("u1"), MakeFlight("u1"), MakeFlight("u2"));
+        await db.SaveChangesAsync();
+
+        // Act — non-admin user "u1" only sees own flights
+        var (items, total) = await sut.GetSummariesPagedAsync("u1", isAdmin: false, "alle", 1, 10);
+
+        // Assert
+        Assert.Equal(2, total);
+        Assert.All(items, f => Assert.Equal("u1", f.CreatedByUserId));
+    }
+
+    [Fact]
+    public async Task GetSummariesPagedAsync_NonAdmin_ReturnsSharedFlights()
+    {
+        // Arrange — one flight owned by u2, shared with u1
+        var factory = CreateFactory(nameof(GetSummariesPagedAsync_NonAdmin_ReturnsSharedFlights));
+        var sut     = BuildSut(factory);
+        await using var db = await factory.CreateDbContextAsync();
+        var flight = MakeFlight("u2");
+        flight.Shares.Add(new FlightPreparationShare { SharedWithUserId = "u1" });
+        db.FlightPreparations.Add(flight);
+        await db.SaveChangesAsync();
+
+        // Act — u1 can see the flight shared with them
+        var (items, total) = await sut.GetSummariesPagedAsync("u1", isAdmin: false, "alle", 1, 10);
+
+        // Assert
+        Assert.Equal(1, total);
+        Assert.Single(items);
+    }
+
+    [Fact]
+    public async Task GetSummariesPagedAsync_StatusFilterGevlogen_ReturnsOnlyFlownFlights()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(GetSummariesPagedAsync_StatusFilterGevlogen_ReturnsOnlyFlownFlights));
+        var sut     = BuildSut(factory);
+        await using var db = await factory.CreateDbContextAsync();
+        db.FlightPreparations.AddRange(
+            MakeFlight("u1", isFlown: true),
+            MakeFlight("u1", isFlown: false),
+            MakeFlight("u1", isFlown: true));
+        await db.SaveChangesAsync();
+
+        // Act
+        var (items, total) = await sut.GetSummariesPagedAsync("u1", false, "gevlogen", 1, 10);
+
+        // Assert
+        Assert.Equal(2, total);
+        Assert.All(items, f => Assert.True(f.IsFlown));
+    }
+
+    [Fact]
+    public async Task GetSummariesPagedAsync_StatusFilterNietGevlogen_ReturnsOnlyNotFlownFlights()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(GetSummariesPagedAsync_StatusFilterNietGevlogen_ReturnsOnlyNotFlownFlights));
+        var sut     = BuildSut(factory);
+        await using var db = await factory.CreateDbContextAsync();
+        db.FlightPreparations.AddRange(
+            MakeFlight("u1", isFlown: true),
+            MakeFlight("u1", isFlown: false),
+            MakeFlight("u1", isFlown: false));
+        await db.SaveChangesAsync();
+
+        // Act
+        var (items, total) = await sut.GetSummariesPagedAsync("u1", false, "niet-gevlogen", 1, 10);
+
+        // Assert
+        Assert.Equal(2, total);
+        Assert.All(items, f => Assert.False(f.IsFlown));
+    }
+
+    [Fact]
+    public async Task GetSummariesPagedAsync_NoMatchingFilter_ReturnsEmptyWithZeroTotal()
+    {
+        // Arrange — two not-flown flights; filter for flown
+        var factory = CreateFactory(nameof(GetSummariesPagedAsync_NoMatchingFilter_ReturnsEmptyWithZeroTotal));
+        var sut     = BuildSut(factory);
+        await using var db = await factory.CreateDbContextAsync();
+        db.FlightPreparations.AddRange(MakeFlight("u1"), MakeFlight("u1"));
+        await db.SaveChangesAsync();
+
+        // Act
+        var (items, total) = await sut.GetSummariesPagedAsync("u1", false, "gevlogen", 1, 10);
+
+        // Assert
+        Assert.Equal(0, total);
+        Assert.Empty(items);
+    }
+
+    [Fact]
+    public async Task GetSummariesPagedAsync_LastPage_TotalReflectsFullCount()
+    {
+        // Arrange — 7 flights; retrieve page 2 with pageSize 5 (returns 2 items)
+        var factory = CreateFactory(nameof(GetSummariesPagedAsync_LastPage_TotalReflectsFullCount));
+        var sut     = BuildSut(factory);
+        await using var db = await factory.CreateDbContextAsync();
+        for (var i = 0; i < 7; i++) db.FlightPreparations.Add(MakeFlight("u1"));
+        await db.SaveChangesAsync();
+
+        // Act
+        var (items, total) = await sut.GetSummariesPagedAsync("u1", false, "alle", 2, 5);
+
+        // Assert
+        Assert.Equal(7, total);    // full count, not just this page
+        Assert.Equal(2, items.Count);
+    }
+
+    [Fact]
+    public async Task GetSummariesPagedAsync_NullUserIdNonAdmin_ReturnsEmpty()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(GetSummariesPagedAsync_NullUserIdNonAdmin_ReturnsEmpty));
+        var sut     = BuildSut(factory);
+        await using var db = await factory.CreateDbContextAsync();
+        db.FlightPreparations.Add(MakeFlight("u1"));
+        await db.SaveChangesAsync();
+
+        // Act
+        var (items, total) = await sut.GetSummariesPagedAsync(null, isAdmin: false, "alle", 1, 10);
+
+        // Assert — non-admin with null userId always returns nothing
+        Assert.Equal(0, total);
+        Assert.Empty(items);
+    }
+
+    [Fact]
+    public async Task GetSummariesPagedAsync_ZeroPage_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(GetSummariesPagedAsync_ZeroPage_ThrowsArgumentOutOfRangeException));
+        var sut     = BuildSut(factory);
+
+        // Act + Assert
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => sut.GetSummariesPagedAsync("u1", false, "alle", 0, 10));
+    }
+
+    [Fact]
+    public async Task GetSummariesPagedAsync_ZeroPageSize_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(GetSummariesPagedAsync_ZeroPageSize_ThrowsArgumentOutOfRangeException));
+        var sut     = BuildSut(factory);
+
+        // Act + Assert
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => sut.GetSummariesPagedAsync("u1", false, "alle", 1, 0));
+    }
 }

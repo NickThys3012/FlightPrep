@@ -1,7 +1,6 @@
 using FlightPrep.Domain.Models;
 using FlightPrep.Domain.Models.Trajectory;
 using FlightPrep.Domain.Services;
-using FlightPrep.Infrastructure.Services;
 
 namespace FlightPrep.Services;
 
