@@ -110,7 +110,7 @@ public class FlightPreparationService(
     ///     Filtering and pagination are applied at the database level to avoid loading all rows.
     /// </summary>
     public async Task<(List<FlightPreparationSummary> Items, int Total)> GetSummariesPagedAsync(
-        string? userId, bool isAdmin, string statusFilter, int page, int pageSize)
+        string? userId, bool isAdmin, string statusFilter, int page, int pageSize, bool sortDescending = true)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
@@ -137,10 +137,12 @@ public class FlightPreparationService(
 
         var total = await query.CountAsync();
 
-        var flights = await query
+        var ordered = sortDescending
+            ? query.OrderByDescending(f => f.Datum).ThenByDescending(f => f.Tijdstip)
+            : query.OrderBy(f => f.Datum).ThenBy(f => f.Tijdstip);
+
+        var flights = await ordered
             .Include(f => f.Shares)
-            .OrderByDescending(f => f.Datum)
-            .ThenByDescending(f => f.Tijdstip)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(f => new

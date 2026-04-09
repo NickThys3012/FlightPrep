@@ -25,23 +25,18 @@ public partial class FlightList : ComponentBase
     private int _totalNotFlown;
     private int _totalShared;
 
-    private IEnumerable<FlightPreparationSummary> SortedFlights =>
-        _sortDesc
-            ? _flights!.OrderByDescending(f => f.Datum).ThenByDescending(f => f.Tijdstip)
-            : _flights!.OrderBy(f => f.Datum).ThenBy(f => f.Tijdstip);
-
-    private void ToggleSort()
+    private async Task ToggleSort()
     {
         _sortDesc = !_sortDesc;
         _currentPage = 1;
-        _ = LoadFlights();
+        await LoadFlights();
     }
 
-    private void SetFilter(string filter)
+    private async Task SetFilter(string filter)
     {
         _statusFilter = filter;
         _currentPage = 1;
-        _ = LoadFlights();
+        await LoadFlights();
     }
 
     protected override async Task OnInitializedAsync() => await LoadFlights();
@@ -59,7 +54,7 @@ public partial class FlightList : ComponentBase
 
         // Server-side pagination — only fetch the current page from the DB
         var (items, total) = await FpSvc.GetSummariesPagedAsync(
-            _userId, _isAdmin, _statusFilter, _currentPage, PageSize);
+            _userId, _isAdmin, _statusFilter, _currentPage, PageSize, _sortDesc);
 
         _flights   = items;
         _totalCount = total;

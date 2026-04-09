@@ -22,6 +22,8 @@ public static class TileProxyEndpoint
         }
 
         var client = httpFactory.CreateClient("staticmap");
+        var logger = ctx.RequestServices.GetRequiredService<ILoggerFactory>()
+            .CreateLogger(nameof(TileProxyEndpoint));
         try
         {
             var bytes = await client.GetByteArrayAsync(
@@ -29,8 +31,9 @@ public static class TileProxyEndpoint
             ctx.Response.Headers.CacheControl = "public, max-age=86400";
             return Results.Bytes(bytes, "image/png");
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogWarning(ex, "Tile fetch failed for z={Z} x={X} y={Y}", z, x, y);
             return Results.StatusCode(502);
         }
     }

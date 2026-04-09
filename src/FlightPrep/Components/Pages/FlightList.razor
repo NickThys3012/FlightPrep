@@ -68,13 +68,13 @@ else
             </tr>
             </thead>
             <tbody>
-            @if (!SortedFlights.Any())
+            @if (!_flights!.Any())
             {
                 <tr>
                     <td colspan="7" class="text-center text-muted py-4">Geen vaarten gevonden voor dit filter.</td>
                 </tr>
             }
-            @foreach (var f in SortedFlights)
+            @foreach (var f in _flights!)
             {
                 <tr>
                     <td class="fw-semibold">@f.Datum.ToString("dd/MM/yyyy")</td>
