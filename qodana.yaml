@@ -3,7 +3,8 @@
 ####################################################################################################################
 
 version: "1.0"
-linter: jetbrains/qodana-dotnet:2025.3
+dotnet:
+  solution: FlightPrep.slnx
 profile:
   name: qodana.recommended
 include:
