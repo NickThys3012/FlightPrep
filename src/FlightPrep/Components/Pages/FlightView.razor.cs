@@ -69,6 +69,12 @@ public partial class FlightView:ComponentBase
 
         _fp = await FpSvc.GetByIdAsync(Id);
 
+        if (_fp == null)
+        {
+            Nav.NavigateTo("/flights");
+            return;
+        }
+
         if (_fp != null)
         {
             // Allow access to owner, admin, or shared user
