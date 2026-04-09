@@ -1,6 +1,17 @@
 {
-  "currentVersion": "14.0.0",
+  "currentVersion": "14.0.1",
   "entries": [
+    {
+      "pr": 82,
+      "version": "14.0.1",
+      "title": "Revert \"Cleanup\"",
+      "description": "Deze release herstelt eerder aangebrachte wijzigingen om de stabiliteit van de applicatie te waarborgen.  \n- Terugdraaien van wijzigingen in de codebase die mogelijk bugs hebben geïntroduceerd, waardoor de algehele functionaliteit van de app verbetert.  \n- Verbeterde consistentie in de datamodellen, wat zorgt voor een betere integriteit van de gegevens tijdens het gebruik van de applicatie.  \n- Herstel van de CI/CD-pijplijnconfiguratie, wat zorgt voor een betrouwbaardere implementatie van toekomstige updates.",
+      "author": "NickThys3012",
+      "labels": [
+        "bug"
+      ],
+      "date": "2026-04-09T07:47:55Z"
+    },
     {
       "pr": 79,
       "version": "14.0.0",
