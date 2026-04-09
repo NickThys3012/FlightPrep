@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Logging;
 using FlightPrep.Infrastructure.Data;
 
 namespace FlightPrep.Pages.Culture;
@@ -10,10 +11,12 @@ public class SetModel : PageModel
 {
     private static readonly string[] AllowedCultures = ["nl-BE", "en-GB"];
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ILogger<SetModel> _logger;
 
-    public SetModel(UserManager<ApplicationUser> userManager)
+    public SetModel(UserManager<ApplicationUser> userManager, ILogger<SetModel> logger)
     {
         _userManager = userManager;
+        _logger = logger;
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1054:URI-like parameters should not be strings",
@@ -38,7 +41,12 @@ public class SetModel : PageModel
         if (user != null)
         {
             user.PreferredLocale = culture;
-            await _userManager.UpdateAsync(user);
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                _logger.LogWarning("Failed to persist PreferredLocale for user {UserId}: {Errors}", user.Id, errors);
+            }
         }
 
         return LocalRedirect(redirectUri);

@@ -623,6 +623,7 @@ namespace FlightPrep.Data.Migrations
 
                     b.Property<string>("PreferredLocale")
                         .IsRequired()
+                        .HasDefaultValue("nl-BE")
                         .HasColumnType("text");
 
                     b.Property<string>("SecurityStamp")
