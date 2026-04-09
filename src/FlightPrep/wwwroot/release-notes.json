@@ -1,6 +1,18 @@
 {
-  "currentVersion": "16.0.0",
+  "currentVersion": "16.0.1",
   "entries": [
+    {
+      "pr": 86,
+      "version": "16.0.1",
+      "title": "fix: address 7 open architecture issues [fix]",
+      "description": "Er zijn verschillende architecturale problemen opgelost in de applicatie.  \n- De `TrajectoryMath` klasse is verplaatst naar de juiste laag, wat de scheiding van verantwoordelijkheden verbetert en de onderhoudbaarheid vergroot.  \n- Een nieuwe `TileProxyEndpoint` is toegevoegd voor betere validatie van kaartgegevens en waarschuwingen, wat de betrouwbaarheid van de kaartweergave verhoogt.  \n- De server-side paginering voor de vluchtlijst is geïmplementeerd, waardoor gebruikers sneller door hun vluchtgegevens kunnen bladeren zonder onnodige belasting van de database.  \n- Er is een globale `GoNoGoSettings` rij toegevoegd die zorgt voor consistente standaardinstellingen, wat de gebruikservaring vereenvoudigt.",
+      "author": "NickThys3012",
+      "labels": [
+        "bug",
+        "architecture"
+      ],
+      "date": "2026-04-09T16:29:03Z"
+    },
     {
       "pr": 85,
       "version": "16.0.0",
