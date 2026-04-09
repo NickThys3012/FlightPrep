@@ -75,18 +75,16 @@ public partial class FlightView:ComponentBase
             return;
         }
 
-        if (_fp != null)
+        // Allow access to owner, admin, or shared user
+        var isSharedWithMe = userId != null && await FpSvc.IsSharedWithAsync(Id, userId);
+        if (_fp.CreatedByUserId != null && _fp.CreatedByUserId != userId && !isAdmin && !isSharedWithMe)
         {
-            // Allow access to owner, admin, or shared user
-            var isSharedWithMe = userId != null && await FpSvc.IsSharedWithAsync(Id, userId);
-            if (_fp.CreatedByUserId != null && _fp.CreatedByUserId != userId && !isAdmin && !isSharedWithMe)
-            {
-                Nav.NavigateTo("/flights");
-                return;
-            }
+            Nav.NavigateTo("/flights");
+            return;
+        }
 
-            _isOwner = isAdmin || _fp.CreatedByUserId == userId;
-            _isShared = !_isOwner && isSharedWithMe;
+        _isOwner = isAdmin || _fp.CreatedByUserId == userId;
+        _isShared = !_isOwner && isSharedWithMe;
 
             // Compute assessment (TotaalGewicht, LiftVoldoende, GoNoGo via service)
             _assessment = await AssessmentSvc.ComputeAsync(_fp, userId);
@@ -132,7 +130,6 @@ public partial class FlightView:ComponentBase
             {
                 await RefreshSharesAsync(userId);
             }
-        }
     }
 
     // ── Sharing helpers ────────────────────────────────────────────────────────
