@@ -77,7 +77,7 @@ public class FlightPreparationService(
                 f.ZichtbaarheidKm,
                 f.CapeJkg,
                 f.CreatedByUserId,
-                IsShared = isAdmin ? false : f.CreatedByUserId != userId,
+                IsShared = !isAdmin && f.CreatedByUserId != userId,
                 OwnerUserName = f.CreatedByUserId == null
                     ? null
                     : db.Users.Where(u => u.Id == f.CreatedByUserId).Select(u => u.UserName).FirstOrDefault()
@@ -140,6 +140,7 @@ public class FlightPreparationService(
         List<Passenger> passengers = [];
         List<FlightImage> images = [];
         List<WindLevel> windLevels = [];
+        List<FlightPreparationShare> shares = [];
 
         try
         {
@@ -158,6 +159,9 @@ public class FlightPreparationService(
             fp.Images.Clear();
             windLevels = fp.WindLevels.ToList();
             fp.WindLevels.Clear();
+            // Shares are managed by ShareAsync/RevokeShareAsync — never let SaveAsync touch them.
+            shares = fp.Shares.ToList();
+            fp.Shares.Clear();
 
             await using var tx = await db.Database.BeginTransactionAsync();
             try
@@ -193,10 +197,6 @@ public class FlightPreparationService(
                         windLevels[i].Id = 0;
                         windLevels[i].Order = i;
                     }
-
-                    db.WindLevels.AddRange(windLevels);
-
-                    await db.SaveChangesAsync();
                 }
                 else
                 {
@@ -236,11 +236,10 @@ public class FlightPreparationService(
                         windLevels[i].Id = 0;
                         windLevels[i].Order = i;
                     }
-
-                    db.WindLevels.AddRange(windLevels);
-
-                    await db.SaveChangesAsync();
                 }
+
+                db.WindLevels.AddRange(windLevels);
+                await db.SaveChangesAsync();
 
                 await tx.CommitAsync();
             }
@@ -267,6 +266,7 @@ public class FlightPreparationService(
             fp.Passengers = passengers;
             fp.Images = images;
             fp.WindLevels = windLevels;
+            fp.Shares = shares;
         }
     }
 
@@ -529,10 +529,14 @@ public class FlightPreparationService(
         var currentYear = DateTime.UtcNow.Year;
 
         IQueryable<FlightPreparation> query = db.FlightPreparations;
-        if (!isAdmin && userId != null)
-            query = query.Where(f => f.CreatedByUserId == userId);
-        else if (!isAdmin)
-            return (0, 0, 0);
+        switch (isAdmin)
+        {
+            case false when userId != null:
+                query = query.Where(f => f.CreatedByUserId == userId);
+                break;
+            case false:
+                return (0, 0, 0);
+        }
 
         var total = await query.CountAsync();
         var thisYear = await query.CountAsync(f => f.Datum.Year == currentYear);
@@ -554,15 +558,15 @@ public class FlightPreparationService(
             .Include(f => f.Location)
             .AsQueryable();
 
-        if (!isAdmin && userId != null)
+        switch (isAdmin)
         {
-            query = query.Where(f =>
-                f.CreatedByUserId == userId ||
-                f.Shares.Any(s => s.SharedWithUserId == userId));
-        }
-        else if (!isAdmin)
-        {
-            return [];
+            case false when userId != null:
+                query = query.Where(f =>
+                    f.CreatedByUserId == userId ||
+                    f.Shares.Any(s => s.SharedWithUserId == userId));
+                break;
+            case false:
+                return [];
         }
 
         return await query
@@ -586,7 +590,13 @@ public class FlightPreparationService(
             .Include(f => f.Pilot)
             .Include(f => f.Location)
             .AsQueryable();
-        if (!isAdmin)
+        if (isAdmin)
+        {
+            return await query
+                .OrderBy(f => f.Datum)
+                .ToListAsync();
+        }
+
         {
             if (userId == null)
             {

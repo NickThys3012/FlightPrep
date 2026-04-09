@@ -263,7 +263,7 @@ public class PowerLineServiceTests
     }
 }
 
-public class MockHttpMessageHandler(HttpResponseMessage response) : HttpMessageHandler
+internal class MockHttpMessageHandler(HttpResponseMessage response) : HttpMessageHandler
 {
     public int CallCount { get; private set; }
 

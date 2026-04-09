@@ -5,17 +5,13 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace FlightPrep.Pages;
 
-public class LogoutModel : PageModel
+internal class LogoutModel(SignInManager<ApplicationUser> signInManager) : PageModel
 {
-    private readonly SignInManager<ApplicationUser> _signInManager;
-
-    public LogoutModel(SignInManager<ApplicationUser> signInManager) => _signInManager = signInManager;
-
     public IActionResult OnGet() => LocalRedirect("/");
 
     public async Task<IActionResult> OnPostAsync()
     {
-        await _signInManager.SignOutAsync();
+        await signInManager.SignOutAsync();
         return RedirectToPage("/Login");
     }
 }

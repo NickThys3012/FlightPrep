@@ -7,7 +7,7 @@ namespace FlightPrep.Services;
 ///     Returns UTC times. Matches the NOAA Solar Calculator spreadsheet to within ~1 minute,
 ///     which aligns with Belgian AIP published tables.
 /// </summary>
-public class SunriseService : ISunriseService
+internal class SunriseService : ISunriseService
 {
     public (TimeOnly Sunrise, TimeOnly Sunset) Calculate(DateOnly date, double latDeg, double lonDeg)
     {

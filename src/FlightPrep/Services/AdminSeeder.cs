@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace FlightPrep.Services;
 
-public static class AdminSeeder
+internal static class AdminSeeder
 {
     public static async Task SeedAdminAsync(IServiceProvider services)
     {
@@ -33,6 +33,19 @@ public static class AdminSeeder
             if (result.Succeeded)
             {
                 await userManager.AddToRoleAsync(admin, "Admin");
+            }
+        }
+
+        var viewerUsername = config["SEED_VIEWER_USERNAME"];
+        var viewerPassword = config["SEED_VIEWER_PASSWORD"];
+        if (!string.IsNullOrEmpty(viewerUsername) && !string.IsNullOrEmpty(viewerPassword)
+            && await userManager.FindByNameAsync(viewerUsername) is null)
+        {
+            var viewer = new ApplicationUser { UserName = viewerUsername, Email = viewerUsername, IsApproved = true, EmailConfirmed = true };
+            var result = await userManager.CreateAsync(viewer, viewerPassword);
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(viewer, "Pilot");
             }
         }
     }

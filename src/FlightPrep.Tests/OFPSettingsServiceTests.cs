@@ -10,7 +10,7 @@ namespace FlightPrep.Tests;
 /// </summary>
 public class OFPSettingsServiceTests
 {
-    private static IDbContextFactory<AppDbContext> CreateFactory(string dbName)
+    private static TestDbContextFactory CreateFactory(string dbName)
     {
         var opts = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(dbName)
@@ -25,7 +25,7 @@ public class OFPSettingsServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(GetSettingsAsync_NoRowInDb_ReturnsDefaultWith7KgOffset));
-        var sut = new OFPSettingsService(factory);
+        var sut = new OfpSettingsService(factory);
 
         // Act
         var result = await sut.GetSettingsAsync("any-user");
@@ -42,10 +42,10 @@ public class OFPSettingsServiceTests
         var factory = CreateFactory(nameof(GetSettingsAsync_GlobalDefaultRowExists_ReturnsItForNullUser));
         await using (var db = factory.CreateDbContext())
         {
-            db.OFPSettings.Add(new OFPSettings { UserId = null, PassengerEquipmentWeightKg = 12 });
+            db.OfpSettings.Add(new OFPSettings { UserId = null, PassengerEquipmentWeightKg = 12 });
             await db.SaveChangesAsync();
         }
-        var sut = new OFPSettingsService(factory);
+        var sut = new OfpSettingsService(factory);
 
         // Act
         var result = await sut.GetSettingsAsync(null);
@@ -61,10 +61,10 @@ public class OFPSettingsServiceTests
         var factory = CreateFactory(nameof(GetSettingsAsync_PerUserRowExists_ReturnsItForThatUser));
         await using (var db = factory.CreateDbContext())
         {
-            db.OFPSettings.Add(new OFPSettings { UserId = "user-42", PassengerEquipmentWeightKg = 9 });
+            db.OfpSettings.Add(new OFPSettings { UserId = "user-42", PassengerEquipmentWeightKg = 9 });
             await db.SaveChangesAsync();
         }
-        var sut = new OFPSettingsService(factory);
+        var sut = new OfpSettingsService(factory);
 
         // Act
         var result = await sut.GetSettingsAsync("user-42");
@@ -80,10 +80,10 @@ public class OFPSettingsServiceTests
         var factory = CreateFactory(nameof(GetSettingsAsync_NoPerUserRow_FallsBackToGlobalDefault));
         await using (var db = factory.CreateDbContext())
         {
-            db.OFPSettings.Add(new OFPSettings { UserId = null, PassengerEquipmentWeightKg = 15 });
+            db.OfpSettings.Add(new OFPSettings { UserId = null, PassengerEquipmentWeightKg = 15 });
             await db.SaveChangesAsync();
         }
-        var sut = new OFPSettingsService(factory);
+        var sut = new OfpSettingsService(factory);
 
         // Act – query for a user that has no dedicated row
         var result = await sut.GetSettingsAsync("user-without-settings");
@@ -99,7 +99,7 @@ public class OFPSettingsServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(SaveSettingsAsync_NewUser_InsertsRow));
-        var sut = new OFPSettingsService(factory);
+        var sut = new OfpSettingsService(factory);
         var settings = new OFPSettings { PassengerEquipmentWeightKg = 11 };
 
         // Act
@@ -107,7 +107,7 @@ public class OFPSettingsServiceTests
 
         // Assert – row exists in DB with correct value
         await using var db = factory.CreateDbContext();
-        var row = await db.OFPSettings.FirstOrDefaultAsync(o => o.UserId == "new-user");
+        var row = await db.OfpSettings.FirstOrDefaultAsync(o => o.UserId == "new-user");
         Assert.NotNull(row);
         Assert.Equal(11, row.PassengerEquipmentWeightKg);
     }
@@ -117,7 +117,7 @@ public class OFPSettingsServiceTests
     {
         // Arrange – pre-insert a row for the user
         var factory = CreateFactory(nameof(SaveSettingsAsync_ExistingUser_UpdatesRow));
-        var sut = new OFPSettingsService(factory);
+        var sut = new OfpSettingsService(factory);
         await sut.SaveSettingsAsync(new OFPSettings { PassengerEquipmentWeightKg = 8 }, "existing-user");
 
         // Act – update with a new value
@@ -125,7 +125,7 @@ public class OFPSettingsServiceTests
 
         // Assert – value changed and no duplicate row created
         await using var db = factory.CreateDbContext();
-        var rows = await db.OFPSettings.Where(o => o.UserId == "existing-user").ToListAsync();
+        var rows = await db.OfpSettings.Where(o => o.UserId == "existing-user").ToListAsync();
         Assert.Single(rows);
         Assert.Equal(20, rows[0].PassengerEquipmentWeightKg);
     }
@@ -137,10 +137,10 @@ public class OFPSettingsServiceTests
         var factory = CreateFactory(nameof(SaveSettingsAsync_FirstSaveAfterFallback_DoesNotCollideWithGlobalRow));
         await using (var db = factory.CreateDbContext())
         {
-            db.OFPSettings.Add(new OFPSettings { UserId = null, PassengerEquipmentWeightKg = 7 });
+            db.OfpSettings.Add(new OFPSettings { UserId = null, PassengerEquipmentWeightKg = 7 });
             await db.SaveChangesAsync();
         }
-        var sut = new OFPSettingsService(factory);
+        var sut = new OfpSettingsService(factory);
 
         // Act – save for a new user; must not throw a DbUpdateException / PK collision
         var exception = await Record.ExceptionAsync(
@@ -149,7 +149,7 @@ public class OFPSettingsServiceTests
         // Assert – no exception and two rows exist
         Assert.Null(exception);
         await using var db2 = factory.CreateDbContext();
-        Assert.Equal(2, await db2.OFPSettings.CountAsync());
+        Assert.Equal(2, await db2.OfpSettings.CountAsync());
     }
 
     [Fact]
@@ -157,7 +157,7 @@ public class OFPSettingsServiceTests
     {
         // Arrange
         var factory = CreateFactory(nameof(SaveSettingsAsync_NullUserId_UpsertGlobalDefault));
-        var sut = new OFPSettingsService(factory);
+        var sut = new OfpSettingsService(factory);
 
         // Act – save twice for null userId
         await sut.SaveSettingsAsync(new OFPSettings { PassengerEquipmentWeightKg = 5 }, null);
@@ -165,7 +165,7 @@ public class OFPSettingsServiceTests
 
         // Assert – exactly one row, updated value
         await using var db = factory.CreateDbContext();
-        var rows = await db.OFPSettings.Where(o => o.UserId == null).ToListAsync();
+        var rows = await db.OfpSettings.Where(o => o.UserId == null).ToListAsync();
         Assert.Single(rows);
         Assert.Equal(6, rows[0].PassengerEquipmentWeightKg);
     }
@@ -188,12 +188,12 @@ public class OFPSettingsServiceTests
                 NormalizedUserName = "CASCADE@TEST.BE",
                 Email              = "cascade@test.be",
                 NormalizedEmail    = "CASCADE@TEST.BE",
-                SecurityStamp      = Guid.NewGuid().ToString(),
+                SecurityStamp      = Guid.NewGuid().ToString()
             });
-            db.OFPSettings.Add(new OFPSettings
+            db.OfpSettings.Add(new OFPSettings
             {
                 UserId                      = userId,
-                PassengerEquipmentWeightKg  = 7,
+                PassengerEquipmentWeightKg  = 7
             });
             await db.SaveChangesAsync();
         }
@@ -203,17 +203,17 @@ public class OFPSettingsServiceTests
         await using (var db = factory.CreateDbContext())
         {
             // Load OFPSettings into the tracker so the cascade fires in-memory
-            _ = await db.OFPSettings.Where(o => o.UserId == userId).ToListAsync();
+            _ = await db.OfpSettings.Where(o => o.UserId == userId).ToListAsync();
 
             var user = await db.Users.FindAsync(userId);
             Assert.NotNull(user);   // guard: row must exist before delete
-            db.Users.Remove(user!);
+            db.Users.Remove(user);
             await db.SaveChangesAsync();
         }
 
         // Assert – OFP settings row must be gone
         await using var verify = factory.CreateDbContext();
-        var remaining = await verify.OFPSettings.Where(o => o.UserId == userId).ToListAsync();
+        var remaining = await verify.OfpSettings.Where(o => o.UserId == userId).ToListAsync();
         Assert.Empty(remaining);
     }
 

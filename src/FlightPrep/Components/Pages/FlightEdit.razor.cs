@@ -154,8 +154,7 @@ public partial class FlightEdit(
         }
         else
         {
-            _fp = new FlightPreparation { PaxBriefing = DefaultPaxBriefing };
-            _fp.CreatedByUserId = userId;
+            _fp = new FlightPreparation { PaxBriefing = DefaultPaxBriefing, CreatedByUserId = userId };
 
             // Populate OFP snapshot fields from ApplicationUser for new flights
             if (userId != null)
@@ -177,14 +176,14 @@ public partial class FlightEdit(
     {
         await base.OnAfterRenderAsync(firstRender);
         // Combined trajectory map: render once whenever either DR or 3D trajectories are available
-        var hasDr       = _simulatedTrajectories != null && _simulatedTrajectories.Count > 0;
+        var hasDr       = _simulatedTrajectories is { Count: > 0 };
         var hasEnh      = _enhancedTrajectories  != null && _enhancedTrajectories.Any(t => t.Points.Count > 0);
-        var hasLocation = _fp?.Location?.Latitude != null && _fp.Location.Longitude != null;
+        var hasLocation = _fp?.Location is { Latitude: not null, Longitude: not null };
 
         if ((hasDr || hasEnh) && !_combinedMapRendered && hasLocation)
         {
             _combinedMapRendered = true;
-            var drTrajsJs = (_simulatedTrajectories ?? new())
+            var drTrajsJs = (_simulatedTrajectories ?? [])
                 .Select(t => new
                 {
                     color       = t.Color,
@@ -193,7 +192,7 @@ public partial class FlightEdit(
                     hasAltitude = false,
                     points      = t.Points.Select(p => new[] { p.Lat, p.Lon }).ToArray()
                 });
-            var enhTrajsJs = (_enhancedTrajectories ?? new())
+            var enhTrajsJs = (_enhancedTrajectories ?? [])
                 .Where(t => t.Points.Count > 0)
                 .Select(t => new
                 {
@@ -223,7 +222,7 @@ public partial class FlightEdit(
             return;
         }
         var valid = _fp.WindLevels
-            .Where(w => w.DirectionDeg.HasValue && w.SpeedKt is > 0)
+            .Where(w => w is { DirectionDeg: not null, SpeedKt: > 0 })
             .OrderBy(w => w.AltitudeFt)
             .ToList();
         if (!valid.Any())
@@ -248,7 +247,7 @@ public partial class FlightEdit(
     private void MergeSimulationsToFp()
     {
         if (_fp is null) return;
-        var all = new List<SimulatedTrajectory>(_simulatedTrajectories ?? new());
+        var all = new List<SimulatedTrajectory>(_simulatedTrajectories ?? []);
         if (_enhancedTrajectories != null)
             all.AddRange(_enhancedTrajectories.Where(t => t.Points.Count > 0));
         if (all.Count > 0)
@@ -278,7 +277,7 @@ public partial class FlightEdit(
             _enhancedError = "Voer minstens één kruishoogte in.";
             return;
         }
-        if (_enhCruiseAltsFt.Any(a => a < 500 || a > 20000))
+        if (_enhCruiseAltsFt.Any(a => a is < 500 or > 20000))
         {
             _enhancedError = "Kruishoogte(s) moeten tussen 500 en 20000 ft liggen.";
             return;
@@ -325,13 +324,15 @@ public partial class FlightEdit(
             _fp.EnvelopeWeightKg = balloon.EmptyWeightKg;
 
         // Populate OFP weight snapshots from balloon reference weights (only if currently null)
-        if (balloon != null)
+        if (balloon == null)
         {
-            if (_fp.OFPEnvelopeWeightKg == null) _fp.OFPEnvelopeWeightKg = balloon.EnvelopeOnlyWeightKg;
-            if (_fp.OFPBasketWeightKg   == null) _fp.OFPBasketWeightKg   = balloon.BasketWeightKg;
-            if (_fp.OFPBurnerWeightKg   == null) _fp.OFPBurnerWeightKg   = balloon.BurnerWeightKg;
-            if (_fp.CylindersWeightKg   == null) _fp.CylindersWeightKg   = balloon.CylindersWeightKg;
+            return;
         }
+
+        _fp.OFPEnvelopeWeightKg ??= balloon.EnvelopeOnlyWeightKg;
+        _fp.OFPBasketWeightKg ??= balloon.BasketWeightKg;
+        _fp.OFPBurnerWeightKg ??= balloon.BurnerWeightKg;
+        _fp.CylindersWeightKg ??= balloon.CylindersWeightKg;
     }
 
     private void OnPilotChanged()

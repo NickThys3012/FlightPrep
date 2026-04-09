@@ -72,11 +72,14 @@ public partial class ReleaseNotes : ComponentBase
     private static string GetRelativeDate(DateTime date)
     {
         var diff = DateTime.UtcNow - date.ToUniversalTime();
-        if (diff.TotalDays < 1) return "vandaag";
-        if (diff.TotalDays < 2) return "gisteren";
-        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays} dagen geleden";
-        if (diff.TotalDays < 30) return $"{(int)(diff.TotalDays / 7)} weken geleden";
-        if (diff.TotalDays < 365) return $"{(int)(diff.TotalDays / 30)} maanden geleden";
-        return $"{(int)(diff.TotalDays / 365)} jaar geleden";
+        return diff.TotalDays switch
+        {
+            < 1 => "vandaag",
+            < 2 => "gisteren",
+            < 7 => $"{(int)diff.TotalDays} dagen geleden",
+            < 30 => $"{(int)(diff.TotalDays / 7)} weken geleden",
+            < 365 => $"{(int)(diff.TotalDays / 30)} maanden geleden",
+            _ => $"{(int)(diff.TotalDays / 365)} jaar geleden"
+        };
     }
 }

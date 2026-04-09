@@ -8,25 +8,13 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FlightPrep.Pages;
 
-public class LoginModel : PageModel
+internal class LoginModel(
+    SignInManager<ApplicationUser> signInManager,
+    UserManager<ApplicationUser> userManager,
+    ILogger<LoginModel> logger,
+    IDbContextFactory<AppDbContext> dbFactory)
+    : PageModel
 {
-    private readonly IDbContextFactory<AppDbContext> _dbFactory;
-    private readonly ILogger<LoginModel> _logger;
-    private readonly SignInManager<ApplicationUser> _signInManager;
-    private readonly UserManager<ApplicationUser> _userManager;
-
-    public LoginModel(
-        SignInManager<ApplicationUser> signInManager,
-        UserManager<ApplicationUser> userManager,
-        ILogger<LoginModel> logger,
-        IDbContextFactory<AppDbContext> dbFactory)
-    {
-        _signInManager = signInManager;
-        _userManager = userManager;
-        _logger = logger;
-        _dbFactory = dbFactory;
-    }
-
     [BindProperty] public InputModel Input { get; set; } = new();
 
     public string? ReturnUrl { get; set; }
@@ -55,24 +43,24 @@ public class LoginModel : PageModel
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
 
         // Validate password first — prevents email enumeration via the IsApproved pre-check.
-        var result = await _signInManager.PasswordSignInAsync(
+        var result = await signInManager.PasswordSignInAsync(
             Input.Email, Input.Password, Input.RememberMe, true);
 
         if (result.Succeeded)
         {
             // Belt-and-suspenders: enforce IsApproved AFTER password succeeds.
-            var user = await _userManager.FindByEmailAsync(Input.Email);
+            var user = await userManager.FindByEmailAsync(Input.Email);
             if (user is { IsApproved: false })
             {
-                await _signInManager.SignOutAsync(); // revoke just-issued cookie
-                _logger.LogWarning("Login attempt by unapproved user {Email} from {IpAddress}",
+                await signInManager.SignOutAsync(); // revoke just-issued cookie
+                logger.LogWarning("Login attempt by unapproved user {Email} from {IpAddress}",
                     Input.Email, ip);
                 RecordLoginEvent(Input.Email, user.Id, false, "NotApproved", ip);
                 ModelState.AddModelError(string.Empty, "Your account is pending admin approval.");
                 return Page();
             }
 
-            _logger.LogInformation("User {Email} logged in successfully from {IpAddress}",
+            logger.LogInformation("User {Email} logged in successfully from {IpAddress}",
                 Input.Email, ip);
             RecordLoginEvent(Input.Email, user?.Id, true, null, ip);
             return LocalRedirect(returnUrl);
@@ -80,7 +68,7 @@ public class LoginModel : PageModel
 
         if (result.IsLockedOut)
         {
-            _logger.LogWarning("User {Email} account locked out (login attempt from {IpAddress})",
+            logger.LogWarning("User {Email} account locked out (login attempt from {IpAddress})",
                 Input.Email, ip);
             RecordLoginEvent(Input.Email, null, false, "LockedOut", ip);
             ModelState.AddModelError(string.Empty,
@@ -88,7 +76,7 @@ public class LoginModel : PageModel
             return Page();
         }
 
-        _logger.LogWarning("Failed login attempt for {Email} from {IpAddress}",
+        logger.LogWarning("Failed login attempt for {Email} from {IpAddress}",
             Input.Email, ip);
         RecordLoginEvent(Input.Email, null, false, "InvalidPassword", ip);
         ModelState.AddModelError(string.Empty, "Ongeldige inloggegevens.");
@@ -102,7 +90,7 @@ public class LoginModel : PageModel
         {
             try
             {
-                await using var db = await _dbFactory.CreateDbContextAsync();
+                await using var db = await dbFactory.CreateDbContextAsync();
                 db.LoginEvents.Add(new LoginEvent
                 {
                     Email = email,
@@ -116,7 +104,7 @@ public class LoginModel : PageModel
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to record login event for {Email}", email);
+                logger.LogError(ex, "Failed to record login event for {Email}", email);
             }
         });
 
