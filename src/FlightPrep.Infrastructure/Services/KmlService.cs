@@ -28,15 +28,13 @@ public class KmlService : IKmlService
             foreach (var token in coordText.Split([' ', '\t', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries))
             {
                 var parts = token.Split(',');
-                if (parts.Length < 2 ||
-                    !double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var lon) ||
-                    !double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var lat))
+                if (parts.Length >= 2 &&
+                    double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var lon) &&
+                    double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var lat))
                 {
-                    continue;
+                    var alt = parts.Length >= 3 && double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var a) ? a : 0;
+                    result.Add(new TrackPoint(lat, lon, alt));
                 }
-
-                var alt = parts.Length >= 3 && double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var a) ? a : 0;
-                result.Add(new TrackPoint(lat, lon, alt));
             }
         }
         catch

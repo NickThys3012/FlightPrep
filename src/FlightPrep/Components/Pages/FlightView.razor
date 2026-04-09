@@ -1,4 +1,7 @@
 @page "/flights/{Id:int}"
+@using System.Text.Json
+@using FlightPrep.Domain.Models
+@using FlightPrep.Domain.Models.Trajectory
 @using FlightPrep.Domain.Services
 @attribute [Authorize]
 @rendermode InteractiveServer
@@ -167,7 +170,7 @@ else
                                     <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)"
                                          class="flight-thumb"
                                          title="@img.FileName"
-                                         @onclick="() => OpenLightbox(img)" alt="Meteo images"/>
+                                         @onclick="() => OpenLightbox(img)"/>
                                 }
                             </div>
                         }
@@ -332,7 +335,10 @@ else
                             <div class="fp-thumb-grid">
                                 @foreach (var img in traj)
                                 {
-                                    <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)" class="flight-thumb" title="@img.FileName" @onclick="() => OpenLightbox(img)" alt="Trajectory images"/>
+                                    <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)"
+                                         class="flight-thumb"
+                                         title="@img.FileName"
+                                         @onclick="() => OpenLightbox(img)"/>
                                 }
                             </div>
                         }

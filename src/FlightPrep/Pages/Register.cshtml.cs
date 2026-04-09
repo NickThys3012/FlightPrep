@@ -6,8 +6,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FlightPrep.Pages;
 
-internal class RegisterModel(UserManager<ApplicationUser> userManager) : PageModel
+public class RegisterModel : PageModel
 {
+    private readonly UserManager<ApplicationUser> _userManager;
+
+    public RegisterModel(UserManager<ApplicationUser> userManager) => _userManager = userManager;
+
     [BindProperty] public InputModel Input { get; set; } = new();
 
     public void OnGet() { }
@@ -21,11 +25,11 @@ internal class RegisterModel(UserManager<ApplicationUser> userManager) : PageMod
 
         var user = new ApplicationUser { UserName = Input.Email, Email = Input.Email, IsApproved = false, EmailConfirmed = false };
 
-        var result = await userManager.CreateAsync(user, Input.Password);
+        var result = await _userManager.CreateAsync(user, Input.Password);
 
         if (result.Succeeded)
         {
-            await userManager.AddToRoleAsync(user, "Pilot");
+            await _userManager.AddToRoleAsync(user, "Pilot");
             return RedirectToPage("/Login", new { registered = 1 });
         }
 
@@ -37,7 +41,7 @@ internal class RegisterModel(UserManager<ApplicationUser> userManager) : PageMod
         return Page();
     }
 
-    internal class InputModel
+    public class InputModel
     {
         [Required(ErrorMessage = "E-mailadres is verplicht.")]
         [EmailAddress(ErrorMessage = "Ongeldig e-mailadres.")]

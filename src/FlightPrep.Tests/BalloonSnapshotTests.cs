@@ -24,7 +24,8 @@ public class BalloonSnapshotTests
         var balloon = new Balloon            { CylindersWeightKg = 80   };
 
         // Act – replicate the OnBalloonChanged guard
-        fp.CylindersWeightKg ??= balloon.CylindersWeightKg;
+        if (fp.CylindersWeightKg == null)
+            fp.CylindersWeightKg = balloon.CylindersWeightKg;
 
         // Assert – value must be copied from the balloon
         Assert.Equal(80, fp.CylindersWeightKg);
@@ -38,7 +39,8 @@ public class BalloonSnapshotTests
         var balloon = new Balloon            { CylindersWeightKg = 80 };
 
         // Act – replicate the OnBalloonChanged guard
-        fp.CylindersWeightKg ??= balloon.CylindersWeightKg;
+        if (fp.CylindersWeightKg == null)
+            fp.CylindersWeightKg = balloon.CylindersWeightKg;
 
         // Assert – pre-existing value must be preserved
         Assert.Equal(60, fp.CylindersWeightKg);
@@ -55,21 +57,21 @@ public class BalloonSnapshotTests
             OFPEnvelopeWeightKg = null,
             OFPBasketWeightKg   = null,
             OFPBurnerWeightKg   = null,
-            CylindersWeightKg   = null
+            CylindersWeightKg   = null,
         };
         var balloon = new Balloon
         {
             EnvelopeOnlyWeightKg = 250,
             BasketWeightKg       = 70,
             BurnerWeightKg       = 18,
-            CylindersWeightKg    = 80
+            CylindersWeightKg    = 80,
         };
 
         // Act – replicate the full OnBalloonChanged guard block
-        fp.OFPEnvelopeWeightKg ??= balloon.EnvelopeOnlyWeightKg;
-        fp.OFPBasketWeightKg ??= balloon.BasketWeightKg;
-        fp.OFPBurnerWeightKg ??= balloon.BurnerWeightKg;
-        fp.CylindersWeightKg ??= balloon.CylindersWeightKg;
+        if (fp.OFPEnvelopeWeightKg == null) fp.OFPEnvelopeWeightKg = balloon.EnvelopeOnlyWeightKg;
+        if (fp.OFPBasketWeightKg   == null) fp.OFPBasketWeightKg   = balloon.BasketWeightKg;
+        if (fp.OFPBurnerWeightKg   == null) fp.OFPBurnerWeightKg   = balloon.BurnerWeightKg;
+        if (fp.CylindersWeightKg   == null) fp.CylindersWeightKg   = balloon.CylindersWeightKg;
 
         // Assert
         Assert.Equal(250, fp.OFPEnvelopeWeightKg);
@@ -87,21 +89,21 @@ public class BalloonSnapshotTests
             OFPEnvelopeWeightKg = 260,
             OFPBasketWeightKg   = 72,
             OFPBurnerWeightKg   = 20,
-            CylindersWeightKg   = 60
+            CylindersWeightKg   = 60,
         };
         var balloon = new Balloon
         {
             EnvelopeOnlyWeightKg = 250,
             BasketWeightKg       = 70,
             BurnerWeightKg       = 18,
-            CylindersWeightKg    = 80
+            CylindersWeightKg    = 80,
         };
 
         // Act
-        fp.OFPEnvelopeWeightKg ??= balloon.EnvelopeOnlyWeightKg;
-        fp.OFPBasketWeightKg ??= balloon.BasketWeightKg;
-        fp.OFPBurnerWeightKg ??= balloon.BurnerWeightKg;
-        fp.CylindersWeightKg ??= balloon.CylindersWeightKg;
+        if (fp.OFPEnvelopeWeightKg == null) fp.OFPEnvelopeWeightKg = balloon.EnvelopeOnlyWeightKg;
+        if (fp.OFPBasketWeightKg   == null) fp.OFPBasketWeightKg   = balloon.BasketWeightKg;
+        if (fp.OFPBurnerWeightKg   == null) fp.OFPBurnerWeightKg   = balloon.BurnerWeightKg;
+        if (fp.CylindersWeightKg   == null) fp.CylindersWeightKg   = balloon.CylindersWeightKg;
 
         // Assert – none of the pilot-entered values should change
         Assert.Equal(260, fp.OFPEnvelopeWeightKg);

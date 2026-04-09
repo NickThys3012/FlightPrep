@@ -9,7 +9,8 @@
             @foreach (var img in Images)
             {
                 <div class="position-relative" style="width:140px">
-                    <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)" class="img-thumbnail" style="width:140px;height:105px;object-fit:cover" alt=""/>
+                    <img src="data:@img.ContentType;base64,@Convert.ToBase64String(img.Data)"
+                         class="img-thumbnail" style="width:140px;height:105px;object-fit:cover"/>
                     <span class="position-absolute top-0 end-0 p-1 text-truncate w-100 small text-muted"
                           style="font-size:.65rem;background:rgba(255,255,255,.8)">@img.FileName</span>
                     <button type="button" class="btn btn-danger btn-sm position-absolute top-0 start-0"

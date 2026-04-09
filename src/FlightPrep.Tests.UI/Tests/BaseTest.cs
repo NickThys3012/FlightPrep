@@ -1,7 +1,8 @@
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
+using IPlaywright = Microsoft.Playwright.IPlaywright;
 
-namespace FlightPrep.Tests.UI.Tests;
+namespace FlightPrep.Tests.UI;
 
 [TestFixture]
 public abstract class BaseTest : PageTest
@@ -10,10 +11,10 @@ public abstract class BaseTest : PageTest
 
     // Credentials for the seeded admin account used by E2E tests.
     // Must match SEED_ADMIN_USERNAME / SEED_ADMIN_PASSWORD in docker-compose / CI.
-    private static readonly string E2EAdminEmail =
+    protected static readonly string E2EAdminEmail =
         Environment.GetEnvironmentVariable("E2E_ADMIN_EMAIL") ?? "admin@e2etest.local";
 
-    private static readonly string E2EAdminPassword =
+    protected static readonly string E2EAdminPassword =
         Environment.GetEnvironmentVariable("E2E_ADMIN_PASSWORD") ?? "E2eTest_Admin_123!";
 
     // Populated by CreateAuthStateAsync() in [OneTimeSetUp] — loaded into every test context.

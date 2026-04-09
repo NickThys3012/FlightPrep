@@ -29,7 +29,7 @@ public class PdfServiceOfpTests
         var fp = new FlightPreparation
         {
             Datum   = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip = TimeOnly.FromTimeSpan(TimeSpan.FromHours(8))
+            Tijdstip = TimeOnly.FromTimeSpan(TimeSpan.FromHours(8)),
         };
 
         // Act
@@ -53,7 +53,7 @@ public class PdfServiceOfpTests
             OFPEnvelopeWeightKg = 250,
             OFPBasketWeightKg   = 70,
             OFPBurnerWeightKg   = 18,
-            CylindersWeightKg   = 28
+            CylindersWeightKg   = 28,
         };
         fp.Passengers.Add(new Passenger { Name = "Alice", WeightKg = 65 });
         fp.Passengers.Add(new Passenger { Name = "Bob",   WeightKg = 80 });
@@ -83,7 +83,7 @@ public class PdfServiceOfpTests
             OFPEnvelopeWeightKg = null,
             OFPBasketWeightKg   = null,
             OFPBurnerWeightKg   = null,
-            CylindersWeightKg   = null
+            CylindersWeightKg   = null,
         };
 
         // Act
@@ -104,7 +104,7 @@ public class PdfServiceOfpTests
         {
             Datum               = DateOnly.FromDateTime(DateTime.Today),
             Tijdstip            = new TimeOnly(10, 0),
-            PlannedLandingTime  = new TimeOnly(11, 30)
+            PlannedLandingTime  = new TimeOnly(11, 30),
         };
 
         // Act
@@ -124,7 +124,7 @@ public class PdfServiceOfpTests
         {
             Datum               = DateOnly.FromDateTime(DateTime.Today),
             Tijdstip            = new TimeOnly(23, 30),
-            PlannedLandingTime  = new TimeOnly(1, 15)
+            PlannedLandingTime  = new TimeOnly(1, 15),
         };
 
         // Act – must not throw (negative-duration guard path exercised)
@@ -143,7 +143,7 @@ public class PdfServiceOfpTests
         {
             Datum               = DateOnly.FromDateTime(DateTime.Today),
             Tijdstip            = new TimeOnly(9, 0),
-            PlannedLandingTime  = null
+            PlannedLandingTime  = null,
         };
 
         // Act
@@ -170,7 +170,7 @@ public class PdfServiceOfpTests
             LandingLocationText         = "Leuven",
             VisibleDefects              = true,
             ActualLandingNotes          = "some notes",
-            ActualFlightDurationMinutes = 90
+            ActualFlightDurationMinutes = 90,
         };
 
         // Act
@@ -197,7 +197,7 @@ public class PdfServiceOfpTests
             VisibleDefectsNotes         = null,
             ActualLandingNotes          = "smooth",
             ActualFlightDurationMinutes = 75,
-            ActualRemarks               = "great flight"
+            ActualRemarks               = "great flight",
         };
 
         // Act
@@ -225,7 +225,7 @@ public class PdfServiceOfpTests
             VisibleDefectsNotes         = null,
             ActualLandingNotes          = null,
             ActualFlightDurationMinutes = null,
-            ActualRemarks               = null
+            ActualRemarks               = null,
         };
 
         // Act
@@ -249,7 +249,7 @@ public class PdfServiceOfpTests
         {
             Datum    = DateOnly.FromDateTime(DateTime.Today),
             Tijdstip = new TimeOnly(10, 0),
-            IsFlown  = false
+            IsFlown  = false,
         };
 
         // Act
@@ -274,7 +274,7 @@ public class PdfServiceOfpTests
             Tijdstip            = new TimeOnly(10, 0),
             IsFlown             = true,
             VisibleDefects      = true,
-            VisibleDefectsNotes = "crack in basket"
+            VisibleDefectsNotes = "crack in basket",
         };
 
         // Act
@@ -299,7 +299,7 @@ public class PdfServiceOfpTests
             Tijdstip            = new TimeOnly(10, 0),
             IsFlown             = true,
             VisibleDefects      = false,
-            VisibleDefectsNotes = null
+            VisibleDefectsNotes = null,
         };
 
         // Act
@@ -321,7 +321,7 @@ public class PdfServiceOfpTests
         {
             Datum    = DateOnly.FromDateTime(DateTime.Today),
             Tijdstip = new TimeOnly(9, 0),
-            Neerslag = "SCT030 BKN050"
+            Neerslag = "SCT030 BKN050",
         };
 
         // Act
@@ -341,7 +341,7 @@ public class PdfServiceOfpTests
         {
             Datum    = DateOnly.FromDateTime(DateTime.Today),
             Tijdstip = new TimeOnly(9, 0),
-            Neerslag = null
+            Neerslag = null,
         };
 
         // Act
@@ -361,7 +361,7 @@ public class PdfServiceOfpTests
         {
             Datum    = DateOnly.FromDateTime(DateTime.Today),
             Tijdstip = new TimeOnly(9, 0),
-            Neerslag = string.Empty
+            Neerslag = string.Empty,
         };
 
         // Act
@@ -381,7 +381,7 @@ public class PdfServiceOfpTests
         {
             Datum    = DateOnly.FromDateTime(DateTime.Today),
             Tijdstip = new TimeOnly(9, 0),
-            Neerslag = "   "
+            Neerslag = "   ",
         };
 
         // Act
@@ -404,7 +404,7 @@ public class PdfServiceOfpTests
             Datum                    = DateOnly.FromDateTime(DateTime.Today),
             Tijdstip                 = new TimeOnly(9, 0),
             SurfaceWindDirectionDeg  = null,
-            SurfaceWindSpeedKt       = null
+            SurfaceWindSpeedKt       = null,
             // WindLevels is an empty list by default
         };
 
@@ -427,7 +427,7 @@ public class PdfServiceOfpTests
             Datum                    = DateOnly.FromDateTime(DateTime.Today),
             Tijdstip                 = new TimeOnly(9, 0),
             SurfaceWindDirectionDeg  = 270,
-            SurfaceWindSpeedKt       = 15
+            SurfaceWindSpeedKt       = 15,
         };
 
         // Act
@@ -448,7 +448,7 @@ public class PdfServiceOfpTests
             Datum                    = DateOnly.FromDateTime(DateTime.Today),
             Tijdstip                 = new TimeOnly(9, 0),
             SurfaceWindDirectionDeg  = 270,
-            SurfaceWindSpeedKt       = null
+            SurfaceWindSpeedKt       = null,
         };
 
         // Act
@@ -469,7 +469,7 @@ public class PdfServiceOfpTests
             Datum                    = DateOnly.FromDateTime(DateTime.Today),
             Tijdstip                 = new TimeOnly(9, 0),
             SurfaceWindDirectionDeg  = null,
-            SurfaceWindSpeedKt       = 15
+            SurfaceWindSpeedKt       = 15,
         };
 
         // Act
@@ -491,7 +491,7 @@ public class PdfServiceOfpTests
             Datum                    = DateOnly.FromDateTime(DateTime.Today),
             Tijdstip                 = new TimeOnly(9, 0),
             SurfaceWindDirectionDeg  = null,
-            SurfaceWindSpeedKt       = null
+            SurfaceWindSpeedKt       = null,
         };
         fp.WindLevels.Add(new WindLevel { AltitudeFt = 0,    DirectionDeg = 270, SpeedKt = 12, Order = 0 });
         fp.WindLevels.Add(new WindLevel { AltitudeFt = 3000, DirectionDeg = 280, SpeedKt = 18, Order = 1 });

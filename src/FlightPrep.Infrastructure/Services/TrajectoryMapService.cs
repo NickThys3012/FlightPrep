@@ -128,7 +128,7 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
                 DrawTrajectory(canvas, pts, colour, ToX, ToY);
             }
 
-            DrawLegend(canvas, series, imgW);
+            DrawLegend(canvas, series, imgW, imgH);
 
             // Resize if needed, export as JPEG
             using var snap = surface.Snapshot();
@@ -265,7 +265,7 @@ public class TrajectoryMapService(HttpClient http, ILogger<TrajectoryMapService>
     private static void DrawLegend(
         SKCanvas canvas,
         List<(string Label, SKColor Colour, List<(double Lat, double Lon)> Pts)> series,
-        int imgW)
+        int imgW, int imgH)
     {
         const float rowH = 18f, boxW = 100f;
         var boxH = (series.Count * rowH) + 10f;

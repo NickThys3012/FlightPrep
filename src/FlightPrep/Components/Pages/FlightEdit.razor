@@ -25,12 +25,7 @@
             <div class="mb-3">
                 <FlightGoNoGoBadge GoNoGoResult="@gng"/>
                 <span class="text-muted ms-2 small">
-                    @(gng switch
-                    {
-                        "green" => "Vlucht goedgekeurd",
-                        "yellow" => "Voorzichtigheid geboden",
-                        _ => "Vlucht niet toegestaan"
-                    })
+                    @(gng == "green" ? "Vlucht goedgekeurd" : gng == "yellow" ? "Voorzichtigheid geboden" : "Vlucht niet toegestaan")
                 </span>
             </div>
         }
