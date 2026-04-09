@@ -4,20 +4,20 @@
 <div class="row g-3 mb-3">
     <div class="col-md-4">
         <label class="form-label">Gewicht envelop+brander+mand+flessen (kg)</label>
-        <input type="number" step="0.1" class="form-control" @bind="Fp.EnvelopeWeightKg"/>
+        <input type="number" step="0.1" min="0" class="form-control" @bind="Fp.EnvelopeWeightKg"/>
     </div>
     <div class="col-md-3">
         <label class="form-label">Max Altitude (ft)</label>
-        <input type="number" class="form-control" @bind="Fp.MaxAltitudeFt"/>
+        <input type="number" min="0" class="form-control" @bind="Fp.MaxAltitudeFt"/>
     </div>
     <div class="col-md-2">
         <label class="form-label">Lift units</label>
-        <input type="number" step="1" class="form-control" @bind="Fp.LiftUnits"/>
+        <input type="number" step="1" min="1" class="form-control" @bind="Fp.LiftUnits"/>
     </div>
     <div class="col-md-3">
         <label class="form-label">Totaal lift (kg)</label>
         <div class="input-group">
-            <input type="number" step="0.1" class="form-control" @bind="Fp.TotaalLiftKg"/>
+            <input type="number" step="0.1" min="0" class="form-control" @bind="Fp.TotaalLiftKg"/>
             <button class="btn btn-outline-primary" type="button"
                     disabled="@(!CanCalculateLift)"
                     @onclick="BerekenLift"
@@ -110,7 +110,7 @@
                        @onchange="e => Fp.Passengers[idx].Name = e.Value?.ToString() ?? string.Empty"/>
             </td>
             <td>
-                <input type="number" step="0.1" class="form-control form-control-sm"
+                <input type="number" step="0.1" min="0" class="form-control form-control-sm"
                        @bind="Fp.Passengers[idx].WeightKg"
                        @bind:culture="System.Globalization.CultureInfo.InvariantCulture"/>
             </td>
