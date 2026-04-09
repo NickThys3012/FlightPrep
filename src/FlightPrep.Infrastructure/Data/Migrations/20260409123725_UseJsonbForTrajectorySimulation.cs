@@ -10,27 +10,16 @@ namespace FlightPrep.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<string>(
-                name: "TrajectorySimulationJson",
-                table: "FlightPreparations",
-                type: "jsonb",
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "text",
-                oldNullable: true);
+            // PostgreSQL cannot cast text → jsonb automatically; USING clause is required.
+            migrationBuilder.Sql(
+                """ALTER TABLE "FlightPreparations" ALTER COLUMN "TrajectorySimulationJson" TYPE jsonb USING "TrajectorySimulationJson"::jsonb;""");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<string>(
-                name: "TrajectorySimulationJson",
-                table: "FlightPreparations",
-                type: "text",
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "jsonb",
-                oldNullable: true);
+            migrationBuilder.Sql(
+                """ALTER TABLE "FlightPreparations" ALTER COLUMN "TrajectorySimulationJson" TYPE text USING "TrajectorySimulationJson"::text;""");
         }
     }
 }
