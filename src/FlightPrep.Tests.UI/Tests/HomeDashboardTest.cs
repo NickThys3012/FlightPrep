@@ -45,11 +45,9 @@ public class HomeDashboardTest : BaseTest
         await Page.GotoAsync(BaseUrl);
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-        // The home page renders three stat cards. "Totaal Vaarten" is the first.
-        // We find any element containing a numeric stat label.
-        // The markup typically renders a large number inside a card, e.g. <h3>5</h3>
-        // followed by a label. We look for an element matching the known Dutch labels.
-        var totaalLocator = Page.Locator(".fp-card, .card")
+        // The stats row renders three .fp-stat-card elements.
+        // "Totaal Vaarten" is the label inside the first one.
+        var totaalLocator = Page.Locator(".fp-stat-card")
             .Filter(new LocatorFilterOptions { HasText = "Totaal Vaarten" });
 
         await Expect(totaalLocator.First).ToBeVisibleAsync(
