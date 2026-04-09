@@ -1,8 +1,7 @@
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
-using IPlaywright = Microsoft.Playwright.IPlaywright;
 
-namespace FlightPrep.Tests.UI;
+namespace FlightPrep.Tests.UI.Tests;
 
 [TestFixture]
 public abstract class BaseTest : PageTest

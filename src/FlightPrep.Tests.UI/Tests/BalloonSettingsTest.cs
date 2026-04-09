@@ -1,7 +1,6 @@
-using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 
-namespace FlightPrep.Tests.UI;
+namespace FlightPrep.Tests.UI.Tests;
 
 [TestFixture]
 [Category("E2E")]

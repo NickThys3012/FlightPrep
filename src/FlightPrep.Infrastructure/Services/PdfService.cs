@@ -980,7 +980,7 @@ public partial class PdfService(ISunriseService sunriseSvc, ITrajectoryMapServic
         string Blank(string? value) =>
             !fp.IsFlown                      ? "________________" :
             string.IsNullOrWhiteSpace(value) ? "—" :
-            value!;
+            value;
     }
 
     private static string StripHtml(string? html)
