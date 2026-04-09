@@ -1125,4 +1125,97 @@ public class FlightPreparationServiceTests
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
             () => sut.GetSummariesPagedAsync("u1", false, "alle", 1, 0));
     }
+
+    // ── Issue #33 — SaveAsync correctness tests ───────────────────────────────
+
+    /// <summary>
+    ///     After SaveAsync creates a new flight, every passenger must have
+    ///     FlightPreparationId set to the newly-assigned flight id.
+    /// </summary>
+    [Fact]
+    public async Task SaveAsync_NewFlight_AssignsCorrectFlightPreparationIdToPassengers()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(SaveAsync_NewFlight_AssignsCorrectFlightPreparationIdToPassengers));
+        var sut = BuildSut(factory);
+
+        var fp = SeedFlight();
+        fp.Passengers.Add(new Passenger { Name = "Alice", WeightKg = 65 });
+        fp.Passengers.Add(new Passenger { Name = "Bob",   WeightKg = 80 });
+
+        // Act
+        var id = await sut.SaveAsync(fp);
+
+        // Assert — reload and verify FlightPreparationId on every passenger
+        var loaded = await sut.GetByIdAsync(id);
+        Assert.NotNull(loaded);
+        Assert.Equal(2, loaded.Passengers.Count);
+        Assert.All(loaded.Passengers, p =>
+            Assert.Equal(id, p.FlightPreparationId));
+    }
+
+    /// <summary>
+    ///     When a flight is saved twice with different passenger lists, the second save
+    ///     must replace (not append) the passengers.  The total count must equal the
+    ///     number of passengers in the second save, not the sum of both saves.
+    /// </summary>
+    [Fact]
+    public async Task SaveAsync_UpdateFlight_ReplacesPassengersNotDuplicates()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(SaveAsync_UpdateFlight_ReplacesPassengersNotDuplicates));
+        var sut = BuildSut(factory);
+
+        var fp = SeedFlight();
+        fp.Passengers.Add(new Passenger { Name = "Alice", WeightKg = 65 });
+        fp.Passengers.Add(new Passenger { Name = "Bob",   WeightKg = 80 });
+        var id = await sut.SaveAsync(fp);
+
+        // Act — reload and replace with a single passenger
+        var loaded = await sut.GetByIdAsync(id);
+        Assert.NotNull(loaded);
+        loaded.Passengers.Clear();
+        loaded.Passengers.Add(new Passenger { Name = "Carol", WeightKg = 70 });
+        await sut.SaveAsync(loaded);
+
+        // Assert — exactly one passenger; no duplicates from first save
+        var updated = await sut.GetByIdAsync(id);
+        Assert.NotNull(updated);
+        Assert.Single(updated.Passengers);
+        Assert.Equal("Carol", updated.Passengers[0].Name);
+    }
+
+    /// <summary>
+    ///     When a flight is updated with a different wind-level list, the second save
+    ///     must replace (not append) the wind levels.
+    /// </summary>
+    [Fact]
+    public async Task SaveAsync_UpdateFlight_ReplacesWindLevelsNotDuplicates()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(SaveAsync_UpdateFlight_ReplacesWindLevelsNotDuplicates));
+        var sut = BuildSut(factory);
+
+        var fp = SeedFlight();
+        fp.WindLevels.Add(new WindLevel { AltitudeFt = 0,    SpeedKt = 8,  DirectionDeg = 270 });
+        fp.WindLevels.Add(new WindLevel { AltitudeFt = 1000, SpeedKt = 12, DirectionDeg = 280 });
+        fp.WindLevels.Add(new WindLevel { AltitudeFt = 2000, SpeedKt = 15, DirectionDeg = 285 });
+        var id = await sut.SaveAsync(fp);
+
+        // Verify 3 levels were saved
+        var saved = await sut.GetByIdAsync(id);
+        Assert.NotNull(saved);
+        Assert.Equal(3, saved.WindLevels.Count);
+
+        // Act — replace with a single wind level
+        saved.WindLevels.Clear();
+        saved.WindLevels.Add(new WindLevel { AltitudeFt = 500, SpeedKt = 6, DirectionDeg = 260 });
+        await sut.SaveAsync(saved);
+
+        // Assert — exactly one wind level; three old levels removed
+        var updated = await sut.GetByIdAsync(id);
+        Assert.NotNull(updated);
+        Assert.Single(updated.WindLevels);
+        Assert.Equal(500, updated.WindLevels[0].AltitudeFt);
+    }
 }

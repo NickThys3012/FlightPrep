@@ -582,4 +582,122 @@ public class FlightPreparationSharingTests
         var loaded = await sut.GetByIdAsync(flightId);
         Assert.Null(loaded);
     }
+
+    // ── Issue #77 edge-case tests ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task ShareAsync_NonOwnerCaller_DoesNotAddShare()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(ShareAsync_NonOwnerCaller_DoesNotAddShare));
+        var sut = BuildSut(factory);
+
+        await SeedUserAsync(factory, "target-user", "target@test.com");
+        var flightId = await SeedFlightAsync(factory, "owner-1");
+
+        // Act — a different user (not the owner) tries to share the flight
+        await sut.ShareAsync(flightId, "not-the-owner", "target-user");
+
+        // Assert — no share row must have been inserted
+        Assert.False(await sut.IsSharedWithAsync(flightId, "target-user"));
+    }
+
+    [Fact]
+    public async Task RevokeShareAsync_NonOwnerCaller_DoesNotRemoveShare()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(RevokeShareAsync_NonOwnerCaller_DoesNotRemoveShare));
+        var sut = BuildSut(factory);
+
+        var flightId = await SeedFlightAsync(factory, "owner-1");
+        await SeedShareAsync(factory, flightId, "viewer-1");
+
+        // Confirm the share exists before the revoke attempt
+        Assert.True(await sut.IsSharedWithAsync(flightId, "viewer-1"));
+
+        // Act — a non-owner tries to revoke the share
+        await sut.RevokeShareAsync(flightId, "not-the-owner", "viewer-1");
+
+        // Assert — share must still exist
+        Assert.True(await sut.IsSharedWithAsync(flightId, "viewer-1"));
+    }
+
+    [Fact]
+    public async Task GetShareableUsersAsync_NonOwnerCaller_ReturnsEmpty()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(GetShareableUsersAsync_NonOwnerCaller_ReturnsEmpty));
+        var sut = BuildSut(factory);
+
+        await SeedUserAsync(factory, "owner-1", "owner@test.com");
+        await SeedUserAsync(factory, "other-user", "other@test.com");
+        var flightId = await SeedFlightAsync(factory, "owner-1");
+
+        // Act — non-owner calls GetShareableUsersAsync
+        var result = await sut.GetShareableUsersAsync(flightId, "other-user");
+
+        // Assert — ownership guard must prevent any results
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetSummariesAsync_SharedFlight_SetsIsSharedTrue()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(GetSummariesAsync_SharedFlight_SetsIsSharedTrue));
+        var sut = BuildSut(factory);
+
+        var flightId = await SeedFlightAsync(factory, "owner-1");
+        await SeedShareAsync(factory, flightId, "viewer-1");
+
+        // Act — viewer requests their summaries
+        var summaries = await sut.GetSummariesAsync("viewer-1", false);
+
+        // Assert — the shared flight's summary must have IsShared = true
+        var summary = Assert.Single(summaries);
+        Assert.Equal(flightId, summary.Id);
+        Assert.True(summary.IsShared, "Viewer's summary must have IsShared = true for a shared flight");
+    }
+
+    [Fact]
+    public async Task GetSummariesAsync_AdminUser_SetsIsSharedFalseForAll()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(GetSummariesAsync_AdminUser_SetsIsSharedFalseForAll));
+        var sut = BuildSut(factory);
+
+        var flightId1 = await SeedFlightAsync(factory, "owner-1");
+        var flightId2 = await SeedFlightAsync(factory, "owner-2");
+        // Share flight1 with an admin user so it would normally show IsShared = true
+        await SeedShareAsync(factory, flightId1, "admin-user");
+
+        // Act — admin user requests all summaries
+        var summaries = await sut.GetSummariesAsync("admin-user", isAdmin: true);
+
+        // Assert — all summaries must have IsShared = false when caller is admin
+        Assert.True(summaries.Count >= 2, "Admin must see both flights");
+        Assert.All(summaries, s => Assert.False(s.IsShared,
+            $"Flight {s.Id}: IsShared must be false for admin caller"));
+    }
+
+    [Fact]
+    public async Task IsSharedWithAsync_AfterRevoke_ReturnsFalse()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(IsSharedWithAsync_AfterRevoke_ReturnsFalse));
+        var sut = BuildSut(factory);
+
+        var flightId = await SeedFlightAsync(factory, "owner-1");
+        await sut.ShareAsync(flightId, "owner-1", "viewer-1");
+
+        // Confirm the share was established
+        Assert.True(await sut.IsSharedWithAsync(flightId, "viewer-1"));
+
+        // Act — owner revokes the share
+        await sut.RevokeShareAsync(flightId, "owner-1", "viewer-1");
+
+        // Assert — share must no longer exist
+        Assert.False(await sut.IsSharedWithAsync(flightId, "viewer-1"),
+            "IsSharedWithAsync must return false after the share has been revoked");
+    }
 }
