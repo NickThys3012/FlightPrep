@@ -1,6 +1,5 @@
 using FlightPrep.Infrastructure.Data;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 
 namespace FlightPrep.Components.Pages.Settings;

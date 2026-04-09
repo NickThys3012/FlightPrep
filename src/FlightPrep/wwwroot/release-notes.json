@@ -1,6 +1,17 @@
 {
-  "currentVersion": "13.0.1",
+  "currentVersion": "14.0.0",
   "entries": [
+    {
+      "pr": 79,
+      "version": "14.0.0",
+      "title": "Cleanup",
+      "description": "Er zijn verschillende verbeteringen doorgevoerd in de FlightPrep webapplicatie.  \n- Diverse schoonmaak- en optimalisatie-updates zijn aangebracht in de codebase om de onderhoudbaarheid en leesbaarheid te verbeteren.  \n- Verbeterde codekwaliteit door het implementeren van nieuwe kwaliteitscontroles in de CI/CD-pijplijn, wat leidt tot minder bugs en een stabielere applicatie.  \n- Updates aan de databasemigraties en modellen zorgen voor een efficiëntere gegevensstructuur en betere prestaties tijdens ballonvluchten.",
+      "author": "NickThys3012",
+      "labels": [
+        "enhancement"
+      ],
+      "date": "2026-04-09T03:36:18Z"
+    },
     {
       "pr": 78,
       "version": "13.0.1",

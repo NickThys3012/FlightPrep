@@ -22,7 +22,7 @@ public class BalloonEmptyWeightTests
             EnvelopeOnlyWeightKg = null,
             BasketWeightKg       = null,
             BurnerWeightKg       = null,
-            CylindersWeightKg    = null,
+            CylindersWeightKg    = null
         };
 
         // Act
@@ -43,7 +43,7 @@ public class BalloonEmptyWeightTests
             EnvelopeOnlyWeightKg = 0,
             BasketWeightKg       = 0,
             BurnerWeightKg       = 0,
-            CylindersWeightKg    = 0,
+            CylindersWeightKg    = 0
         };
 
         // Act
@@ -64,7 +64,7 @@ public class BalloonEmptyWeightTests
             EnvelopeOnlyWeightKg = 250,
             BasketWeightKg       = 70,
             BurnerWeightKg       = 18,
-            CylindersWeightKg    = 80,
+            CylindersWeightKg    = 80
         };
 
         // Act
@@ -85,7 +85,7 @@ public class BalloonEmptyWeightTests
             EnvelopeOnlyWeightKg = null,
             BasketWeightKg       = 70,
             BurnerWeightKg       = 18,
-            CylindersWeightKg    = 80,
+            CylindersWeightKg    = 80
         };
 
         // Act
@@ -104,7 +104,7 @@ public class BalloonEmptyWeightTests
             EnvelopeOnlyWeightKg = 250,
             BasketWeightKg       = null,
             BurnerWeightKg       = null,
-            CylindersWeightKg    = null,
+            CylindersWeightKg    = null
         };
 
         // Act
@@ -123,7 +123,7 @@ public class BalloonEmptyWeightTests
             EnvelopeOnlyWeightKg = null,
             BasketWeightKg       = null,
             BurnerWeightKg       = 18,
-            CylindersWeightKg    = 80,
+            CylindersWeightKg    = 80
         };
 
         // Act
@@ -144,7 +144,7 @@ public class BalloonEmptyWeightTests
             EnvelopeOnlyWeightKg = null,
             BasketWeightKg       = 0,
             BurnerWeightKg       = 0,
-            CylindersWeightKg    = 0,
+            CylindersWeightKg    = 0
         };
 
         // Act
@@ -165,7 +165,7 @@ public class BalloonEmptyWeightTests
             EnvelopeOnlyWeightKg = 249.5,
             BasketWeightKg       = 70.2,
             BurnerWeightKg       = 17.8,
-            CylindersWeightKg    = 80.5,
+            CylindersWeightKg    = 80.5
         };
 
         // Act

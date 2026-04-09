@@ -475,7 +475,7 @@ namespace FlightPrep.Data.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("OFPSettings");
+                    b.ToTable("OfpSettings");
                 });
 
             modelBuilder.Entity("FlightPrep.Domain.Models.Passenger", b =>
@@ -610,7 +610,8 @@ namespace FlightPrep.Data.Migrations
                         .HasColumnType("character varying(256)");
 
                     b.Property<string>("OperatorName")
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");

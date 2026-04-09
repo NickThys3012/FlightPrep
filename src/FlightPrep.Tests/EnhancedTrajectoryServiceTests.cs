@@ -294,6 +294,8 @@ public class EnhancedTrajectoryServiceTests
 
         Assert.All(result.Points, p =>
         {
+            ArgumentNullException.ThrowIfNull(p);
+
             Assert.Equal(51.0, p.Lat, 5);
             Assert.Equal(3.5, p.Lon, 5);
         });

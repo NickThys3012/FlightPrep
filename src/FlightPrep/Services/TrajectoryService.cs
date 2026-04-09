@@ -5,7 +5,7 @@ using FlightPrep.Infrastructure.Services;
 
 namespace FlightPrep.Services;
 
-public class TrajectoryService : ITrajectoryService
+internal class TrajectoryService : ITrajectoryService
 {
     private static readonly string[] Palette =
     [

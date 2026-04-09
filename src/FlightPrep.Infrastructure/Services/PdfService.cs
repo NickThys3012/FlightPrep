@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 
 namespace FlightPrep.Infrastructure.Services;
 
-public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc, IFlightAssessmentService assessmentSvc) : IPdfService
+public partial class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc, IFlightAssessmentService assessmentSvc) : IPdfService
 {
     private const string PrimaryColor = "#1a3a5c";
     private const string LightBg = "#f0f4f8";
@@ -31,8 +31,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
             sunriseSunset = sunriseSvc.Calculate(fp.Datum, loc.Latitude!.Value, loc.Longitude!.Value);
         }
 
-        var assessment = await assessmentSvc.ComputeAsync(fp, userId);
-        var gng = assessment.GoNoGo;
+        var (totaalGewicht, liftVoldoende, goNoGo) = await assessmentSvc.ComputeAsync(fp, userId);
 
         return Document.Create(container =>
         {
@@ -60,8 +59,20 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                 page.Content().Column(col =>
                 {
                     // Go/No-Go indicator
-                    var gngBg = gng == "green" ? Colors.Green.Darken1 : gng == "yellow" ? Colors.Yellow.Darken1 : gng == "red" ? Colors.Red.Darken1 : Colors.Grey.Medium;
-                    var gngText = gng == "green" ? "GO" : gng == "yellow" ? "CAUTION" : gng == "red" ? "NO-GO" : "Go/No-Go onbekend";
+                    var gngBg = goNoGo switch
+                    {
+                        "green" => Colors.Green.Darken1,
+                        "yellow" => Colors.Yellow.Darken1,
+                        "red" => Colors.Red.Darken1,
+                        _ => Colors.Grey.Medium
+                    };
+                    var gngText = goNoGo switch
+                    {
+                        "green" => "GO",
+                        "yellow" => "CAUTION",
+                        "red" => "NO-GO",
+                        _ => "Go/No-Go onbekend"
+                    };
                     col.Item().PaddingBottom(4).Background(gngBg).Padding(5)
                         .Text(gngText).Bold().FontSize(11).FontColor(Colors.White);
 
@@ -206,7 +217,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         altLoad = !altLoad;
                     }
 
-                    var totalWeight = $"{assessment.TotaalGewicht:F1} kg";
+                    var totalWeight = $"{totaalGewicht:F1} kg";
                     col.Item().Background(Colors.Grey.Lighten3).Padding(3).Row(row =>
                     {
                         row.RelativeItem(3).Text("Totaal gewicht").Bold();
@@ -220,8 +231,8 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         .Text(
                             $"Max Altitude: {(fp.MaxAltitudeFt.HasValue ? fp.MaxAltitudeFt + " ft" : "–")}  |  Lift units: {fp.LiftUnits?.ToString("F0") ?? "–"}  |  Totaal lift: {fp.TotaalLiftKg?.ToString("F1") ?? "–"} kg");
                     col.Item().Background(LightBg).Padding(3)
-                        .Text(assessment.LiftVoldoende ? "Lift voldoende" : "Lift onvoldoende").Bold()
-                        .FontColor(assessment.LiftVoldoende ? Colors.Green.Darken2 : Colors.Red.Darken2);
+                        .Text(liftVoldoende ? "Lift voldoende" : "Lift onvoldoende").Bold()
+                        .FontColor(liftVoldoende ? Colors.Green.Darken2 : Colors.Red.Darken2);
 
                     // ISA lift calculation block — only when all inputs are present
                     if (fp.Balloon?.VolumeM3.HasValue == true &&
@@ -270,11 +281,12 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                 foreach (var t in allTrajs.Where(t => t.Points.Count > 0))
                                 {
                                     var last = t.Points[^1];
-                                    var src = t.DataSource == TrajectoryDataSource.Hysplit
-                                        ? "Open-Meteo 3D"
-                                        : t.DataSource == TrajectoryDataSource.OpenMeteo
-                                            ? "Open-Meteo"
-                                            : "Dead-reckoning";
+                                    var src = t.DataSource switch
+                                    {
+                                        TrajectoryDataSource.Hysplit => "Open-Meteo 3D",
+                                        TrajectoryDataSource.OpenMeteo => "Open-Meteo",
+                                        _ => "Dead-reckoning"
+                                    };
                                     var landing = $"{last.Lat:F4}°N  {last.Lon:F4}°E";
                                     var altRow = $"{t.AltitudeFt} ft  |  {src}  |  {t.DurationMinutes} min  |  berekend {t.SimulatedAt:dd/MM/yyyy HH:mm}  |  landing ≈ {landing}";
 
@@ -317,7 +329,11 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     col.Item().ShowEntire().Background(Colors.White).Padding(4)
                         .Text(fp.Ballonbulletin ?? "–").FontFamily("Courier New").FontSize(7.5f);
 
-                    if (fp.IsFlown)
+                    if (!fp.IsFlown)
+                    {
+                        return;
+                    }
+
                     {
                         col.Item().PaddingTop(6).ShowEntire().Background(Colors.Green.Darken1).Padding(4)
                             .Text("Vluchtverslag").Bold().FontColor(Colors.White).FontSize(10);
@@ -403,14 +419,10 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
         }
 
         // Remove Quill's internal UI marker spans (empty, just for visual bullets)
-        var clean = Regex.Replace(html,
-            @"<span\s[^>]*class=""ql-ui""[^>]*>.*?</span>",
-            "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var clean = QuillUiMarkerRegex().Replace(html, "");
 
         // Extract block elements one by one
-        var blockRx = new Regex(
-            @"<(h[1-6]|p|li)([^>]*)>(.*?)</\1>",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var blockRx = ExtractBlockElementsRegex();
 
         var any = false;
         foreach (Match m in blockRx.Matches(clean))
@@ -418,7 +430,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
             var tag = m.Groups[1].Value.ToLowerInvariant();
             var attrs = m.Groups[2].Value;
             // Strip all remaining inline tags, decode entities
-            var text = Regex.Replace(m.Groups[3].Value, "<[^>]+>", "")
+            var text = AnyHtmlTagRegex().Replace(m.Groups[3].Value, "")
                 .Replace("&nbsp;", " ").Replace("&amp;", "&")
                 .Replace("&lt;", "<").Replace("&gt;", ">")
                 .Replace("&quot;", "\"").Trim();
@@ -430,7 +442,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
 
             any = true;
 
-            var indentMatch = Regex.Match(attrs, @"ql-indent-(\d+)");
+            var indentMatch = QuillIndentLevelRegex().Match(attrs);
             var indent = indentMatch.Success ? int.Parse(indentMatch.Groups[1].Value) * 12 : 0;
 
             switch (tag)
@@ -460,22 +472,6 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
     {
         ArgumentNullException.ThrowIfNull(fp);
         Settings.License = LicenseType.Community;
-
-        // Post-flight blank helpers — show fill line when flight is not yet marked as flown
-        string Blank(string? value) =>
-            !fp.IsFlown                      ? "________________" :
-            string.IsNullOrWhiteSpace(value) ? "—" :
-                                               value!;
-
-        string BlankNum(double? value) =>
-            !fp.IsFlown    ? "________________" :
-            value.HasValue ? value.Value.ToString("0.#") :
-                             "—";
-
-        string BlankBool(bool? value) =>
-            !fp.IsFlown    ? "________________" :
-            value.HasValue ? (value.Value ? "Ja" : "Neen") :
-                             "—";
 
         var pdfBytes = Document.Create(container =>
         {
@@ -569,9 +565,6 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                             cols.ConstantColumn(20); // T
                         });
 
-                        // Header row
-                        static IContainer HeaderCell(IContainer c) =>
-                            c.Background(PrimaryColor).Padding(3);
                         table.Header(hdr =>
                         {
                             hdr.Cell().Element(HeaderCell).Text("No").Bold().FontColor(Colors.White).FontSize(8);
@@ -605,6 +598,11 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         table.Cell().ColumnSpan(2).Background(LightBg).Padding(3).Text("TOTALS (PAX + PIC)").Bold().FontSize(8);
                         table.Cell().Background(LightBg).Padding(3).Text($"{grandTotal:F0} kg").Bold().FontSize(8);
                         table.Cell().ColumnSpan(3).Background(LightBg).Padding(3).Text("").FontSize(8);
+                        return;
+
+                        // Header row
+                        static IContainer HeaderCell(IContainer c) =>
+                            c.Background(PrimaryColor).Padding(3);
                     });
                     col.Item().PaddingTop(2).Text("(C) CHILD   (A) ASSISTANCE   (T) TRANSPORT")
                         .FontSize(7).Italic().FontColor(Colors.Grey.Darken1);
@@ -623,11 +621,6 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                     cols.RelativeColumn(2);
                                     cols.RelativeColumn(3);
                                 });
-
-                                static IContainer WLabelCell(IContainer c) =>
-                                    c.Background(LightBg).Padding(3);
-                                static IContainer WValueCell(IContainer c) =>
-                                    c.Background(Colors.White).Padding(3);
 
                                 wTable.Cell().Element(WLabelCell).Text("SOURCE").Bold().FontSize(7);
                                 wTable.Cell().Element(WValueCell).Text("Meteoblue").FontSize(8);
@@ -681,6 +674,14 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                         wTable.Cell().Element(WValueCell).Text($"{dir}/{spd}kt").FontSize(8);
                                     }
                                 }
+
+                                return;
+
+                                static IContainer WValueCell(IContainer c) =>
+                                    c.Background(Colors.White).Padding(3);
+
+                                static IContainer WLabelCell(IContainer c) =>
+                                    c.Background(LightBg).Padding(3);
                             });
 
                             // Derive planned duration from takeoff and landing times
@@ -709,8 +710,6 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                     cols.RelativeColumn();
                                     cols.RelativeColumn();
                                 });
-                                static IContainer FHdrCell(IContainer c) =>
-                                    c.Background(PrimaryColor).Padding(3);
                                 fTable.Header(hdr =>
                                 {
                                     hdr.Cell().Element(FHdrCell).Text("PLANNED TIME").Bold().FontColor(Colors.White).FontSize(7);
@@ -726,6 +725,10 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                     .Text(fp.FuelRequiredMinutes.HasValue ? $"{fp.FuelRequiredMinutes} min" : "—").FontSize(8);
                                 fTable.Cell().Background(Colors.White).Padding(3)
                                     .Text($"{BlankNum(fp.FuelConsumptionL)} L").FontSize(8);
+                                return;
+
+                                static IContainer FHdrCell(IContainer c) =>
+                                    c.Background(PrimaryColor).Padding(3);
                             });
 
                             // Load calculations
@@ -737,10 +740,6 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                     cols.RelativeColumn(2);
                                     cols.RelativeColumn(3);
                                 });
-                                static IContainer LLabelCell(IContainer c) =>
-                                    c.Background(LightBg).Padding(3);
-                                static IContainer LValueCell(IContainer c) =>
-                                    c.Background(Colors.White).Padding(3);
 
                                 lTable.Cell().Element(LLabelCell).Text("TAKEOFF TEMP").Bold().FontSize(7);
                                 lTable.Cell().Element(LValueCell)
@@ -771,6 +770,13 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                 lTable.Cell().Element(LLabelCell).Text("LIFT REQUIRED").Bold().FontSize(7);
                                 lTable.Cell().Element(LValueCell)
                                     .Text($"{fp.TotaalGewichtOFP(passengerEquipmentKg):F0} kg").FontSize(8);
+                                return;
+
+                                static IContainer LValueCell(IContainer c) =>
+                                    c.Background(Colors.White).Padding(3);
+
+                                static IContainer LLabelCell(IContainer c) =>
+                                    c.Background(LightBg).Padding(3);
                             });
                         });
 
@@ -787,15 +793,11 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                     cols.RelativeColumn(2);
                                     cols.RelativeColumn(2);
                                 });
-                                static IContainer EHdrCell(IContainer c) =>
-                                    c.Background(PrimaryColor).Padding(3);
                                 eTable.Header(hdr =>
                                 {
                                     hdr.Cell().Element(EHdrCell).Text("COMPONENT").Bold().FontColor(Colors.White).FontSize(7);
                                     hdr.Cell().Element(EHdrCell).Text("WEIGHT").Bold().FontColor(Colors.White).FontSize(7);
                                 });
-
-                                static string FmtKg(double? v) => v.HasValue ? $"{v:F0} kg" : "—";
 
                                 eTable.Cell().Background(LightBg).Padding(3).Text("ENVELOPE").FontSize(8);
                                 eTable.Cell().Background(Colors.White).Padding(3).Text(FmtKg(fp.OFPEnvelopeWeightKg)).FontSize(8);
@@ -812,6 +814,12 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                 var picW = fp.PicWeightKg ?? fp.Pilot?.WeightKg;
                                 eTable.Cell().Background(LightBg).Padding(3).Text("PIC").FontSize(8);
                                 eTable.Cell().Background(Colors.White).Padding(3).Text(FmtKg(picW)).FontSize(8);
+                                return;
+
+                                static string FmtKg(double? v) => v.HasValue ? $"{v:F0} kg" : "—";
+
+                                static IContainer EHdrCell(IContainer c) =>
+                                    c.Background(PrimaryColor).Padding(3);
                             });
 
                             // Last minute updates
@@ -848,17 +856,11 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                             cols.RelativeColumn(2);
                             cols.RelativeColumn(5);
                         });
-                        static IContainer PFHdrCell(IContainer c) =>
-                            c.Background(PrimaryColor).Padding(3);
                         pfTable.Header(hdr =>
                         {
                             hdr.Cell().ColumnSpan(2).Element(PFHdrCell)
                                 .Text("AFTER-FLIGHT RECORD").Bold().FontColor(Colors.White).FontSize(7);
                         });
-                        static IContainer PFLabelCell(IContainer c) =>
-                            c.Background(LightBg).Padding(3);
-                        static IContainer PFValueCell(IContainer c) =>
-                            c.Background(Colors.White).Padding(3);
 
                         pfTable.Cell().Element(PFLabelCell).Text("ACTUAL LANDING").Bold().FontSize(7);
                         pfTable.Cell().Element(PFValueCell).Text(Blank(fp.ActualLandingNotes)).FontSize(8);
@@ -874,6 +876,16 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
 
                         pfTable.Cell().Element(PFLabelCell).Text("POST-FLIGHT REMARKS").Bold().FontSize(7);
                         pfTable.Cell().Element(PFValueCell).Text(Blank(fp.ActualRemarks)).FontSize(8);
+                        return;
+
+                        static IContainer PFValueCell(IContainer c) =>
+                            c.Background(Colors.White).Padding(3);
+
+                        static IContainer PFLabelCell(IContainer c) =>
+                            c.Background(LightBg).Padding(3);
+
+                        static IContainer PFHdrCell(IContainer c) =>
+                            c.Background(PrimaryColor).Padding(3);
                     });
 
                     // ── After flight / Visible defects ──────────────────────
@@ -887,13 +899,6 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                             cols.RelativeColumn();  // INITIALS
                             cols.RelativeColumn();  // DATE (cert)
                         });
-
-                        static IContainer DHeaderCell(IContainer c) =>
-                            c.Background(PrimaryColor).Padding(3);
-                        static IContainer DLabelCell(IContainer c) =>
-                            c.Background(LightBg).Padding(3);
-                        static IContainer DValueCell(IContainer c) =>
-                            c.Background(Colors.White).Padding(3);
 
                         // Row 1 — section title spanning all 5 columns
                         dTable.Cell().ColumnSpan(5).Element(DHeaderCell)
@@ -942,6 +947,16 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         dTable.Cell().ColumnSpan(5).Background(LightBg).Padding(4)
                             .Text("THIS CONFIRMS THAT THE SPECIFIED ACTIONS WERE EXECUTED ACCORDING PART-ML AND THAT THE AIRCRAFT IS DECLARED AS READY FOR THE NEXT FLIGHT.")
                             .Bold().FontSize(6).Italic();
+                        return;
+
+                        static IContainer DValueCell(IContainer c) =>
+                            c.Background(Colors.White).Padding(3);
+
+                        static IContainer DLabelCell(IContainer c) =>
+                            c.Background(LightBg).Padding(3);
+
+                        static IContainer DHeaderCell(IContainer c) =>
+                            c.Background(PrimaryColor).Padding(3);
                     });
                 });
 
@@ -950,6 +965,22 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
         }).GeneratePdf();
 
         return Task.FromResult(pdfBytes);
+
+        string BlankBool(bool? value) =>
+            !fp.IsFlown    ? "________________" :
+            value.HasValue ? (value.Value ? "Ja" : "Neen") :
+            "—";
+
+        string BlankNum(double? value) =>
+            !fp.IsFlown    ? "________________" :
+            value.HasValue ? value.Value.ToString("0.#") :
+            "—";
+
+        // Post-flight blank helpers — show fill line when flight is not yet marked as flown
+        string Blank(string? value) =>
+            !fp.IsFlown                      ? "________________" :
+            string.IsNullOrWhiteSpace(value) ? "—" :
+            value;
     }
 
     private static string StripHtml(string? html)
@@ -959,14 +990,24 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
             return "–";
         }
 
-        var text = Regex.Replace(html, @"<span\s[^>]*class=""ql-ui""[^>]*>.*?</span>", "",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
-        text = Regex.Replace(text, @"</?(p|h[1-6]|li|br|ul|ol|div)[^>]*>",
-            m => m.Value.StartsWith("</") || m.Value.Contains("br") ? "\n" : "",
-            RegexOptions.IgnoreCase);
-        text = Regex.Replace(text, "<[^>]+>", "");
+        var text = QuillUiMarkerRegex().Replace(html, "");
+        text = BlockLevelHtmlTagRegex().Replace(text, m => m.Value.StartsWith("</") || m.Value.Contains("br") ? "\n" : "");
+        text = AnyHtmlTagRegex().Replace(text, "");
         text = text.Replace("&nbsp;", " ").Replace("&amp;", "&")
             .Replace("&lt;", "<").Replace("&gt;", ">").Replace("&quot;", "\"");
-        return Regex.Replace(text, @"\n{3,}", "\n\n").Trim();
+        return ExcessiveNewLinesRegex().Replace(text, "\n\n").Trim();
     }
+
+    [GeneratedRegex("""<span\s[^>]*class="ql-ui"[^>]*>.*?</span>""", RegexOptions.IgnoreCase | RegexOptions.Singleline, "en-BE")]
+    private static partial Regex QuillUiMarkerRegex();
+    [GeneratedRegex(@"<(h[1-6]|p|li)([^>]*)>(.*?)</\1>", RegexOptions.IgnoreCase | RegexOptions.Singleline, "en-BE")]
+    private static partial Regex ExtractBlockElementsRegex();
+    [GeneratedRegex("<[^>]+>")]
+    private static partial Regex AnyHtmlTagRegex();
+    [GeneratedRegex(@"ql-indent-(\d+)")]
+    private static partial Regex QuillIndentLevelRegex();
+    [GeneratedRegex("</?(p|h[1-6]|li|br|ul|ol|div)[^>]*>", RegexOptions.IgnoreCase, "en-BE")]
+    private static partial Regex BlockLevelHtmlTagRegex();
+    [GeneratedRegex(@"\n{3,}")]
+    private static partial Regex ExcessiveNewLinesRegex();
 }
