@@ -1,5 +1,10 @@
-namespace FlightPrep.Infrastructure.Services;
+namespace FlightPrep.Domain.Services;
 
+/// <summary>
+///     Pure math utilities for trajectory calculations.
+///     Kept in the Domain layer so both the Web and Infrastructure projects can reference it
+///     without creating a cross-layer dependency.
+/// </summary>
 public static class TrajectoryMath
 {
     /// <summary>

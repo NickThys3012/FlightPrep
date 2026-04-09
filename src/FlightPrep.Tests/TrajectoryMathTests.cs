@@ -1,4 +1,4 @@
-using FlightPrep.Infrastructure.Services;
+using FlightPrep.Domain.Services;
 
 namespace FlightPrep.Tests;
 

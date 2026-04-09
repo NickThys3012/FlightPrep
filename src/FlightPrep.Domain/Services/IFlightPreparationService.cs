@@ -8,6 +8,8 @@ public interface IFlightPreparationService
     Task<List<Pilot>> GetPilotsAsync();
     Task<List<Location>> GetLocationsAsync();
     Task<List<FlightPreparationSummary>> GetSummariesAsync(string? userId, bool isAdmin);
+    Task<(List<FlightPreparationSummary> Items, int Total)> GetSummariesPagedAsync(
+        string? userId, bool isAdmin, string statusFilter, int page, int pageSize);
     Task<FlightPreparation?> GetByIdAsync(int id);
     Task<int> SaveAsync(FlightPreparation fp);
     Task DeleteAsync(int id, string userId, bool isAdmin = false);

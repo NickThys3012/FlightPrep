@@ -12,39 +12,36 @@ public partial class FlightList : ComponentBase
     private bool _sortDesc = true;
     private int _currentPage = 1;
     private const int PageSize = 20;
+    private int _totalCount;
     private string? _userId;
     private bool _isAdmin;
     private string _statusFilter = "alle"; // "alle" | "gevlogen" | "niet-gevlogen" | "gedeeld"
 
-    private IEnumerable<FlightPreparationSummary> FilteredFlights =>
-        _statusFilter switch
-        {
-            "gevlogen"      => _flights!.Where(f => f.IsFlown),
-            "niet-gevlogen" => _flights!.Where(f => !f.IsFlown),
-            "gedeeld"       => _flights!.Where(f => f.IsShared),
-            _               => _flights!
-        };
+    private int TotalPages => (int)Math.Ceiling(_totalCount / (double)PageSize);
+
+    // Count helpers for the filter bar — loaded separately so the badges stay accurate
+    private int _totalAll;
+    private int _totalFlown;
+    private int _totalNotFlown;
+    private int _totalShared;
 
     private IEnumerable<FlightPreparationSummary> SortedFlights =>
         _sortDesc
-            ? FilteredFlights.OrderByDescending(f => f.Datum).ThenByDescending(f => f.Tijdstip)
-            : FilteredFlights.OrderBy(f => f.Datum).ThenBy(f => f.Tijdstip);
-
-    private int TotalPages => (int)Math.Ceiling(FilteredFlights.Count() / (double)PageSize);
-
-    private IEnumerable<FlightPreparationSummary> PagedFlights =>
-        SortedFlights.Skip((_currentPage - 1) * PageSize).Take(PageSize);
+            ? _flights!.OrderByDescending(f => f.Datum).ThenByDescending(f => f.Tijdstip)
+            : _flights!.OrderBy(f => f.Datum).ThenBy(f => f.Tijdstip);
 
     private void ToggleSort()
     {
         _sortDesc = !_sortDesc;
         _currentPage = 1;
+        _ = LoadFlights();
     }
 
     private void SetFilter(string filter)
     {
         _statusFilter = filter;
         _currentPage = 1;
+        _ = LoadFlights();
     }
 
     protected override async Task OnInitializedAsync() => await LoadFlights();
@@ -60,7 +57,25 @@ public partial class FlightList : ComponentBase
 
         _goNoGoSettings = await GoNoGoSvc.GetSettingsAsync(_userId);
 
-        _flights = await FpSvc.GetSummariesAsync(_userId, _isAdmin);
+        // Server-side pagination — only fetch the current page from the DB
+        var (items, total) = await FpSvc.GetSummariesPagedAsync(
+            _userId, _isAdmin, _statusFilter, _currentPage, PageSize);
+
+        _flights   = items;
+        _totalCount = total;
+
+        // Fetch counts for the filter bar badges using the unpaged method
+        var allFlights = await FpSvc.GetSummariesAsync(_userId, _isAdmin);
+        _totalAll      = allFlights.Count;
+        _totalFlown    = allFlights.Count(f => f.IsFlown);
+        _totalNotFlown = allFlights.Count(f => !f.IsFlown);
+        _totalShared   = allFlights.Count(f => f.IsShared);
+    }
+
+    private async Task GoToPage(int page)
+    {
+        _currentPage = Math.Clamp(page, 1, Math.Max(1, TotalPages));
+        await LoadFlights();
     }
 
     private void ConfirmDelete(int id) => _deleteId = id;
