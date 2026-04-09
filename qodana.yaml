@@ -3,6 +3,8 @@
 ####################################################################################################################
 
 version: "1.0"
+dotnet:
+  solution: FlightPrep.slnx
 profile:
   name: qodana.recommended
 include:
