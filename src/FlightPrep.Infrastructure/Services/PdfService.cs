@@ -502,7 +502,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                             {
                                 c.Item().Text("HOT AIR BALLOON").Bold().FontSize(7).FontColor(Colors.Grey.Darken1);
                                 var regIcao = string.Join("  ",
-                                    new[] { fp.Balloon?.Registration, fp.Location?.IcaoCode }
+                                    new[] { fp.Balloon?.Registration }
                                         .Where(s => !string.IsNullOrWhiteSpace(s)));
                                 c.Item().Text(string.IsNullOrWhiteSpace(regIcao) ? "—" : regIcao).FontSize(8);
                             });
