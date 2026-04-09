@@ -1189,6 +1189,46 @@ public class FlightPreparationServiceTests
     ///     When a flight is updated with a different wind-level list, the second save
     ///     must replace (not append) the wind levels.
     /// </summary>
+    // ── GetByIdAsync — null-guard regression (issues #58 / #60 / #70 / #75) ──────
+    //   FlightView.razor.cs relies on GetByIdAsync returning null for an unknown id
+    //   so it can do an early NavigateTo("/flights") and return.  These two tests
+    //   pin that contract so regressions are caught immediately.
+
+    [Fact]
+    public async Task GetByIdAsync_NonExistentId_ReturnsNull()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(GetByIdAsync_NonExistentId_ReturnsNull));
+        var sut = BuildSut(factory);
+
+        // Act — query an id that was never seeded
+        var result = await sut.GetByIdAsync(int.MaxValue);
+
+        // Assert — null triggers the FlightView early-return / redirect
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ExistingId_ReturnsFlight()
+    {
+        // Arrange
+        var factory = CreateFactory(nameof(GetByIdAsync_ExistingId_ReturnsFlight));
+        var sut = BuildSut(factory);
+
+        await using var db = await factory.CreateDbContextAsync();
+        var fp = SeedFlight();
+        db.FlightPreparations.Add(fp);
+        await db.SaveChangesAsync();
+        var seededId = fp.Id;
+
+        // Act
+        var result = await sut.GetByIdAsync(seededId);
+
+        // Assert — non-null result means FlightView proceeds normally (no redirect)
+        Assert.NotNull(result);
+        Assert.Equal(seededId, result.Id);
+    }
+
     [Fact]
     public async Task SaveAsync_UpdateFlight_ReplacesWindLevelsNotDuplicates()
     {
