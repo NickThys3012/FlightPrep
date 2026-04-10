@@ -29,7 +29,7 @@ public class BalloonService(
             query = query.Where(b => b.OwnerId == userId);
         }
 
-        return await query.OrderBy(b => b.Registration).ToListAsync();
+        return await query.AsNoTracking().OrderBy(b => b.Registration).ToListAsync();
     }
 
     /// <inheritdoc />

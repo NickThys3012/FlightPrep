@@ -10,7 +10,7 @@ public class GoNoGoService(IDbContextFactory<AppDbContext> dbFactory) : IGoNoGoS
     public async Task<GoNoGoSettings> GetSettingsAsync(string? userId)
     {
         await using var db = await dbFactory.CreateDbContextAsync();
-        return await db.GoNoGoSettings.FirstOrDefaultAsync(g => g.UserId == userId)
+        return await db.GoNoGoSettings.AsNoTracking().FirstOrDefaultAsync(g => g.UserId == userId)
                ?? new GoNoGoSettings { UserId = userId };
     }
 

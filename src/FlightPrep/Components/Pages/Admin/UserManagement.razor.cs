@@ -20,15 +20,26 @@ public partial class UserManagement : ComponentBase
     private async Task LoadUsers()
     {
         _errorMessage = null;
-        var users = UserManager.Users.ToList();
-        var vms = new List<UserViewModel>();
-        foreach (var u in users)
-        {
-            var roles = await UserManager.GetRolesAsync(u);
-            vms.Add(new UserViewModel { Id = u.Id, Email = u.Email!, IsApproved = u.IsApproved, Roles = roles.ToList() });
-        }
+        var users = await UserManager.Users.ToListAsync();
 
-        _users = vms;
+        // Batch-load all user-role mappings in a single query — eliminates N+1 GetRolesAsync calls.
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var userIds = users.Select(u => u.Id).ToList();
+        var userRoles = await db.UserRoles
+            .Where(ur => userIds.Contains(ur.UserId))
+            .Join(db.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, Name = r.Name ?? "" })
+            .ToListAsync();
+        var rolesByUserId = userRoles
+            .GroupBy(ur => ur.UserId)
+            .ToDictionary(g => g.Key, g => g.Select(ur => ur.Name).ToList());
+
+        _users = users.Select(u => new UserViewModel
+        {
+            Id = u.Id,
+            Email = u.Email!,
+            IsApproved = u.IsApproved,
+            Roles = rolesByUserId.GetValueOrDefault(u.Id, [])
+        }).ToList();
     }
 
     private async Task LoadLoginEvents()

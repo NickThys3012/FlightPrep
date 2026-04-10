@@ -20,21 +20,21 @@ public class FlightPreparationService(
     public async Task<List<Balloon>> GetBalloonsAsync()
     {
         await using var db = await dbFactory.CreateDbContextAsync();
-        return await db.Balloons.OrderBy(b => b.Registration).ToListAsync();
+        return await db.Balloons.AsNoTracking().OrderBy(b => b.Registration).ToListAsync();
     }
 
     /// <summary>Returns all pilots ordered by name.</summary>
     public async Task<List<Pilot>> GetPilotsAsync()
     {
         await using var db = await dbFactory.CreateDbContextAsync();
-        return await db.Pilots.OrderBy(p => p.Name).ToListAsync();
+        return await db.Pilots.AsNoTracking().OrderBy(p => p.Name).ToListAsync();
     }
 
     /// <summary>Returns all locations ordered by name.</summary>
     public async Task<List<Location>> GetLocationsAsync()
     {
         await using var db = await dbFactory.CreateDbContextAsync();
-        return await db.Locations.OrderBy(l => l.Name).ToListAsync();
+        return await db.Locations.AsNoTracking().OrderBy(l => l.Name).ToListAsync();
     }
 
     // ── Flight preparation queries ────────────────────────────────────────────
@@ -60,48 +60,54 @@ public class FlightPreparationService(
                 f.Shares.Any(s => s.SharedWithUserId == userId));
         }
 
-        // Load all matching flights with their shares so we can determine IsShared and SharedByName.
-        // We perform a left join to AspNetUsers to get the owner's UserName for shared preps.
+        // Step 1: Load flights with navigation properties — no correlated subquery for UserName.
         var flights = await query
+            .AsNoTracking()
+            .Include(f => f.Balloon)
+            .Include(f => f.Pilot)
+            .Include(f => f.Location)
             .Include(f => f.Shares)
-            .Select(f => new
-            {
-                f.Id,
-                f.Datum,
-                f.Tijdstip,
-                f.IsFlown,
-                BalloonRegistration = f.Balloon != null ? f.Balloon.Registration : null,
-                PilotName = f.Pilot != null ? f.Pilot.Name : null,
-                LocationName = f.Location != null ? f.Location.Name : null,
-                f.SurfaceWindSpeedKt,
-                f.ZichtbaarheidKm,
-                f.CapeJkg,
-                f.CreatedByUserId,
-                IsShared = isAdmin ? false : f.CreatedByUserId != userId,
-                OwnerUserName = f.CreatedByUserId == null
-                    ? null
-                    : db.Users.Where(u => u.Id == f.CreatedByUserId).Select(u => u.UserName).FirstOrDefault()
-            })
+            .OrderByDescending(f => f.Datum).ThenByDescending(f => f.Tijdstip)
             .ToListAsync();
 
-        return flights
-            .Select(f => new FlightPreparationSummary(
+        // Step 2: Batch-load owner usernames in a single round-trip.
+        var ownerIds = flights
+            .Select(f => f.CreatedByUserId)
+            .Where(id => id != null)
+            .Distinct()
+            .ToList();
+        var ownerNames = ownerIds.Count > 0
+            ? await db.Users
+                .AsNoTracking()
+                .Where(u => ownerIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id!, u => u.UserName)
+            : new Dictionary<string, string?>();
+
+        // Step 3: Project in memory — dictionary lookup, zero extra DB round-trips.
+        return flights.Select(f =>
+        {
+            var isShared = !isAdmin && f.CreatedByUserId != userId;
+            return new FlightPreparationSummary(
                 f.Id,
                 f.Datum,
                 f.Tijdstip,
                 f.IsFlown,
-                f.BalloonRegistration,
-                f.PilotName,
-                f.LocationName,
+                f.Balloon?.Registration,
+                f.Pilot?.Name,
+                f.Location?.Name,
                 f.SurfaceWindSpeedKt,
                 f.ZichtbaarheidKm,
                 f.CapeJkg,
                 f.CreatedByUserId)
             {
-                IsShared = f.IsShared,
-                SharedByName = f.IsShared ? (f.OwnerUserName ?? f.CreatedByUserId) : null
-            })
-            .ToList();
+                IsShared = isShared,
+                SharedByName = isShared
+                    ? (f.CreatedByUserId != null
+                        ? (ownerNames.TryGetValue(f.CreatedByUserId, out var n) && n is not null ? n : f.CreatedByUserId)
+                        : null)
+                    : null
+            };
+        }).ToList();
     }
 
     /// <summary>
@@ -141,48 +147,55 @@ public class FlightPreparationService(
             ? query.OrderByDescending(f => f.Datum).ThenByDescending(f => f.Tijdstip)
             : query.OrderBy(f => f.Datum).ThenBy(f => f.Tijdstip);
 
+        // Step 1: Load paged flights with navigation properties — no correlated subquery.
         var flights = await ordered
+            .AsNoTracking()
+            .Include(f => f.Balloon)
+            .Include(f => f.Pilot)
+            .Include(f => f.Location)
             .Include(f => f.Shares)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(f => new
-            {
-                f.Id,
-                f.Datum,
-                f.Tijdstip,
-                f.IsFlown,
-                BalloonRegistration = f.Balloon != null ? f.Balloon.Registration : null,
-                PilotName = f.Pilot != null ? f.Pilot.Name : null,
-                LocationName = f.Location != null ? f.Location.Name : null,
-                f.SurfaceWindSpeedKt,
-                f.ZichtbaarheidKm,
-                f.CapeJkg,
-                f.CreatedByUserId,
-                IsShared = isAdmin ? false : f.CreatedByUserId != userId,
-                OwnerUserName = f.CreatedByUserId == null
-                    ? null
-                    : db.Users.Where(u => u.Id == f.CreatedByUserId).Select(u => u.UserName).FirstOrDefault()
-            })
             .ToListAsync();
 
-        var items = flights
-            .Select(f => new FlightPreparationSummary(
+        // Step 2: Batch-load owner usernames in a single round-trip.
+        var ownerIds = flights
+            .Select(f => f.CreatedByUserId)
+            .Where(id => id != null)
+            .Distinct()
+            .ToList();
+        var ownerNames = ownerIds.Count > 0
+            ? await db.Users
+                .AsNoTracking()
+                .Where(u => ownerIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id!, u => u.UserName)
+            : new Dictionary<string, string?>();
+
+        // Step 3: Project in memory — dictionary lookup, zero extra DB round-trips.
+        var items = flights.Select(f =>
+        {
+            var isShared = !isAdmin && f.CreatedByUserId != userId;
+            return new FlightPreparationSummary(
                 f.Id,
                 f.Datum,
                 f.Tijdstip,
                 f.IsFlown,
-                f.BalloonRegistration,
-                f.PilotName,
-                f.LocationName,
+                f.Balloon?.Registration,
+                f.Pilot?.Name,
+                f.Location?.Name,
                 f.SurfaceWindSpeedKt,
                 f.ZichtbaarheidKm,
                 f.CapeJkg,
                 f.CreatedByUserId)
             {
-                IsShared = f.IsShared,
-                SharedByName = f.IsShared ? (f.OwnerUserName ?? f.CreatedByUserId) : null
-            })
-            .ToList();
+                IsShared = isShared,
+                SharedByName = isShared
+                    ? (f.CreatedByUserId != null
+                        ? (ownerNames.TryGetValue(f.CreatedByUserId, out var n) && n is not null ? n : f.CreatedByUserId)
+                        : null)
+                    : null
+            };
+        }).ToList();
 
         return (items, total);
     }
@@ -195,6 +208,7 @@ public class FlightPreparationService(
     {
         await using var db = await dbFactory.CreateDbContextAsync();
         return await db.FlightPreparations
+            .AsNoTracking()
             .Include(f => f.Balloon)
             .Include(f => f.Pilot)
             .Include(f => f.Location)
@@ -649,6 +663,7 @@ public class FlightPreparationService(
         }
 
         return await query
+            .AsNoTracking()
             .OrderByDescending(f => f.Datum)
             .ThenByDescending(f => f.Tijdstip)
             .Take(count)
@@ -682,6 +697,7 @@ public class FlightPreparationService(
         }
 
         return await query
+            .AsNoTracking()
             .OrderBy(f => f.Datum)
             .ToListAsync();
     }
