@@ -1,6 +1,18 @@
 {
-  "currentVersion": "16.0.5",
+  "currentVersion": "16.0.6",
   "entries": [
+    {
+      "pr": 91,
+      "version": "16.0.6",
+      "title": "refactor: rename Dutch model properties to English equivalents (#34)",
+      "description": "Alle C#-eigenschappen in het model zijn hernoemd van het Nederlands naar het Engels.\n- Alle 21 Nederlandse eigenschappen in `FlightPreparation` zijn hernoemd naar hun Engelse tegenhangers, wat de leesbaarheid en consistentie van de code verbetert voor internationale gebruikers.\n- De PostgreSQL-kolomnamen zijn behouden door gebruik te maken van `[Column(\"DutchName\")]` attributen, waardoor er geen database-migratie nodig is en de huidige databaselaag intact blijft.\n- 27 nieuwe tests zijn toegevoegd om te waarborgen dat de hernoemingen correct zijn en dat toekomstige wijzigingen in de kolomnamen worden opgemerkt voordat ze productiebreuken veroorzaken.",
+      "author": "NickThys3012",
+      "labels": [
+        "bug",
+        "architecture"
+      ],
+      "date": "2026-04-10T08:05:57Z"
+    },
     {
       "pr": 90,
       "version": "16.0.5",
