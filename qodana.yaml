@@ -14,5 +14,3 @@ exclude:
     paths:
       - src/FlightPrep/wwwroot/lib/bootstrap
   - name: CA1515
-    paths:
-      - "**/*.razor.cs"
