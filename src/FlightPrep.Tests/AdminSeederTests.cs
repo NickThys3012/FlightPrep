@@ -306,7 +306,7 @@ public class AdminSeederTests
         var factory = sp.GetRequiredService<IDbContextFactory<AppDbContext>>();
         await using (var db = await factory.CreateDbContextAsync())
         {
-            db.GoNoGoSettings.Add(new FlightPrep.Domain.Models.GoNoGoSettings { UserId = null });
+            db.GoNoGoSettings.Add(new Domain.Models.GoNoGoSettings { UserId = null });
             await db.SaveChangesAsync();
         }
 

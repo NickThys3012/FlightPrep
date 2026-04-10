@@ -14,13 +14,13 @@ public partial class OFPSettingsPage : ComponentBase
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         _userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        _settings = await OFPSettingsSvc.GetSettingsAsync(_userId);
+        _settings = await OfpSettingsSvc.GetSettingsAsync(_userId);
     }
 
     private async Task Save()
     {
         if (_settings == null || _userId == null) return;
-        await OFPSettingsSvc.SaveSettingsAsync(_settings, _userId);
+        await OfpSettingsSvc.SaveSettingsAsync(_settings, _userId);
         _saved = true;
         StateHasChanged();
         await Task.Delay(2500);

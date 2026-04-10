@@ -51,12 +51,11 @@ public class LocationOwnershipTests
         var factory = CreateFactory();
         var (user1Id, _, _) = await SeedLocationsAsync(factory);
         const string userId = "user2";
-        const bool isAdmin = false;
 
         // Act — replicate the SaveEdit ownership guard from Locations.razor
         await using var db = await factory.CreateDbContextAsync();
         var l = await db.Locations.FindAsync(user1Id);
-        if (l is null || (!isAdmin && l.OwnerId != userId))
+        if (l is null || (l.OwnerId != userId))
         {
             // guard fires — update is blocked; do nothing
         }

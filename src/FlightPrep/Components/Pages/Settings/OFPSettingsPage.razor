@@ -1,9 +1,8 @@
 @page "/settings/ofp"
-@using FlightPrep.Domain.Models
 @using FlightPrep.Domain.Services
 @attribute [Authorize]
 @rendermode InteractiveServer
-@inject IOFPSettingsService OFPSettingsSvc
+@inject IOFPSettingsService OfpSettingsSvc
 @inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>OFP Instellingen – FlightPrep</PageTitle>

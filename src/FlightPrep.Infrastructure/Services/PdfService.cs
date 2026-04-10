@@ -465,7 +465,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
         string Blank(string? value) =>
             !fp.IsFlown                      ? "________________" :
             string.IsNullOrWhiteSpace(value) ? "—" :
-                                               value!;
+                                               value;
 
         string BlankNum(double? value) =>
             !fp.IsFlown    ? "________________" :
@@ -961,7 +961,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
 
         var text = Regex.Replace(html, @"<span\s[^>]*class=""ql-ui""[^>]*>.*?</span>", "",
             RegexOptions.IgnoreCase | RegexOptions.Singleline);
-        text = Regex.Replace(text, @"</?(p|h[1-6]|li|br|ul|ol|div)[^>]*>",
+        text = Regex.Replace(text, "</?(p|h[1-6]|li|br|ul|ol|div)[^>]*>",
             m => m.Value.StartsWith("</") || m.Value.Contains("br") ? "\n" : "",
             RegexOptions.IgnoreCase);
         text = Regex.Replace(text, "<[^>]+>", "");

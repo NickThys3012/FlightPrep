@@ -7,7 +7,7 @@ namespace FlightPrep.Components.Pages.Admin;
 
 public partial class UserManagement : ComponentBase
 {
-      private List<UserViewModel>? _users;
+    private List<UserViewModel>? _users;
     private List<LoginEvent>? _loginEvents;
     private string? _errorMessage;
     private string _activeTab = "users";
