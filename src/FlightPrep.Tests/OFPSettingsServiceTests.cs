@@ -207,7 +207,7 @@ public class OFPSettingsServiceTests
 
             var user = await db.Users.FindAsync(userId);
             Assert.NotNull(user);   // guard: row must exist before delete
-            db.Users.Remove(user!);
+            db.Users.Remove(user);
             await db.SaveChangesAsync();
         }
 

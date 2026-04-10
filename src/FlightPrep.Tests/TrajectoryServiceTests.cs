@@ -42,7 +42,7 @@ public class TrajectoryServiceTests
         var levels = new[] { Wind(1000, 270, 10) };
 
         // Act
-        var result = Sut.Compute(50.85, 4.35, levels, 60, 5);
+        var result = Sut.Compute(50.85, 4.35, levels, 60);
 
         // Assert – 60/5 = 12 steps + 1 origin = 13 points
         Assert.Single(result);

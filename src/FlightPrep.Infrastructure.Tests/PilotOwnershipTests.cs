@@ -113,7 +113,7 @@ public class PilotOwnershipTests
         // Act — replicate the SaveEdit ownership guard from Pilots.razor
         await using var db = await factory.CreateDbContextAsync();
         var pilot = await db.Pilots.FindAsync(user1Id);
-        if (pilot is null || (!isAdmin && pilot.OwnerId != userId))
+        if (pilot is null || (pilot.OwnerId != userId))
         {
             // guard fires — update is blocked; do nothing
         }
@@ -142,7 +142,7 @@ public class PilotOwnershipTests
         // Act — owner passes the guard; update is applied
         await using var db = await factory.CreateDbContextAsync();
         var pilot = await db.Pilots.FindAsync(user1Id);
-        if (pilot is not null && (isAdmin || pilot.OwnerId == userId))
+        if (pilot is not null && (pilot.OwnerId == userId))
         {
             pilot.Name = "Alice Updated";
             await db.SaveChangesAsync();

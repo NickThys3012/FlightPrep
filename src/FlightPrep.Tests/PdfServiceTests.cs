@@ -43,7 +43,7 @@ public class PdfServiceTests
     public async Task PdfService_MinimalFlight_GeneratesPdfBytes()
     {
         // Arrange
-        var sut = BuildSut("green");
+        var sut = BuildSut();
         var fp  = MinimalFlight();
 
         // Act

@@ -667,7 +667,7 @@ public class FlightPreparationSharingTests
         var sut = BuildSut(factory);
 
         var flightId1 = await SeedFlightAsync(factory, "owner-1");
-        var flightId2 = await SeedFlightAsync(factory, "owner-2");
+        await SeedFlightAsync(factory, "owner-2");
         // Share flight1 with an admin user so it would normally show IsShared = true
         await SeedShareAsync(factory, flightId1, "admin-user");
 
