@@ -51,7 +51,6 @@ public class BalloonOwnershipTests
         var factory = CreateFactory();
         var (user1Id, _, _) = await SeedBalloonsAsync(factory);
         const string userId = "user2";
-        const bool isAdmin = false;
 
         // Act — replicate the SaveEdit ownership guard from Balloons.razor
         await using var db = await factory.CreateDbContextAsync();
