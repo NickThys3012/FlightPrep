@@ -7,14 +7,14 @@ namespace FlightPrep.Domain.Models;
 /// </summary>
 public record FlightPreparationSummary(
     int Id,
-    DateOnly Datum,
-    TimeOnly Tijdstip,
+    DateOnly Date,
+    TimeOnly Time,
     bool IsFlown,
     string? BalloonRegistration,
     string? PilotName,
     string? LocationName,
     double? SurfaceWindSpeedKt,
-    double? ZichtbaarheidKm,
+    double? VisibilityKm,
     double? CapeJkg,
     string? CreatedByUserId)
 {

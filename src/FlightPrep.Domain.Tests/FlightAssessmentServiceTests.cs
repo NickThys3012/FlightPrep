@@ -207,7 +207,7 @@ public class FlightAssessmentServiceTests
     {
         // Arrange
         var sut = BuildSutWithRealGoNoGo();
-        var fp = new FlightPreparation { SurfaceWindSpeedKt = null, ZichtbaarheidKm = null, CapeJkg = null, TotaalLiftKg = 1000 };
+        var fp = new FlightPreparation { SurfaceWindSpeedKt = null, VisibilityKm = null, CapeJkg = null, TotaalLiftKg = 1000 };
 
         // Act
         var result = sut.Compute(fp, DefaultSettings());

@@ -49,7 +49,7 @@ public partial class Logboek : ComponentBase
             .FirstOrDefault();
 
         _flightsByMonth = _flights
-            .GroupBy(f => new { f.Datum.Year, f.Datum.Month })
+            .GroupBy(f => new { f.Date.Year, f.Date.Month })
             .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
             .Select(g => ($"{g.Key.Year}-{g.Key.Month:D2}", g.Count()))
             .ToList();

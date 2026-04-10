@@ -8,7 +8,7 @@ public class GoNoGoServiceComputeTests
     private static readonly GoNoGoSettings DefaultSettings = new();
 
     private static FlightPreparation FpWith(
-        double? wind = null, double? vis = null, double? cape = null) => new() { SurfaceWindSpeedKt = wind, ZichtbaarheidKm = vis, CapeJkg = cape };
+        double? wind = null, double? vis = null, double? cape = null) => new() { SurfaceWindSpeedKt = wind, VisibilityKm = vis, CapeJkg = cape };
 
     [Fact]
     public void Compute_NoMeteoData_ReturnsUnknown()

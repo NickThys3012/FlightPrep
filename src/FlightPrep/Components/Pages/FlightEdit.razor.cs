@@ -291,7 +291,7 @@ public partial class FlightEdit(
         StateHasChanged();
         try
         {
-            var launchUtc = DateTime.SpecifyKind(_fp.Datum.ToDateTime(_fp.Tijdstip), DateTimeKind.Utc);
+            var launchUtc = DateTime.SpecifyKind(_fp.Date.ToDateTime(_fp.Time), DateTimeKind.Utc);
             _enhancedTrajectories = await enhancedTrajectorySvc.ComputeMultipleAsync(
                 _fp.Location.Latitude.Value,
                 _fp.Location.Longitude.Value,
@@ -344,8 +344,8 @@ public partial class FlightEdit(
     {
         if (_fp == null) return;
         var loc = _locations.FirstOrDefault(l => l.Id == _fp.LocationId);
-        if (loc?.AirspaceNotes != null && string.IsNullOrWhiteSpace(_fp.Luchtruimstructuur))
-            _fp.Luchtruimstructuur = loc.AirspaceNotes;
+        if (loc?.AirspaceNotes != null && string.IsNullOrWhiteSpace(_fp.AirspaceStructure))
+            _fp.AirspaceStructure = loc.AirspaceNotes;
         UpdateCurrentLocation();
         UpdateSunriseSunset();
     }
@@ -360,7 +360,7 @@ public partial class FlightEdit(
         if (_fp == null) { _sunriseSunset = null; return; }
         var loc = _locations.FirstOrDefault(l => l.Id == _fp.LocationId);
         if (loc?.Latitude.HasValue == true && loc.Longitude.HasValue)
-            _sunriseSunset = sunriseSvc.Calculate(_fp.Datum, loc.Latitude!.Value, loc.Longitude!.Value);
+            _sunriseSunset = sunriseSvc.Calculate(_fp.Date, loc.Latitude!.Value, loc.Longitude!.Value);
         else
             _sunriseSunset = null;
     }
@@ -431,7 +431,7 @@ public partial class FlightEdit(
         {
             var pdfBytes = await pdfSvc.GenerateAsync(saved, userId: _userId);
             await js.InvokeVoidAsync("downloadFileFromBytes",
-                $"vaartvoorbereiding_{saved.Datum:yyyy-MM-dd}_{saved.Id}.pdf",
+                $"vaartvoorbereiding_{saved.Date:yyyy-MM-dd}_{saved.Id}.pdf",
                 "application/pdf", Convert.ToBase64String(pdfBytes));
         }
         catch (Exception ex) { _saveMessage = $"❌ PDF fout: {ex.Message}"; _saveError = true; }

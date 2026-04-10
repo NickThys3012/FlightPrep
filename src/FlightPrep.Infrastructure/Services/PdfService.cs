@@ -28,7 +28,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
         var loc = fp.Location;
         if (loc?.Latitude.HasValue == true && loc.Longitude.HasValue)
         {
-            sunriseSunset = sunriseSvc.Calculate(fp.Datum, loc.Latitude!.Value, loc.Longitude!.Value);
+            sunriseSunset = sunriseSvc.Calculate(fp.Date, loc.Latitude!.Value, loc.Longitude!.Value);
         }
 
         var assessment = await assessmentSvc.ComputeAsync(fp, userId);
@@ -49,7 +49,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         col.Item().AlignCenter().Text("Vaartvoorbereiding Ballonvaart")
                             .Bold().FontSize(18).FontColor(PrimaryColor);
                         col.Item().AlignCenter().Text(
-                                $"{fp.Datum:dd/MM/yyyy}  –  {fp.Tijdstip:HH:mm} LT" +
+                                $"{fp.Date:dd/MM/yyyy}  –  {fp.Time:HH:mm} LT" +
                                 (fp.Balloon != null ? $"  |  {fp.Balloon.Registration} ({fp.Balloon.Type})" : "") +
                                 (fp.Pilot != null ? $"  |  {fp.Pilot.Name}" : ""))
                             .FontSize(10);
@@ -68,15 +68,15 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     // Build Section 1 rows including optional sunrise/sunset
                     var sec1Rows = new List<(string, string)>
                     {
-                        ("Datum", fp.Datum.ToString("dd/MM/yyyy")),
-                        ("Tijdstip (LT)", fp.Tijdstip.ToString("HH:mm")),
+                        ("Datum", fp.Date.ToString("dd/MM/yyyy")),
+                        ("Tijdstip (LT)", fp.Time.ToString("HH:mm")),
                         ("Ballon",
                             fp.Balloon != null
                                 ? $"{fp.Balloon.Registration} – {fp.Balloon.Type} ({(fp.Balloon.VolumeM3.HasValue ? $"{fp.Balloon.VolumeM3:F0} m³" : "–")})"
                                 : "–"),
                         ("Piloot / PIC", fp.Pilot?.Name ?? "–"),
                         ("Locatie", fp.Location?.Name ?? "–"),
-                        ("Veld eigenaar gemeld", fp.VeldEigenaarGemeld ? "Ja" : "Nee / NVT")
+                        ("Veld eigenaar gemeld", fp.FieldOwnerNotified ? "Ja" : "Nee / NVT")
                     };
                     if (sunriseSunset.HasValue)
                     {
@@ -91,14 +91,14 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     {
                         ("METAR", fp.Metar ?? "–"),
                         ("TAF", fp.Taf ?? "–"),
-                        ("Wind per hoogte", fp.WindPerHoogte ?? "–"),
-                        ("Neerslag / bewolking", fp.Neerslag ?? "–"),
+                        ("Wind per hoogte", fp.WindByAltitude ?? "–"),
+                        ("Neerslag / bewolking", fp.Precipitation ?? "–"),
                         ("Windrichting oppervlak", fp.SurfaceWindDirectionDeg.HasValue ? $"{fp.SurfaceWindDirectionDeg}°" : "–"),
                         ("Windsnelheid oppervlak", fp.SurfaceWindSpeedKt.HasValue ? $"{fp.SurfaceWindSpeedKt} kt" : "–"),
-                        ("Temperatuur", fp.TemperatuurC.HasValue ? $"{fp.TemperatuurC}°C" : "–"),
-                        ("Dauwpunt", fp.DauwpuntC.HasValue ? $"{fp.DauwpuntC}°C" : "–"),
+                        ("Temperatuur", fp.TemperatureC.HasValue ? $"{fp.TemperatureC}°C" : "–"),
+                        ("Dauwpunt", fp.DewPointC.HasValue ? $"{fp.DewPointC}°C" : "–"),
                         ("QNH", fp.QnhHpa.HasValue ? $"{fp.QnhHpa} hPa" : "–"),
-                        ("Zichtbaarheid", fp.ZichtbaarheidKm.HasValue ? $"{fp.ZichtbaarheidKm} km" : "–"),
+                        ("Zichtbaarheid", fp.VisibilityKm.HasValue ? $"{fp.VisibilityKm} km" : "–"),
                         ("CAPE", fp.CapeJkg.HasValue ? $"{fp.CapeJkg} J/kg" : "–")
                     };
                     AddSection(col, "2. Meteorologische Informatie", sec2Rows.ToArray());
@@ -139,15 +139,15 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
 
                     AddSection(col, "3. Luchtruim en NOTAMs", [
                         ("NOTAMs gecontroleerd", fp.NotamsGecontroleerd),
-                        ("Luchtruimstructuur", fp.Luchtruimstructuur ?? "–"),
-                        ("Beperkingen / gesloten zones", fp.Beperkingen ?? "–"),
-                        ("Obstakels", fp.Obstakels ?? "–")
+                        ("Luchtruimstructuur", fp.AirspaceStructure ?? "–"),
+                        ("Beperkingen / gesloten zones", fp.Restrictions ?? "–"),
+                        ("Obstakels", fp.Obstacles ?? "–")
                     ]);
 
                     AddSection(col, "4. Veiligheid en Communicatie", [
-                        ("EHBO-kit en vuurblusser", fp.EhboEnBlusser),
-                        ("Passagierslijst ingevuld", fp.PassagierslijstIngevuld),
-                        ("Vluchtplan ingediend", fp.VluchtplanIngediend)
+                        ("EHBO-kit en vuurblusser", fp.FirstAidAndExtinguisher),
+                        ("Passagierslijst ingevuld", fp.PassengerListFilled),
+                        ("Vluchtplan ingediend", fp.FlightPlanFiled)
                     ]);
 
                     // Section 5 - Technische Controle with checkboxes
@@ -155,9 +155,9 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         .Text("5. Technische Controle").Bold().FontColor(Colors.White).FontSize(10);
                     var checks = new[]
                     {
-                        (fp.BranderGetest, "Brander getest"), (fp.GasflaconsGecontroleerd, "Gasflessen gevuld & gecontroleerd"),
-                        (fp.BallonVisueel, "Ballon en mand visueel geïnspecteerd"), (fp.VerankeringenGecontroleerd, "Verankeringen en touwen gecontroleerd"),
-                        (fp.InstrumentenWerkend, "Instrumenten werkend")
+                        (fp.BurnerTested, "Brander getest"), (fp.GasCylindersChecked, "Gasflessen gevuld & gecontroleerd"),
+                        (fp.BalloonVisual, "Ballon en mand visueel geïnspecteerd"), (fp.MooringsChecked, "Verankeringen en touwen gecontroleerd"),
+                        (fp.InstrumentsWorking, "Instrumenten werkend")
                     };
                     var alt5 = false;
                     foreach (var (@checked, label) in checks)
@@ -227,11 +227,11 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     if (fp.Balloon?.VolumeM3.HasValue == true &&
                         fp.Balloon?.InternalEnvelopeTempC.HasValue == true &&
                         fp.Location?.ElevationM.HasValue == true &&
-                        fp is { TemperatuurC: not null, MaxAltitudeFt: not null })
+                        fp is { TemperatureC: not null, MaxAltitudeFt: not null })
                     {
                         var A = fp.MaxAltitudeFt.Value * 0.3048;
                         var Eg = fp.Location.ElevationM.Value;
-                        var Tg = fp.TemperatuurC.Value;
+                        var Tg = fp.TemperatureC.Value;
                         var Ti = fp.Balloon.InternalEnvelopeTempC.Value;
                         var V = fp.Balloon.VolumeM3.Value;
                         var lr = LiftCalculator.Calculate(A, Eg, Tg, Ti, V);
@@ -252,7 +252,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     }
 
                     AddSection(col, "8. Traject", [
-                        ("Trajectnotities", fp.Traject ?? "–")
+                        ("Trajectnotities", fp.Route ?? "–")
                     ]);
 
                     // Simulated trajectories summary
@@ -315,7 +315,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                     col.Item().PaddingTop(6).ShowEntire().Background(PrimaryColor).Padding(4)
                         .Text("9. Ballonbulletin").Bold().FontColor(Colors.White).FontSize(10);
                     col.Item().ShowEntire().Background(Colors.White).Padding(4)
-                        .Text(fp.Ballonbulletin ?? "–").FontFamily("Courier New").FontSize(7.5f);
+                        .Text(fp.BalloonBulletin ?? "–").FontFamily("Courier New").FontSize(7.5f);
 
                     if (fp.IsFlown)
                     {
@@ -514,7 +514,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                             row.RelativeItem(2).Padding(3).Column(c =>
                             {
                                 c.Item().Text("DATE").Bold().FontSize(7).FontColor(Colors.Grey.Darken1);
-                                c.Item().Text(fp.Datum.ToString("ddd d-MM-yy")).FontSize(8);
+                                c.Item().Text(fp.Date.ToString("ddd d-MM-yy")).FontSize(8);
                             });
                         });
                         // Row 2: PIC | TAKEOFF LOCATION | LANDING LOCATION | TAKEOFF TIME / LANDING TIME
@@ -538,7 +538,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                             row.RelativeItem(2).Padding(3).Column(c =>
                             {
                                 c.Item().Text("TAKEOFF / LANDING").Bold().FontSize(7).FontColor(Colors.Grey.Darken1);
-                                var takeoff = fp.Tijdstip.ToString("HH:mm");
+                                var takeoff = fp.Time.ToString("HH:mm");
                                 var landing = fp.PlannedLandingTime?.ToString("HH:mm") ?? "—";
                                 c.Item().Text($"{takeoff} / {landing}").FontSize(8);
                             });
@@ -633,19 +633,19 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                                 wTable.Cell().Element(WValueCell).Text("Meteoblue").FontSize(8);
 
                                 wTable.Cell().Element(WLabelCell).Text("DATE").Bold().FontSize(7);
-                                wTable.Cell().Element(WValueCell).Text(fp.Datum.ToString("d-MM-yyyy")).FontSize(8);
+                                wTable.Cell().Element(WValueCell).Text(fp.Date.ToString("d-MM-yyyy")).FontSize(8);
 
                                 wTable.Cell().Element(WLabelCell).Text("VISIBILITY").Bold().FontSize(7);
                                 wTable.Cell().Element(WValueCell)
-                                    .Text(fp.ZichtbaarheidKm.HasValue ? $"{fp.ZichtbaarheidKm} km" : "—").FontSize(8);
+                                    .Text(fp.VisibilityKm.HasValue ? $"{fp.VisibilityKm} km" : "—").FontSize(8);
 
                                 wTable.Cell().Element(WLabelCell).Text("CLOUDS").Bold().FontSize(7);
                                 wTable.Cell().Element(WValueCell)
-                                    .Text(!string.IsNullOrWhiteSpace(fp.Neerslag) ? fp.Neerslag : "—").FontSize(8);
+                                    .Text(!string.IsNullOrWhiteSpace(fp.Precipitation) ? fp.Precipitation : "—").FontSize(8);
 
                                 wTable.Cell().Element(WLabelCell).Text("TEMP").Bold().FontSize(7);
                                 wTable.Cell().Element(WValueCell)
-                                    .Text(fp.TemperatuurC.HasValue ? $"{fp.TemperatuurC} °C" : "—").FontSize(8);
+                                    .Text(fp.TemperatureC.HasValue ? $"{fp.TemperatureC} °C" : "—").FontSize(8);
 
                                 wTable.Cell().Element(WLabelCell).Text("QNH").Bold().FontSize(7);
                                 wTable.Cell().Element(WValueCell)
@@ -687,7 +687,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                             string plannedTime;
                             if (fp.PlannedLandingTime.HasValue)
                             {
-                                var rawMinutes = (fp.PlannedLandingTime.Value.ToTimeSpan() - fp.Tijdstip.ToTimeSpan()).TotalMinutes;
+                                var rawMinutes = (fp.PlannedLandingTime.Value.ToTimeSpan() - fp.Time.ToTimeSpan()).TotalMinutes;
                                 // Handle past-midnight flights (negative result)
                                 if (rawMinutes < 0) rawMinutes += 24 * 60;
                                 var durationMinutes = (int)rawMinutes;
@@ -744,7 +744,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
 
                                 lTable.Cell().Element(LLabelCell).Text("TAKEOFF TEMP").Bold().FontSize(7);
                                 lTable.Cell().Element(LValueCell)
-                                    .Text(fp.TemperatuurC.HasValue ? $"{fp.TemperatuurC} °C" : "—").FontSize(8);
+                                    .Text(fp.TemperatureC.HasValue ? $"{fp.TemperatureC} °C" : "—").FontSize(8);
 
                                 lTable.Cell().Element(LLabelCell).Text("QNH").Bold().FontSize(7);
                                 lTable.Cell().Element(LValueCell)
@@ -905,7 +905,7 @@ public class PdfService(ISunriseService sunriseSvc, ITrajectoryMapService mapSvc
                         dTable.Cell().ColumnSpan(2).Element(DValueCell)
                             .Text(BlankBool(fp.VisibleDefects)).FontSize(8);
                         dTable.Cell().ColumnSpan(2).Element(DValueCell)
-                            .Text(fp.IsFlown ? fp.Datum.ToString("d-MM-yyyy") : "________________").FontSize(8);
+                            .Text(fp.IsFlown ? fp.Date.ToString("d-MM-yyyy") : "________________").FontSize(8);
 
                         // Row 3 — SIGNATURE label row
                         dTable.Cell().ColumnSpan(5).Element(DLabelCell)

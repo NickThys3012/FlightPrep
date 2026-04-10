@@ -12,7 +12,7 @@ public static class LiftCalculator
 
     /// <param name="A">Maximum planned flight altitude AMSL in metres</param>
     /// <param name="Eg">Take-off site elevation AMSL in metres</param>
-    /// <param name="Tg">Ambient temperature at take-off site in °C (= FlightPreparation.TemperatuurC)</param>
+    /// <param name="Tg">Ambient temperature at take-off site in °C (= FlightPreparation.TemperatureC)</param>
     /// <param name="Ti">Average internal envelope temperature in °C — capped at 100°C</param>
     /// <param name="V">Envelope volume in m³</param>
     public static LiftResult Calculate(double A, double Eg, double Tg, double Ti, double V)

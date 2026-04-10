@@ -28,7 +28,7 @@ public class GoNoGoServiceIssueCoverageTests
 
     private static FlightPreparation FpWith(
         double? wind = null, double? vis = null, double? cape = null) =>
-        new() { SurfaceWindSpeedKt = wind, ZichtbaarheidKm = vis, CapeJkg = cape };
+        new() { SurfaceWindSpeedKt = wind, VisibilityKm = vis, CapeJkg = cape };
 
     // ── Custom threshold: wind red ────────────────────────────────────────────
 
@@ -200,7 +200,7 @@ public class GoNoGoServiceIssueCoverageTests
 
         // Act — both overloads
         var fromFp  = sut.Compute(fp, settings);
-        var fromRaw = sut.Compute(fp.SurfaceWindSpeedKt, fp.ZichtbaarheidKm, fp.CapeJkg, settings);
+        var fromRaw = sut.Compute(fp.SurfaceWindSpeedKt, fp.VisibilityKm, fp.CapeJkg, settings);
 
         // Assert — both overloads agree with each other and with the expected value
         Assert.Equal(expectedResult, fromFp);

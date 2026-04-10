@@ -42,7 +42,7 @@ public partial class FlightList : ComponentBase
     protected override async Task OnInitializedAsync() => await LoadFlights();
 
     private string GetGoNoGo(FlightPreparationSummary f) =>
-        GoNoGoSvc.Compute(f.SurfaceWindSpeedKt, f.ZichtbaarheidKm, f.CapeJkg, _goNoGoSettings);
+        GoNoGoSvc.Compute(f.SurfaceWindSpeedKt, f.VisibilityKm, f.CapeJkg, _goNoGoSettings);
 
     private async Task LoadFlights()
     {

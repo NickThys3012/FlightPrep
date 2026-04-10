@@ -115,7 +115,7 @@ public class FlightPreparationTests
     [Obsolete("Obsolete")]
     public void GoNoGo_VisibilityBelowRedThreshold_ReturnsRed()
     {
-        var fp = new FlightPreparation { ZichtbaarheidKm = 2.5 };
+        var fp = new FlightPreparation { VisibilityKm = 2.5 };
 
         Assert.Equal("red", fp.GoNoGo);
     }
@@ -142,7 +142,7 @@ public class FlightPreparationTests
     [Obsolete("Obsolete")]
     public void GoNoGo_VisibilityBelowYellowThreshold_ReturnsYellow()
     {
-        var fp = new FlightPreparation { ZichtbaarheidKm = 4 };
+        var fp = new FlightPreparation { VisibilityKm = 4 };
 
         Assert.Equal("yellow", fp.GoNoGo);
     }
@@ -160,7 +160,7 @@ public class FlightPreparationTests
     [Obsolete("Obsolete")]
     public void GoNoGo_AllConditionsGood_ReturnsGreen()
     {
-        var fp = new FlightPreparation { SurfaceWindSpeedKt = 5, ZichtbaarheidKm = 10, CapeJkg = 100 };
+        var fp = new FlightPreparation { SurfaceWindSpeedKt = 5, VisibilityKm = 10, CapeJkg = 100 };
 
         Assert.Equal("green", fp.GoNoGo);
     }

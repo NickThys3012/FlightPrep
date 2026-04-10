@@ -42,8 +42,8 @@ else
         <div class="fp-page-header">
             <div>
                 <h2 class="mb-1">
-                    @_fp.Datum.ToString("dd MMMM yyyy") &nbsp;
-                    <span class="text-muted fw-normal fs-5">@_fp.Tijdstip.ToString("HH:mm")</span>
+                    @_fp.Date.ToString("dd MMMM yyyy") &nbsp;
+                    <span class="text-muted fw-normal fs-5">@_fp.Time.ToString("HH:mm")</span>
                 </h2>
                 @{ var gng = _assessment?.GoNoGo ?? "unknown"; }
                 <FlightGoNoGoBadge GoNoGoResult="@gng" ShowEmoji="true"/>
@@ -74,9 +74,9 @@ else
                     <div class="card-body">
                         <dl class="row mb-0">
                             <dt class="col-sm-3">Datum</dt>
-                            <dd class="col-sm-9">@_fp.Datum.ToString("dd/MM/yyyy")</dd>
+                            <dd class="col-sm-9">@_fp.Date.ToString("dd/MM/yyyy")</dd>
                             <dt class="col-sm-3">Tijdstip</dt>
-                            <dd class="col-sm-9">@_fp.Tijdstip.ToString("HH:mm") LT</dd>
+                            <dd class="col-sm-9">@_fp.Time.ToString("HH:mm") LT</dd>
                             <dt class="col-sm-3">Ballon</dt>
                             <dd class="col-sm-9">@(_fp.Balloon != null ? $"{_fp.Balloon.Registration} – {_fp.Balloon.Type} ({(_fp.Balloon.VolumeM3.HasValue ? $"{_fp.Balloon.VolumeM3:F0} m³" : "–")})" : "–")</dd>
                             <dt class="col-sm-3">Piloot / PIC</dt>
@@ -85,7 +85,7 @@ else
                             <dd class="col-sm-9">@(_fp.Location?.Name ?? "–")</dd>
                             <dt class="col-sm-3">Veld eigenaar gemeld</dt>
                             <dd class="col-sm-9">
-                                @if (_fp.VeldEigenaarGemeld)
+                                @if (_fp.FieldOwnerNotified)
                                 {
                                     <span class="badge bg-success">Ja</span>
                                 }
@@ -119,21 +119,21 @@ else
                             <dt class="col-sm-3">TAF</dt>
                             <dd class="col-sm-9 font-monospace" style="white-space:pre-wrap">@(_fp.Taf ?? "–")</dd>
                             <dt class="col-sm-3">Wind per hoogte</dt>
-                            <dd class="col-sm-9" style="white-space:pre-wrap">@(_fp.WindPerHoogte ?? "–")</dd>
+                            <dd class="col-sm-9" style="white-space:pre-wrap">@(_fp.WindByAltitude ?? "–")</dd>
                             <dt class="col-sm-3">Neerslag / bewolking</dt>
-                            <dd class="col-sm-9">@(_fp.Neerslag ?? "–")</dd>
+                            <dd class="col-sm-9">@(_fp.Precipitation ?? "–")</dd>
                             <dt class="col-sm-3">Windrichting oppervlak</dt>
                             <dd class="col-sm-9">@(_fp.SurfaceWindDirectionDeg.HasValue ? $"{_fp.SurfaceWindDirectionDeg}°" : "–")</dd>
                             <dt class="col-sm-3">Windsnelheid oppervlak</dt>
                             <dd class="col-sm-9">@(_fp.SurfaceWindSpeedKt.HasValue ? $"{_fp.SurfaceWindSpeedKt} kt" : "–")</dd>
                             <dt class="col-sm-3">Temperatuur</dt>
-                            <dd class="col-sm-9">@(_fp.TemperatuurC.HasValue ? $"{_fp.TemperatuurC}°C" : "–")</dd>
+                            <dd class="col-sm-9">@(_fp.TemperatureC.HasValue ? $"{_fp.TemperatureC}°C" : "–")</dd>
                             <dt class="col-sm-3">Dauwpunt</dt>
-                            <dd class="col-sm-9">@(_fp.DauwpuntC.HasValue ? $"{_fp.DauwpuntC}°C" : "–")</dd>
+                            <dd class="col-sm-9">@(_fp.DewPointC.HasValue ? $"{_fp.DewPointC}°C" : "–")</dd>
                             <dt class="col-sm-3">QNH</dt>
                             <dd class="col-sm-9">@(_fp.QnhHpa.HasValue ? $"{_fp.QnhHpa} hPa" : "–")</dd>
                             <dt class="col-sm-3">Zichtbaarheid</dt>
-                            <dd class="col-sm-9">@(_fp.ZichtbaarheidKm.HasValue ? $"{_fp.ZichtbaarheidKm} km" : "–")</dd>
+                            <dd class="col-sm-9">@(_fp.VisibilityKm.HasValue ? $"{_fp.VisibilityKm} km" : "–")</dd>
                             <dt class="col-sm-3">CAPE</dt>
                             <dd class="col-sm-9">@(_fp.CapeJkg.HasValue ? $"{_fp.CapeJkg} J/kg" : "–")</dd>
                         </dl>
@@ -187,11 +187,11 @@ else
                             <dt class="col-sm-5">NOTAMs gecontroleerd</dt>
                             <dd class="col-sm-7">@_fp.NotamsGecontroleerd</dd>
                             <dt class="col-sm-5">Luchtruimstructuur</dt>
-                            <dd class="col-sm-7" style="white-space:pre-wrap">@(_fp.Luchtruimstructuur ?? "–")</dd>
+                            <dd class="col-sm-7" style="white-space:pre-wrap">@(_fp.AirspaceStructure ?? "–")</dd>
                             <dt class="col-sm-5">Beperkingen</dt>
-                            <dd class="col-sm-7" style="white-space:pre-wrap">@(_fp.Beperkingen ?? "–")</dd>
+                            <dd class="col-sm-7" style="white-space:pre-wrap">@(_fp.Restrictions ?? "–")</dd>
                             <dt class="col-sm-5">Obstakels</dt>
-                            <dd class="col-sm-7" style="white-space:pre-wrap">@(_fp.Obstakels ?? "–")</dd>
+                            <dd class="col-sm-7" style="white-space:pre-wrap">@(_fp.Obstacles ?? "–")</dd>
                         </dl>
                     </div>
                 </div>
@@ -204,11 +204,11 @@ else
                     <div class="card-body">
                         <dl class="row mb-0">
                             <dt class="col-sm-7">EHBO-kit en vuurblusser</dt>
-                            <dd class="col-sm-5">@_fp.EhboEnBlusser</dd>
+                            <dd class="col-sm-5">@_fp.FirstAidAndExtinguisher</dd>
                             <dt class="col-sm-7">Passagierslijst ingevuld</dt>
-                            <dd class="col-sm-5">@_fp.PassagierslijstIngevuld</dd>
+                            <dd class="col-sm-5">@_fp.PassengerListFilled</dd>
                             <dt class="col-sm-7">Vluchtplan ingediend</dt>
-                            <dd class="col-sm-5">@_fp.VluchtplanIngediend</dd>
+                            <dd class="col-sm-5">@_fp.FlightPlanFiled</dd>
                         </dl>
                     </div>
                 </div>
@@ -220,11 +220,11 @@ else
                     <div class="card-header bg-primary text-white">5. Technische Controle</div>
                     <div class="card-body">
                         <ul class="list-unstyled mb-0">
-                            <li>@(_fp.BranderGetest ? "☑" : "☐") Brander getest</li>
-                            <li>@(_fp.GasflaconsGecontroleerd ? "☑" : "☐") Gasflessen gevuld &amp; gecontroleerd</li>
-                            <li>@(_fp.BallonVisueel ? "☑" : "☐") Ballon en mand visueel geïnspecteerd</li>
-                            <li>@(_fp.VerankeringenGecontroleerd ? "☑" : "☐") Verankeringen en touwen gecontroleerd</li>
-                            <li>@(_fp.InstrumentenWerkend ? "☑" : "☐") Instrumenten werkend</li>
+                            <li>@(_fp.BurnerTested ? "☑" : "☐") Brander getest</li>
+                            <li>@(_fp.GasCylindersChecked ? "☑" : "☐") Gasflessen gevuld &amp; gecontroleerd</li>
+                            <li>@(_fp.BalloonVisual ? "☑" : "☐") Ballon en mand visueel geïnspecteerd</li>
+                            <li>@(_fp.MooringsChecked ? "☑" : "☐") Verankeringen en touwen gecontroleerd</li>
+                            <li>@(_fp.InstrumentsWorking ? "☑" : "☐") Instrumenten werkend</li>
                         </ul>
                     </div>
                 </div>
@@ -325,9 +325,9 @@ else
                                      style="height:400px;border-radius:8px;overflow:hidden;"></div>
                             </div>
                         }
-                        @if (!string.IsNullOrWhiteSpace(_fp?.Traject))
+                        @if (!string.IsNullOrWhiteSpace(_fp?.Route))
                         {
-                            <pre class="mb-3">@_fp.Traject</pre>
+                            <pre class="mb-3">@_fp.Route</pre>
                         }
                         @{ var traj = _fp?.Images.Where(i => i.Section == "Traject").ToList(); }
                         @if (traj is { Count: > 0 })
@@ -342,7 +342,7 @@ else
                                 }
                             </div>
                         }
-                        @if (string.IsNullOrWhiteSpace(_fp?.Traject) && traj is { Count: 0 })
+                        @if (string.IsNullOrWhiteSpace(_fp?.Route) && traj is { Count: 0 })
                         {
                             <span class="text-muted">–</span>
                         }
@@ -355,7 +355,7 @@ else
                 <div class="card">
                     <div class="card-header bg-primary text-white">9. Ballonbulletin</div>
                     <div class="card-body">
-                        <pre class="font-monospace small mb-0">@_fp?.Ballonbulletin</pre>
+                        <pre class="font-monospace small mb-0">@_fp?.BalloonBulletin</pre>
                     </div>
                 </div>
             </div>

@@ -73,19 +73,19 @@ else if (Fp.LocationId != null && Fp.LocationId != 0)
     </div>
     <div class="col-12">
         <label class="form-label">Windrichting/-snelheid per hoogte</label>
-        <textarea class="form-control" rows="3" @bind="Fp.WindPerHoogte"></textarea>
+        <textarea class="form-control" rows="3" @bind="Fp.WindByAltitude"></textarea>
     </div>
     <div class="col-md-6">
         <label class="form-label">Neerslagkans / bewolking</label>
-        <input type="text" class="form-control" @bind="Fp.Neerslag"/>
+        <input type="text" class="form-control" @bind="Fp.Precipitation"/>
     </div>
     <div class="col-md-2">
         <label class="form-label">Temperatuur (°C)</label>
-        <input type="number" step="0.1" class="form-control" @bind="Fp.TemperatuurC"/>
+        <input type="number" step="0.1" class="form-control" @bind="Fp.TemperatureC"/>
     </div>
     <div class="col-md-2">
         <label class="form-label">Dauwpunt (°C)</label>
-        <input type="number" step="0.1" class="form-control" @bind="Fp.DauwpuntC"/>
+        <input type="number" step="0.1" class="form-control" @bind="Fp.DewPointC"/>
     </div>
     <div class="col-md-2">
         <label class="form-label">QNH (hPa)</label>
@@ -93,7 +93,7 @@ else if (Fp.LocationId != null && Fp.LocationId != 0)
     </div>
     <div class="col-md-2">
         <label class="form-label">Zichtbaarheid (km)</label>
-        <input type="number" step="0.1" class="form-control" @bind="Fp.ZichtbaarheidKm"/>
+        <input type="number" step="0.1" class="form-control" @bind="Fp.VisibilityKm"/>
     </div>
     <div class="col-md-2">
         <label class="form-label">CAPE (J/kg)</label>

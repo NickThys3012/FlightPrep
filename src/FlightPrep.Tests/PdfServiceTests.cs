@@ -30,8 +30,8 @@ public class PdfServiceTests
 
     private static FlightPreparation MinimalFlight() => new()
     {
-        Datum    = DateOnly.FromDateTime(DateTime.Today),
-        Tijdstip = new TimeOnly(9, 0)
+        Date = DateOnly.FromDateTime(DateTime.Today),
+        Time = new TimeOnly(9, 0)
     };
 
     // ── Issue #33 tests ───────────────────────────────────────────────────────
@@ -66,7 +66,7 @@ public class PdfServiceTests
         var fp  = MinimalFlight();
         // Give the flight data that would normally trigger red
         fp.SurfaceWindSpeedKt = 20;
-        fp.ZichtbaarheidKm    = 1;
+        fp.VisibilityKm    = 1;
         fp.CapeJkg            = 600;
 
         // Act

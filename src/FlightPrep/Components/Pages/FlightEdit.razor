@@ -44,13 +44,13 @@
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label class="form-label">Datum</label>
-                                <input type="date" class="form-control" value="@_fp?.Datum.ToString("yyyy-MM-dd")"
-                                       @onchange="e => { var raw = e.Value?.ToString(); if (DateOnly.TryParse(raw, out var d)) { _fp!.Datum = d; UpdateSunriseSunset(); } }"/>
+                                <input type="date" class="form-control" value="@_fp?.Date.ToString("yyyy-MM-dd")"
+                                       @onchange="e => { var raw = e.Value?.ToString(); if (DateOnly.TryParse(raw, out var d)) { _fp!.Date = d; UpdateSunriseSunset(); } }"/>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Tijdstip (LT)</label>
-                                <input type="time" class="form-control" value="@_fp?.Tijdstip.ToString("HH:mm")"
-                                       @onchange="e => { var raw = e.Value?.ToString(); _fp!.Tijdstip = TimeOnly.TryParse(raw, out var t) ? t : _fp.Tijdstip; }"/>
+                                <input type="time" class="form-control" value="@_fp?.Time.ToString("HH:mm")"
+                                       @onchange="e => { var raw = e.Value?.ToString(); _fp!.Time = TimeOnly.TryParse(raw, out var t) ? t : _fp.Time; }"/>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Ballon</label>
@@ -88,7 +88,7 @@
                         </div>
                         <div class="mt-3">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" @bind="_fp.VeldEigenaarGemeld"
+                                <input class="form-check-input" type="checkbox" @bind="_fp.FieldOwnerNotified"
                                        id="chkVeldEigenaar"/>
                                 <label class="form-check-label" for="chkVeldEigenaar">
                                     Veld eigenaar gemeld (indien van toepassing) –
@@ -149,15 +149,15 @@
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Luchtruimstructuur</label>
-                                <textarea class="form-control" rows="3" @bind="_fp.Luchtruimstructuur"></textarea>
+                                <textarea class="form-control" rows="3" @bind="_fp.AirspaceStructure"></textarea>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Beperkingen / gesloten zones</label>
-                                <textarea class="form-control" rows="3" @bind="_fp.Beperkingen"></textarea>
+                                <textarea class="form-control" rows="3" @bind="_fp.Restrictions"></textarea>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Obstakels</label>
-                                <textarea class="form-control" rows="2" @bind="_fp.Obstakels"></textarea>
+                                <textarea class="form-control" rows="2" @bind="_fp.Obstacles"></textarea>
                             </div>
                         </div>
                     </div>
@@ -177,14 +177,14 @@
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label">EHBO-kit en vuurblusser</label>
-                                <select class="form-select" @bind="_fp.EhboEnBlusser">
+                                <select class="form-select" @bind="_fp.FirstAidAndExtinguisher">
                                     <option value="JA">JA</option>
                                     <option value="NEE">NEE</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Passagierslijst ingevuld</label>
-                                <select class="form-select" @bind="_fp.PassagierslijstIngevuld">
+                                <select class="form-select" @bind="_fp.PassengerListFilled">
                                     <option value="JA">JA</option>
                                     <option value="NEE">NEE</option>
                                     <option value="NVT">NVT</option>
@@ -192,7 +192,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Vluchtplan ingediend</label>
-                                <select class="form-select" @bind="_fp.VluchtplanIngediend">
+                                <select class="form-select" @bind="_fp.FlightPlanFiled">
                                     <option value="JA">JA</option>
                                     <option value="NEE">NEE</option>
                                     <option value="NVT">NVT</option>
@@ -214,25 +214,25 @@
                 <div id="sec5" class="accordion-collapse collapse">
                     <div class="accordion-body">
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" @bind="_fp.BranderGetest" id="chk1"/>
+                            <input class="form-check-input" type="checkbox" @bind="_fp.BurnerTested" id="chk1"/>
                             <label class="form-check-label" for="chk1">Brander getest</label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" @bind="_fp.GasflaconsGecontroleerd"
+                            <input class="form-check-input" type="checkbox" @bind="_fp.GasCylindersChecked"
                                    id="chk2"/>
                             <label class="form-check-label" for="chk2">Gasflessen gevuld &amp; gecontroleerd</label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" @bind="_fp.BallonVisueel" id="chk3"/>
+                            <input class="form-check-input" type="checkbox" @bind="_fp.BalloonVisual" id="chk3"/>
                             <label class="form-check-label" for="chk3">Ballon en mand visueel geïnspecteerd</label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" @bind="_fp.VerankeringenGecontroleerd"
+                            <input class="form-check-input" type="checkbox" @bind="_fp.MooringsChecked"
                                    id="chk4"/>
                             <label class="form-check-label" for="chk4">Verankeringen en touwen gecontroleerd</label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" @bind="_fp.InstrumentenWerkend" id="chk5"/>
+                            <input class="form-check-input" type="checkbox" @bind="_fp.InstrumentsWorking" id="chk5"/>
                             <label class="form-check-label" for="chk5">Instrumenten werkend</label>
                         </div>
                     </div>
@@ -471,7 +471,7 @@
                         <div class="mb-3 mt-3">
                             <label class="form-label">Trajectnotities / waypoints</label>
                             <textarea class="form-control" rows="4" placeholder="Trajectnotities / waypoints..."
-                                      @bind="_fp!.Traject"></textarea>
+                                      @bind="_fp!.Route"></textarea>
                         </div>
 
                         <!-- Image upload – Traject -->
@@ -496,7 +496,7 @@
                     <div class="accordion-body">
                         <textarea class="form-control font-monospace" rows="15"
                                   placeholder="Plak hier de Skeyes ballonbulletin tekst..."
-                                  @bind="_fp.Ballonbulletin"></textarea>
+                                  @bind="_fp.BalloonBulletin"></textarea>
                     </div>
                 </div>
             </div>

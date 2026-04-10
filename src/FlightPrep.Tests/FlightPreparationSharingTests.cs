@@ -47,8 +47,8 @@ public class FlightPreparationSharingTests
         await using var db = await factory.CreateDbContextAsync();
         var fp = new FlightPreparation
         {
-            Datum = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip = TimeOnly.MinValue,
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = TimeOnly.MinValue,
             CreatedByUserId = ownerId
         };
         db.FlightPreparations.Add(fp);
