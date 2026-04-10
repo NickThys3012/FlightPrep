@@ -29,7 +29,7 @@ public class LocationService(
             query = query.Where(l => l.OwnerId == userId);
         }
 
-        return await query.OrderBy(l => l.Name).ToListAsync();
+        return await query.AsNoTracking().OrderBy(l => l.Name).ToListAsync();
     }
 
     /// <inheritdoc />

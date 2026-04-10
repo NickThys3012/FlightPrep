@@ -10,8 +10,8 @@ public class OFPSettingsService(IDbContextFactory<AppDbContext> dbFactory) : IOF
     public async Task<OFPSettings> GetSettingsAsync(string? userId)
     {
         await using var db = await dbFactory.CreateDbContextAsync();
-        return await db.OFPSettings.FirstOrDefaultAsync(o => o.UserId == userId)
-               ?? await db.OFPSettings.FirstOrDefaultAsync(o => o.UserId == null)
+        return await db.OFPSettings.AsNoTracking().FirstOrDefaultAsync(o => o.UserId == userId)
+               ?? await db.OFPSettings.AsNoTracking().FirstOrDefaultAsync(o => o.UserId == null)
                ?? new OFPSettings();
     }
 

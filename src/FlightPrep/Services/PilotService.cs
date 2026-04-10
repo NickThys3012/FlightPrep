@@ -29,7 +29,7 @@ public class PilotService(
             query = query.Where(p => p.OwnerId == userId);
         }
 
-        return await query.OrderBy(p => p.Name).ToListAsync();
+        return await query.AsNoTracking().OrderBy(p => p.Name).ToListAsync();
     }
 
     /// <inheritdoc />
