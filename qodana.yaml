@@ -13,6 +13,6 @@ exclude:
   - name: All
     paths:
       - src/FlightPrep/wwwroot/lib/bootstrap
-  - name: MemberCanBeInternal
+  - name: CA1515
     paths:
       - "**/*.razor.cs"
