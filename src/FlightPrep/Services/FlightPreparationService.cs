@@ -80,8 +80,8 @@ public class FlightPreparationService(
             ? await db.Users
                 .AsNoTracking()
                 .Where(u => ownerIds.Contains(u.Id))
-                .ToDictionaryAsync(u => u.Id!, u => u.UserName ?? "")
-            : new Dictionary<string, string>();
+                .ToDictionaryAsync(u => u.Id!, u => u.UserName)
+            : new Dictionary<string, string?>();
 
         // Step 3: Project in memory — dictionary lookup, zero extra DB round-trips.
         return flights.Select(f =>
@@ -102,7 +102,9 @@ public class FlightPreparationService(
             {
                 IsShared = isShared,
                 SharedByName = isShared
-                    ? (f.CreatedByUserId != null && ownerNames.TryGetValue(f.CreatedByUserId, out var n) ? n : f.CreatedByUserId)
+                    ? (f.CreatedByUserId != null
+                        ? (ownerNames.TryGetValue(f.CreatedByUserId, out var n) && n is not null ? n : f.CreatedByUserId)
+                        : null)
                     : null
             };
         }).ToList();
@@ -166,8 +168,8 @@ public class FlightPreparationService(
             ? await db.Users
                 .AsNoTracking()
                 .Where(u => ownerIds.Contains(u.Id))
-                .ToDictionaryAsync(u => u.Id!, u => u.UserName ?? "")
-            : new Dictionary<string, string>();
+                .ToDictionaryAsync(u => u.Id!, u => u.UserName)
+            : new Dictionary<string, string?>();
 
         // Step 3: Project in memory — dictionary lookup, zero extra DB round-trips.
         var items = flights.Select(f =>
@@ -188,7 +190,9 @@ public class FlightPreparationService(
             {
                 IsShared = isShared,
                 SharedByName = isShared
-                    ? (f.CreatedByUserId != null && ownerNames.TryGetValue(f.CreatedByUserId, out var n) ? n : f.CreatedByUserId)
+                    ? (f.CreatedByUserId != null
+                        ? (ownerNames.TryGetValue(f.CreatedByUserId, out var n) && n is not null ? n : f.CreatedByUserId)
+                        : null)
                     : null
             };
         }).ToList();
