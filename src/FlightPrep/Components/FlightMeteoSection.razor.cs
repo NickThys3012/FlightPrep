@@ -119,7 +119,7 @@ public partial class FlightMeteoSection : ComponentBase
                 return;
             }
 
-            var flightDt = Fp.Datum.ToDateTime(Fp.Tijdstip);
+            var flightDt = Fp.Date.ToDateTime(Fp.Time);
             var levels = await WeatherFetchSvc.FetchWindProfileAsync(
                 Fp.Location.Latitude.Value, Fp.Location.Longitude.Value, flightDt);
             if (!levels.Any())

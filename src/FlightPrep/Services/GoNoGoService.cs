@@ -39,7 +39,7 @@ public class GoNoGoService(IDbContextFactory<AppDbContext> dbFactory) : IGoNoGoS
         await db.SaveChangesAsync();
     }
 
-    public string Compute(FlightPreparation fp, GoNoGoSettings s) => Compute(fp.SurfaceWindSpeedKt, fp.ZichtbaarheidKm, fp.CapeJkg, s);
+    public string Compute(FlightPreparation fp, GoNoGoSettings s) => Compute(fp.SurfaceWindSpeedKt, fp.VisibilityKm, fp.CapeJkg, s);
 
     /// <summary>
     ///     Compute overload that accepts raw weather values — used by the list page

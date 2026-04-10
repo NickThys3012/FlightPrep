@@ -101,7 +101,7 @@ public partial class FlightView:ComponentBase
             // Sunrise/sunset
             var loc = _fp.Location;
             if (loc?.Latitude.HasValue == true && loc.Longitude.HasValue)
-                _sunriseSunset = SunriseSvc.Calculate(_fp.Datum, loc.Latitude!.Value, loc.Longitude!.Value);
+                _sunriseSunset = SunriseSvc.Calculate(_fp.Date, loc.Latitude!.Value, loc.Longitude!.Value);
 
             LoadExistingTrack();
 
@@ -267,7 +267,7 @@ public partial class FlightView:ComponentBase
     {
         if (_fp == null) return;
         var pdfBytes = await PdfSvc.GenerateAsync(_fp, userId: _userId);
-        var fileName = $"vaartvoorbereiding_{_fp.Datum:yyyy-MM-dd}_{_fp.Id}.pdf";
+        var fileName = $"vaartvoorbereiding_{_fp.Date:yyyy-MM-dd}_{_fp.Id}.pdf";
         await Js.InvokeVoidAsync("downloadFileFromBytes", fileName, "application/pdf",
             Convert.ToBase64String(pdfBytes));
     }
@@ -277,7 +277,7 @@ public partial class FlightView:ComponentBase
         if (_fp == null) return;
         var settings = await OfpSettingsSvc.GetSettingsAsync(_userId);
         var pdfBytes = await PdfSvc.GenerateOfpAsync(_fp, settings.PassengerEquipmentWeightKg);
-        var fileName = $"OFP_{_fp.Datum:yyyy-MM-dd}_{_fp.Id}.pdf";
+        var fileName = $"OFP_{_fp.Date:yyyy-MM-dd}_{_fp.Id}.pdf";
         await Js.InvokeVoidAsync("downloadFileFromBytes", fileName, "application/pdf",
             Convert.ToBase64String(pdfBytes));
     }

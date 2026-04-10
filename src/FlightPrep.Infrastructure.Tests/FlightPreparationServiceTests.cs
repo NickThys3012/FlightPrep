@@ -51,8 +51,8 @@ public class FlightPreparationServiceTests
         Pilot? pilot = null,
         Location? location = null) => new()
     {
-        Datum = DateOnly.FromDateTime(DateTime.Today),
-        Tijdstip = TimeOnly.FromDateTime(DateTime.Now),
+        Date = DateOnly.FromDateTime(DateTime.Today),
+        Time = TimeOnly.FromDateTime(DateTime.Now),
         Balloon = balloon,
         Pilot = pilot,
         Location = location,
@@ -310,7 +310,7 @@ public class FlightPreparationServiceTests
         fp2.IsFlown = false;
         // 1 flight from the past year, not flown
         var fp3 = SeedFlight();
-        fp3.Datum = new DateOnly(2020, 1, 1);
+        fp3.Date = new DateOnly(2020, 1, 1);
         fp3.IsFlown = false;
 
         await sut.SaveAsync(fp1);
@@ -336,11 +336,11 @@ public class FlightPreparationServiceTests
         var sut = BuildSut(factory);
 
         var oldest = SeedFlight();
-        oldest.Datum = new DateOnly(2024, 1, 1);
+        oldest.Date = new DateOnly(2024, 1, 1);
         var middle = SeedFlight();
-        middle.Datum = new DateOnly(2024, 6, 1);
+        middle.Date = new DateOnly(2024, 6, 1);
         var newest = SeedFlight();
-        newest.Datum = new DateOnly(2025, 1, 1);
+        newest.Date = new DateOnly(2025, 1, 1);
 
         await sut.SaveAsync(oldest);
         await sut.SaveAsync(middle);
@@ -351,8 +351,8 @@ public class FlightPreparationServiceTests
 
         // Assert
         Assert.Equal(2, result.Count);
-        Assert.Equal(new DateOnly(2025, 1, 1), result[0].Datum);
-        Assert.Equal(new DateOnly(2024, 6, 1), result[1].Datum);
+        Assert.Equal(new DateOnly(2025, 1, 1), result[0].Date);
+        Assert.Equal(new DateOnly(2024, 6, 1), result[1].Date);
     }
 
     [Fact]
@@ -504,11 +504,11 @@ public class FlightPreparationServiceTests
         var sut = BuildSut(factory);
 
         var fp1 = SeedFlight();
-        fp1.Datum = new DateOnly(2025, 3, 1);
+        fp1.Date = new DateOnly(2025, 3, 1);
         var fp2 = SeedFlight();
-        fp2.Datum = new DateOnly(2024, 1, 15);
+        fp2.Date = new DateOnly(2024, 1, 15);
         var fp3 = SeedFlight();
-        fp3.Datum = new DateOnly(2025, 1, 10);
+        fp3.Date = new DateOnly(2025, 1, 10);
 
         await sut.SaveAsync(fp1);
         await sut.SaveAsync(fp2);
@@ -519,7 +519,7 @@ public class FlightPreparationServiceTests
 
         // Assert — ascending order
         Assert.Equal(3, result.Count);
-        Assert.True(result[0].Datum <= result[1].Datum);
-        Assert.True(result[1].Datum <= result[2].Datum);
+        Assert.True(result[0].Date <= result[1].Date);
+        Assert.True(result[1].Date <= result[2].Date);
     }
 }

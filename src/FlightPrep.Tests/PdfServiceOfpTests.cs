@@ -28,8 +28,8 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum   = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip = TimeOnly.FromTimeSpan(TimeSpan.FromHours(8)),
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = TimeOnly.FromTimeSpan(TimeSpan.FromHours(8)),
         };
 
         // Act
@@ -47,8 +47,8 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum            = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip         = TimeOnly.FromTimeSpan(TimeSpan.FromHours(9)),
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = TimeOnly.FromTimeSpan(TimeSpan.FromHours(9)),
             PicWeightKg      = 80,
             OFPEnvelopeWeightKg = 250,
             OFPBasketWeightKg   = 70,
@@ -74,8 +74,8 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum    = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip = TimeOnly.FromTimeSpan(TimeSpan.FromHours(7)),
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = TimeOnly.FromTimeSpan(TimeSpan.FromHours(7)),
             Balloon  = null,
             Pilot    = null,
             Location = null,
@@ -102,8 +102,8 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum               = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip            = new TimeOnly(10, 0),
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = new TimeOnly(10, 0),
             PlannedLandingTime  = new TimeOnly(11, 30),
         };
 
@@ -122,8 +122,8 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum               = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip            = new TimeOnly(23, 30),
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = new TimeOnly(23, 30),
             PlannedLandingTime  = new TimeOnly(1, 15),
         };
 
@@ -141,8 +141,8 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum               = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip            = new TimeOnly(9, 0),
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = new TimeOnly(9, 0),
             PlannedLandingTime  = null,
         };
 
@@ -163,8 +163,8 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum                       = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip                    = new TimeOnly(9, 0),
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = new TimeOnly(9, 0),
             IsFlown                     = false,
             FuelConsumptionL            = 42,
             LandingLocationText         = "Leuven",
@@ -188,8 +188,8 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum                       = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip                    = new TimeOnly(9, 0),
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = new TimeOnly(9, 0),
             IsFlown                     = true,
             FuelConsumptionL            = 35.5,
             LandingLocationText         = "Tienen",
@@ -216,8 +216,8 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum                       = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip                    = new TimeOnly(9, 0),
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = new TimeOnly(9, 0),
             IsFlown                     = true,
             FuelConsumptionL            = null,
             LandingLocationText         = null,
@@ -242,13 +242,13 @@ public class PdfServiceOfpTests
     public async Task GenerateOfpAsync_NotFlown_AfterFlightDateIsBlank()
     {
         // Arrange – fp.IsFlown = false; the date cell uses the guard
-        //   fp.IsFlown ? fp.Datum.ToString("d-MM-yyyy") : "________________"
+        //   fp.IsFlown ? fp.Date.ToString("d-MM-yyyy") : "________________"
         // This must not throw even though the IsFlown branch is never taken.
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum    = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip = new TimeOnly(10, 0),
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = new TimeOnly(10, 0),
             IsFlown  = false,
         };
 
@@ -270,8 +270,8 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum               = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip            = new TimeOnly(10, 0),
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = new TimeOnly(10, 0),
             IsFlown             = true,
             VisibleDefects      = true,
             VisibleDefectsNotes = "crack in basket",
@@ -295,8 +295,8 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum               = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip            = new TimeOnly(10, 0),
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = new TimeOnly(10, 0),
             IsFlown             = true,
             VisibleDefects      = false,
             VisibleDefectsNotes = null,
@@ -319,9 +319,9 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum    = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip = new TimeOnly(9, 0),
-            Neerslag = "SCT030 BKN050",
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = new TimeOnly(9, 0),
+            Precipitation = "SCT030 BKN050",
         };
 
         // Act
@@ -339,9 +339,9 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum    = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip = new TimeOnly(9, 0),
-            Neerslag = null,
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = new TimeOnly(9, 0),
+            Precipitation = null,
         };
 
         // Act
@@ -359,9 +359,9 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum    = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip = new TimeOnly(9, 0),
-            Neerslag = string.Empty,
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = new TimeOnly(9, 0),
+            Precipitation = string.Empty,
         };
 
         // Act
@@ -379,9 +379,9 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum    = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip = new TimeOnly(9, 0),
-            Neerslag = "   ",
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = new TimeOnly(9, 0),
+            Precipitation = "   ",
         };
 
         // Act
@@ -401,8 +401,8 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum                    = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip                 = new TimeOnly(9, 0),
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = new TimeOnly(9, 0),
             SurfaceWindDirectionDeg  = null,
             SurfaceWindSpeedKt       = null,
             // WindLevels is an empty list by default
@@ -424,8 +424,8 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum                    = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip                 = new TimeOnly(9, 0),
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = new TimeOnly(9, 0),
             SurfaceWindDirectionDeg  = 270,
             SurfaceWindSpeedKt       = 15,
         };
@@ -445,8 +445,8 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum                    = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip                 = new TimeOnly(9, 0),
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = new TimeOnly(9, 0),
             SurfaceWindDirectionDeg  = 270,
             SurfaceWindSpeedKt       = null,
         };
@@ -466,8 +466,8 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum                    = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip                 = new TimeOnly(9, 0),
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = new TimeOnly(9, 0),
             SurfaceWindDirectionDeg  = null,
             SurfaceWindSpeedKt       = 15,
         };
@@ -488,8 +488,8 @@ public class PdfServiceOfpTests
         var sut = BuildSut();
         var fp = new FlightPreparation
         {
-            Datum                    = DateOnly.FromDateTime(DateTime.Today),
-            Tijdstip                 = new TimeOnly(9, 0),
+            Date = DateOnly.FromDateTime(DateTime.Today),
+            Time = new TimeOnly(9, 0),
             SurfaceWindDirectionDeg  = null,
             SurfaceWindSpeedKt       = null,
         };

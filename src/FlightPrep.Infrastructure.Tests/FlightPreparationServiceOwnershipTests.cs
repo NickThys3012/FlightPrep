@@ -46,9 +46,9 @@ public class FlightPreparationServiceOwnershipTests
     {
         await using var db = await factory.CreateDbContextAsync();
 
-        var fp1 = new FlightPreparation { Datum = new DateOnly(2025, 1, 1), Tijdstip = TimeOnly.MinValue, CreatedByUserId = "user1" };
-        var fp2 = new FlightPreparation { Datum = new DateOnly(2025, 2, 1), Tijdstip = TimeOnly.MinValue, CreatedByUserId = "user2" };
-        var fp3 = new FlightPreparation { Datum = new DateOnly(2025, 3, 1), Tijdstip = TimeOnly.MinValue, CreatedByUserId = null };
+        var fp1 = new FlightPreparation { Date = new DateOnly(2025, 1, 1), Time = TimeOnly.MinValue, CreatedByUserId = "user1" };
+        var fp2 = new FlightPreparation { Date = new DateOnly(2025, 2, 1), Time = TimeOnly.MinValue, CreatedByUserId = "user2" };
+        var fp3 = new FlightPreparation { Date = new DateOnly(2025, 3, 1), Time = TimeOnly.MinValue, CreatedByUserId = null };
 
         db.FlightPreparations.AddRange(fp1, fp2, fp3);
         await db.SaveChangesAsync();

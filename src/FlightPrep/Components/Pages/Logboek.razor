@@ -18,8 +18,8 @@ else
             <h2 class="mb-1">📓 Logboek</h2>
             @if (_flights.Count > 0)
             {
-                var first = _flights.First().Datum;
-                var last = _flights.Last().Datum;
+                var first = _flights.First().Date;
+                var last = _flights.Last().Date;
                 <p class="text-muted mb-0">@first.ToString("dd/MM/yyyy") – @last.ToString("dd/MM/yyyy")</p>
             }
             else
@@ -127,10 +127,10 @@ else
                     </tr>
                     </thead>
                     <tbody>
-                    @foreach (var f in _flights.OrderByDescending(f => f.Datum).ThenByDescending(f => f.Tijdstip))
+                    @foreach (var f in _flights.OrderByDescending(f => f.Date).ThenByDescending(f => f.Time))
                     {
                         <tr style="cursor:pointer" @onclick="() => Nav(f.Id)">
-                            <td>@f.Datum.ToString("dd/MM/yyyy")</td>
+                            <td>@f.Date.ToString("dd/MM/yyyy")</td>
                             <td>@(f.Location?.Name ?? "–")</td>
                             <td>@(f.Balloon?.Registration ?? "–")</td>
                             <td>@(f.Pilot?.Name ?? "–")</td>

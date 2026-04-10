@@ -211,7 +211,7 @@ public class FlightAssessmentServiceTests
     {
         // Arrange
         var sut = BuildSutWithRealGoNoGo();
-        var fp = new FlightPreparation { SurfaceWindSpeedKt = 5, ZichtbaarheidKm = 15, CapeJkg = 50, TotaalLiftKg = 1000 };
+        var fp = new FlightPreparation { SurfaceWindSpeedKt = 5, VisibilityKm = 15, CapeJkg = 50, TotaalLiftKg = 1000 };
 
         // Act
         var result = sut.Compute(fp, DefaultSettings());
@@ -328,7 +328,7 @@ public class FlightAssessmentServiceTests
             EnvelopeWeightKg = 100,
             Pilot = new Pilot { WeightKg = 80 },
             SurfaceWindSpeedKt = 5,
-            ZichtbaarheidKm = 20,
+            VisibilityKm = 20,
             CapeJkg = 50,
             TotaalLiftKg = 1000
         };

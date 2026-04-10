@@ -31,14 +31,14 @@ public class FlightPreparationSummaryTests
 
         // Assert
         Assert.Equal(42, summary.Id);
-        Assert.Equal(datum, summary.Datum);
-        Assert.Equal(tijdstip, summary.Tijdstip);
+        Assert.Equal(datum, summary.Date);
+        Assert.Equal(tijdstip, summary.Time);
         Assert.True(summary.IsFlown);
         Assert.Equal("OO-BUT", summary.BalloonRegistration);
         Assert.Equal("Jan Peeters", summary.PilotName);
         Assert.Equal("Leuven", summary.LocationName);
         Assert.Equal(8.5, summary.SurfaceWindSpeedKt);
-        Assert.Equal(10, summary.ZichtbaarheidKm);
+        Assert.Equal(10, summary.VisibilityKm);
         Assert.Equal(250, summary.CapeJkg);
     }
 
@@ -64,7 +64,7 @@ public class FlightPreparationSummaryTests
         Assert.Null(summary.PilotName);
         Assert.Null(summary.LocationName);
         Assert.Null(summary.SurfaceWindSpeedKt);
-        Assert.Null(summary.ZichtbaarheidKm);
+        Assert.Null(summary.VisibilityKm);
         Assert.Null(summary.CapeJkg);
         Assert.False(summary.IsFlown);
     }

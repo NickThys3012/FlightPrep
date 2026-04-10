@@ -30,7 +30,7 @@ public class FlightAssessmentService(IGoNoGoService goNoGoSvc) : IFlightAssessme
 
         var goNoGo = goNoGoSvc.Compute(
             fp.SurfaceWindSpeedKt,
-            fp.ZichtbaarheidKm,
+            fp.VisibilityKm,
             fp.CapeJkg,
             settings);
 
@@ -54,7 +54,7 @@ public class FlightAssessmentService(IGoNoGoService goNoGoSvc) : IFlightAssessme
 
         var goNoGo = goNoGoSvc.Compute(
             fp.SurfaceWindSpeedKt,
-            fp.ZichtbaarheidKm,
+            fp.VisibilityKm,
             fp.CapeJkg,
             settings);
 

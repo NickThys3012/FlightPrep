@@ -43,7 +43,7 @@ public partial class FlightPassengerList:ComponentBase
     private bool CanCalculateLift =>
         Fp.Balloon is { VolumeM3: > 0, InternalEnvelopeTempC: >= 0 and <= 100 } &&
         Fp.Location?.ElevationM.HasValue == true &&
-        Fp is { TemperatuurC: not null, MaxAltitudeFt: not null } &&
+        Fp is { TemperatureC: not null, MaxAltitudeFt: not null } &&
         Fp.MaxAltitudeFt * 0.3048 > Fp.Location!.ElevationM;
 
     /// <summary>
@@ -55,7 +55,7 @@ public partial class FlightPassengerList:ComponentBase
         if (!CanCalculateLift) return;
         var a = Fp.MaxAltitudeFt!.Value * 0.3048;
         var eg = Fp.Location!.ElevationM!.Value;
-        var tg = Fp.TemperatuurC!.Value;
+        var tg = Fp.TemperatureC!.Value;
         var ti = Fp.Balloon!.InternalEnvelopeTempC!.Value;
         var v = Fp.Balloon!.VolumeM3!.Value;
         _liftResult = LiftCalculator.Calculate(a, eg, tg, ti, v);

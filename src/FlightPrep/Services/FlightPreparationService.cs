@@ -67,7 +67,7 @@ public class FlightPreparationService(
             .Include(f => f.Pilot)
             .Include(f => f.Location)
             .Include(f => f.Shares)
-            .OrderByDescending(f => f.Datum).ThenByDescending(f => f.Tijdstip)
+            .OrderByDescending(f => f.Date).ThenByDescending(f => f.Time)
             .ToListAsync();
 
         // Step 2: Batch-load owner usernames in a single round-trip.
@@ -89,14 +89,14 @@ public class FlightPreparationService(
             var isShared = !isAdmin && f.CreatedByUserId != userId;
             return new FlightPreparationSummary(
                 f.Id,
-                f.Datum,
-                f.Tijdstip,
+                f.Date,
+                f.Time,
                 f.IsFlown,
                 f.Balloon?.Registration,
                 f.Pilot?.Name,
                 f.Location?.Name,
                 f.SurfaceWindSpeedKt,
-                f.ZichtbaarheidKm,
+                f.VisibilityKm,
                 f.CapeJkg,
                 f.CreatedByUserId)
             {
@@ -144,8 +144,8 @@ public class FlightPreparationService(
         var total = await query.CountAsync();
 
         var ordered = sortDescending
-            ? query.OrderByDescending(f => f.Datum).ThenByDescending(f => f.Tijdstip)
-            : query.OrderBy(f => f.Datum).ThenBy(f => f.Tijdstip);
+            ? query.OrderByDescending(f => f.Date).ThenByDescending(f => f.Time)
+            : query.OrderBy(f => f.Date).ThenBy(f => f.Time);
 
         // Step 1: Load paged flights with navigation properties — no correlated subquery.
         var flights = await ordered
@@ -177,14 +177,14 @@ public class FlightPreparationService(
             var isShared = !isAdmin && f.CreatedByUserId != userId;
             return new FlightPreparationSummary(
                 f.Id,
-                f.Datum,
-                f.Tijdstip,
+                f.Date,
+                f.Time,
                 f.IsFlown,
                 f.Balloon?.Registration,
                 f.Pilot?.Name,
                 f.Location?.Name,
                 f.SurfaceWindSpeedKt,
-                f.ZichtbaarheidKm,
+                f.VisibilityKm,
                 f.CapeJkg,
                 f.CreatedByUserId)
             {
@@ -632,7 +632,7 @@ public class FlightPreparationService(
             return (0, 0, 0);
 
         var total = await query.CountAsync();
-        var thisYear = await query.CountAsync(f => f.Datum.Year == currentYear);
+        var thisYear = await query.CountAsync(f => f.Date.Year == currentYear);
         var flown = await query.CountAsync(f => f.IsFlown);
         return (total, thisYear, flown);
     }
@@ -664,8 +664,8 @@ public class FlightPreparationService(
 
         return await query
             .AsNoTracking()
-            .OrderByDescending(f => f.Datum)
-            .ThenByDescending(f => f.Tijdstip)
+            .OrderByDescending(f => f.Date)
+            .ThenByDescending(f => f.Time)
             .Take(count)
             .ToListAsync();
     }
@@ -698,7 +698,7 @@ public class FlightPreparationService(
 
         return await query
             .AsNoTracking()
-            .OrderBy(f => f.Datum)
+            .OrderBy(f => f.Date)
             .ToListAsync();
     }
 }

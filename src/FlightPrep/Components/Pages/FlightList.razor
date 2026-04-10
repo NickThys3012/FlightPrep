@@ -77,8 +77,8 @@ else
             @foreach (var f in _flights!)
             {
                 <tr>
-                    <td class="fw-semibold">@f.Datum.ToString("dd/MM/yyyy")</td>
-                    <td>@f.Tijdstip.ToString("HH:mm")</td>
+                    <td class="fw-semibold">@f.Date.ToString("dd/MM/yyyy")</td>
+                    <td>@f.Time.ToString("HH:mm")</td>
                     <td>@(f.BalloonRegistration ?? "–")</td>
                     <td>@(f.PilotName ?? "–")</td>
                     <td>@(f.LocationName ?? "–")</td>

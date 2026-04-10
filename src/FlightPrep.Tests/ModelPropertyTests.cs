@@ -206,57 +206,57 @@ public class ModelPropertyTests
         var fp = new FlightPreparation
         {
             Id = 1,
-            Datum = new DateOnly(2026, 3, 26),
-            Tijdstip = new TimeOnly(9, 0),
+            Date = new DateOnly(2026, 3, 26),
+            Time = new TimeOnly(9, 0),
             BalloonId = 2,
             PilotId = 3,
             LocationId = 4,
-            VeldEigenaarGemeld = true,
+            FieldOwnerNotified = true,
             SurfaceWindSpeedKt = 8,
             SurfaceWindDirectionDeg = 220,
             Metar = "EBBR 261020Z",
             Taf = "TAF EBBR",
-            WindPerHoogte = "220/08",
-            Neerslag = "NONE",
-            TemperatuurC = 15.0,
-            DauwpuntC = 8.0,
+            WindByAltitude = "220/08",
+            Precipitation = "NONE",
+            TemperatureC = 15.0,
+            DewPointC = 8.0,
             QnhHpa = 1013.25,
-            ZichtbaarheidKm = 15,
+            VisibilityKm = 15,
             CapeJkg = 50,
             NotamsGecontroleerd = "JA",
-            Luchtruimstructuur = "CTR Brussel",
-            Beperkingen = "Geen",
-            Obstakels = "Windmolens N",
-            EhboEnBlusser = "JA",
-            PassagierslijstIngevuld = "JA",
-            VluchtplanIngediend = "JA",
-            BranderGetest = true,
-            GasflaconsGecontroleerd = true,
-            BallonVisueel = true,
-            VerankeringenGecontroleerd = true,
-            InstrumentenWerkend = true,
+            AirspaceStructure = "CTR Brussel",
+            Restrictions = "Geen",
+            Obstacles = "Windmolens N",
+            FirstAidAndExtinguisher = "JA",
+            PassengerListFilled = "JA",
+            FlightPlanFiled = "JA",
+            BurnerTested = true,
+            GasCylindersChecked = true,
+            BalloonVisual = true,
+            MooringsChecked = true,
+            InstrumentsWorking = true,
             PaxBriefing = "<p>Welkom</p>",
             EnvelopeWeightKg = 200,
             MaxAltitudeFt = 3000,
             LiftUnits = 600,
             TotaalLiftKg = 600,
             LoadNotes = "OK",
-            Traject = "Noord",
+            Route = "Noord",
             IsFlown = true,
             ActualLandingNotes = "Veldje",
             ActualFlightDurationMinutes = 75,
             ActualRemarks = "Mooi",
             KmlTrack = "<kml/>",
-            Ballonbulletin = "Bulletin tekst"
+            BalloonBulletin = "Bulletin tekst"
         };
 
         Assert.Equal(1, fp.Id);
-        Assert.Equal(new DateOnly(2026, 3, 26), fp.Datum);
-        Assert.True(fp.VeldEigenaarGemeld);
+        Assert.Equal(new DateOnly(2026, 3, 26), fp.Date);
+        Assert.True(fp.FieldOwnerNotified);
         Assert.Equal("EBBR 261020Z", fp.Metar);
         Assert.Equal("TAF EBBR", fp.Taf);
         Assert.Equal("JA", fp.NotamsGecontroleerd);
-        Assert.True(fp.BranderGetest);
+        Assert.True(fp.BurnerTested);
         Assert.True(fp.IsFlown);
         Assert.Equal(75, fp.ActualFlightDurationMinutes);
         Assert.Equal("<kml/>", fp.KmlTrack);
