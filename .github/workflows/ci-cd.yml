@@ -240,7 +240,8 @@ jobs:
 
       - name: Run EF Core migrations
         run: |
-          dotnet tool install --global dotnet-ef --version 9.0.5 || true
+          dotnet tool install --global dotnet-ef --version 9.0.5 \
+            || dotnet tool update --global dotnet-ef --version 9.0.5
           dotnet ef database update \
             --project src/FlightPrep.Infrastructure/FlightPrep.Infrastructure.csproj \
             --startup-project src/FlightPrep/FlightPrep.csproj \
