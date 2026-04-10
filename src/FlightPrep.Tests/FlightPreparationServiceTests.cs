@@ -1258,4 +1258,241 @@ public class FlightPreparationServiceTests
         Assert.Single(updated.WindLevels);
         Assert.Equal(500, updated.WindLevels[0].AltitudeFt);
     }
+
+    // ── SharedByName fallback & batch OwnerUserName load (#71) ───────────────
+
+    /// <summary>Seeds an ApplicationUser with the given userName into the in-memory DB.</summary>
+    private static async Task SeedUserAsync(
+        IDbContextFactory<AppDbContext> factory,
+        string userId,
+        string? userName)
+    {
+        await using var db = await factory.CreateDbContextAsync();
+        db.Users.Add(new ApplicationUser
+        {
+            Id                 = userId,
+            UserName           = userName,
+            NormalizedUserName = userName?.ToUpperInvariant(),
+            Email              = userName ?? userId,
+            NormalizedEmail    = (userName ?? userId).ToUpperInvariant(),
+            SecurityStamp      = Guid.NewGuid().ToString()
+        });
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>Adds a FlightPreparationShare row directly to the DB.</summary>
+    private static async Task SeedShareAsync(
+        IDbContextFactory<AppDbContext> factory,
+        int flightId,
+        string sharedWithUserId)
+    {
+        await using var db = await factory.CreateDbContextAsync();
+        db.FlightPreparationShares.Add(new FlightPreparationShare
+        {
+            FlightPreparationId = flightId,
+            SharedWithUserId    = sharedWithUserId,
+            SharedAt            = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task GetSummariesAsync_SharedFlight_OwnerHasUserName_SetsSharedByNameToUserName()
+    {
+        // Arrange
+        const string ownerId   = "owner-a";
+        const string ownerName = "alice@test.com";
+        const string viewerId  = "viewer-a";
+
+        var factory = CreateFactory(nameof(GetSummariesAsync_SharedFlight_OwnerHasUserName_SetsSharedByNameToUserName));
+        var sut     = BuildSut(factory);
+
+        await SeedUserAsync(factory, ownerId, ownerName);
+
+        await using var db = await factory.CreateDbContextAsync();
+        var fp = MakeFlight(ownerId);
+        db.FlightPreparations.Add(fp);
+        await db.SaveChangesAsync();
+        await SeedShareAsync(factory, fp.Id, viewerId);
+
+        // Act — viewer requests their list
+        var result = await sut.GetSummariesAsync(viewerId, false);
+
+        // Assert — SharedByName must equal the owner's UserName
+        Assert.Single(result);
+        Assert.True(result[0].IsShared);
+        Assert.Equal(ownerName, result[0].SharedByName);
+    }
+
+    [Fact]
+    public async Task GetSummariesAsync_SharedFlight_OwnerHasNullUserName_FallsBackToUserId()
+    {
+        // Arrange — owner exists in the Users table but has no UserName set (null)
+        const string ownerId  = "owner-b";
+        const string viewerId = "viewer-b";
+
+        var factory = CreateFactory(nameof(GetSummariesAsync_SharedFlight_OwnerHasNullUserName_FallsBackToUserId));
+        var sut     = BuildSut(factory);
+
+        await SeedUserAsync(factory, ownerId, null); // UserName = null
+
+        await using var db = await factory.CreateDbContextAsync();
+        var fp = MakeFlight(ownerId);
+        db.FlightPreparations.Add(fp);
+        await db.SaveChangesAsync();
+        await SeedShareAsync(factory, fp.Id, viewerId);
+
+        // Act
+        var result = await sut.GetSummariesAsync(viewerId, false);
+
+        // Assert — must fall back to the CreatedByUserId string, not be null or empty
+        Assert.Single(result);
+        Assert.True(result[0].IsShared);
+        Assert.Equal(ownerId, result[0].SharedByName);
+    }
+
+    [Fact]
+    public async Task GetSummariesAsync_OwnFlight_SharedByNameIsNull()
+    {
+        // Arrange — user views their own flight; IsShared = false, SharedByName must be null
+        const string userId = "owner-c";
+
+        var factory = CreateFactory(nameof(GetSummariesAsync_OwnFlight_SharedByNameIsNull));
+        var sut     = BuildSut(factory);
+
+        await SeedUserAsync(factory, userId, "charlie@test.com");
+
+        await using var db = await factory.CreateDbContextAsync();
+        db.FlightPreparations.Add(MakeFlight(userId));
+        await db.SaveChangesAsync();
+
+        // Act
+        var result = await sut.GetSummariesAsync(userId, false);
+
+        // Assert
+        Assert.Single(result);
+        Assert.False(result[0].IsShared);
+        Assert.Null(result[0].SharedByName);
+    }
+
+    [Fact]
+    public async Task GetSummariesAsync_MultipleFlightsDifferentOwners_LoadsAllOwnerUserNamesCorrectly()
+    {
+        // Arrange — two different owners share one flight each with the same viewer
+        const string owner1Id   = "owner-d1";
+        const string owner1Name = "diana@test.com";
+        const string owner2Id   = "owner-d2";
+        const string owner2Name = "evan@test.com";
+        const string viewerId   = "viewer-d";
+
+        var factory = CreateFactory(nameof(GetSummariesAsync_MultipleFlightsDifferentOwners_LoadsAllOwnerUserNamesCorrectly));
+        var sut     = BuildSut(factory);
+
+        await SeedUserAsync(factory, owner1Id, owner1Name);
+        await SeedUserAsync(factory, owner2Id, owner2Name);
+
+        await using var db = await factory.CreateDbContextAsync();
+        var fp1 = MakeFlight(owner1Id);
+        var fp2 = MakeFlight(owner2Id);
+        db.FlightPreparations.AddRange(fp1, fp2);
+        await db.SaveChangesAsync();
+
+        await SeedShareAsync(factory, fp1.Id, viewerId);
+        await SeedShareAsync(factory, fp2.Id, viewerId);
+
+        // Act
+        var result = await sut.GetSummariesAsync(viewerId, false);
+
+        // Assert — both shared summaries must carry the correct owner username
+        Assert.Equal(2, result.Count);
+        Assert.All(result, s => Assert.True(s.IsShared));
+
+        var byOwner1 = result.Single(s => s.CreatedByUserId == owner1Id);
+        var byOwner2 = result.Single(s => s.CreatedByUserId == owner2Id);
+
+        Assert.Equal(owner1Name, byOwner1.SharedByName);
+        Assert.Equal(owner2Name, byOwner2.SharedByName);
+    }
+
+    [Fact]
+    public async Task GetSummariesAsync_FlightWithNoOwner_OwnerUserNameIsNull()
+    {
+        // Arrange — flight with null CreatedByUserId; admin view so it always appears
+        var factory = CreateFactory(nameof(GetSummariesAsync_FlightWithNoOwner_OwnerUserNameIsNull));
+        var sut     = BuildSut(factory);
+
+        await using var db = await factory.CreateDbContextAsync();
+        db.FlightPreparations.Add(new FlightPreparation
+        {
+            Datum             = DateOnly.FromDateTime(DateTime.Today),
+            Tijdstip          = TimeOnly.MinValue,
+            CreatedByUserId   = null   // no owner
+        });
+        await db.SaveChangesAsync();
+
+        // Act — isAdmin = true so the query doesn't filter by userId
+        var result = await sut.GetSummariesAsync(null, true);
+
+        // Assert — summary present, SharedByName stays null (isAdmin → IsShared = false)
+        Assert.Single(result);
+        Assert.Null(result[0].SharedByName);
+        Assert.Null(result[0].CreatedByUserId);
+    }
+
+    [Fact]
+    public async Task GetSummariesPagedAsync_SharedFlight_OwnerHasUserName_SetsSharedByNameToUserName()
+    {
+        // Arrange
+        const string ownerId   = "owner-p1";
+        const string ownerName = "frank@test.com";
+        const string viewerId  = "viewer-p1";
+
+        var factory = CreateFactory(nameof(GetSummariesPagedAsync_SharedFlight_OwnerHasUserName_SetsSharedByNameToUserName));
+        var sut     = BuildSut(factory);
+
+        await SeedUserAsync(factory, ownerId, ownerName);
+
+        await using var db = await factory.CreateDbContextAsync();
+        var fp = MakeFlight(ownerId);
+        db.FlightPreparations.Add(fp);
+        await db.SaveChangesAsync();
+        await SeedShareAsync(factory, fp.Id, viewerId);
+
+        // Act
+        var (items, total) = await sut.GetSummariesPagedAsync(viewerId, false, "alle", 1, 10);
+
+        // Assert
+        Assert.Equal(1, total);
+        Assert.Single(items);
+        Assert.True(items[0].IsShared);
+        Assert.Equal(ownerName, items[0].SharedByName);
+    }
+
+    [Fact]
+    public async Task GetSummariesPagedAsync_SharedFlight_OwnerHasNullUserName_FallsBackToUserId()
+    {
+        // Arrange — owner in DB but UserName is null
+        const string ownerId  = "owner-p2";
+        const string viewerId = "viewer-p2";
+
+        var factory = CreateFactory(nameof(GetSummariesPagedAsync_SharedFlight_OwnerHasNullUserName_FallsBackToUserId));
+        var sut     = BuildSut(factory);
+
+        await SeedUserAsync(factory, ownerId, null);
+
+        await using var db = await factory.CreateDbContextAsync();
+        var fp = MakeFlight(ownerId);
+        db.FlightPreparations.Add(fp);
+        await db.SaveChangesAsync();
+        await SeedShareAsync(factory, fp.Id, viewerId);
+
+        // Act
+        var (items, total) = await sut.GetSummariesPagedAsync(viewerId, false, "alle", 1, 10);
+
+        // Assert — falls back to the raw userId string
+        Assert.Equal(1, total);
+        Assert.Single(items);
+        Assert.True(items[0].IsShared);
+        Assert.Equal(ownerId, items[0].SharedByName);
+    }
 }
