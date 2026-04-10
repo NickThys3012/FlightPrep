@@ -1,13 +1,13 @@
 using FlightPrep.Domain.Models;
+using FlightPrep.Domain.Services;
 using Microsoft.AspNetCore.Components;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace FlightPrep.Components.Pages.Settings;
 
-public partial class BalloonSettings: ComponentBase
+public partial class BalloonSettings : ComponentBase
 {
-        private List<Balloon> _balloons = [];
+    private List<Balloon> _balloons = [];
     private int? _editId;
     private Balloon _editBalloon = new();
     private bool _addingNew;
@@ -27,14 +27,7 @@ public partial class BalloonSettings: ComponentBase
 
     private async Task Load()
     {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var query = db.Balloons.AsQueryable();
-        if (!_isAdmin)
-        {
-            if (_userId == null) { _balloons = []; return; }
-            query = query.Where(b => b.OwnerId == _userId);
-        }
-        _balloons = await query.OrderBy(b => b.Registration).ToListAsync();
+        _balloons = await BalloonSvc.GetAllAsync(_userId, _isAdmin);
     }
 
     private void StartEdit(Balloon b)
@@ -68,13 +61,7 @@ public partial class BalloonSettings: ComponentBase
         }
 
         _editError = null;
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var b = await db.Balloons.FindAsync(_editBalloon.Id);
-        if (b is null || (!_isAdmin && b.OwnerId != _userId)) return;
-        var originalOwnerId = b.OwnerId;
-        db.Entry(b).CurrentValues.SetValues(_editBalloon);
-        b.OwnerId = originalOwnerId;
-        await db.SaveChangesAsync();
+        await BalloonSvc.UpdateAsync(_editBalloon, _userId, _isAdmin);
         _editId = null;
         await Load();
     }
@@ -88,25 +75,14 @@ public partial class BalloonSettings: ComponentBase
         }
 
         _newError = null;
-        _newBalloon.OwnerId = _userId;
-        await using var db = await DbFactory.CreateDbContextAsync();
-        db.Balloons.Add(_newBalloon);
-        await db.SaveChangesAsync();
+        await BalloonSvc.AddAsync(_newBalloon, _userId);
         _addingNew = false;
         await Load();
     }
 
     private async Task DeleteBalloon(int id)
     {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var b = await db.Balloons.FindAsync(id);
-        if (b != null && (_isAdmin || b.OwnerId == _userId))
-        {
-            db.Balloons.Remove(b);
-            await db.SaveChangesAsync();
-        }
-
+        await BalloonSvc.DeleteAsync(id, _userId, _isAdmin);
         await Load();
     }
-
 }

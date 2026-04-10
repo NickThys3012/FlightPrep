@@ -74,7 +74,9 @@ builder.Services.AddScoped<IGoNoGoService, GoNoGoService>();
 builder.Services.AddScoped<IOFPSettingsService, OFPSettingsService>();
 builder.Services.AddScoped<IFlightAssessmentService, FlightAssessmentService>();
 builder.Services.AddScoped<IFlightPreparationService, FlightPreparationService>();
-// Data protection keys persist to /root/.aspnet/DataProtection-Keys (mounted as Docker volume)
+builder.Services.AddScoped<IPilotService, PilotService>();
+builder.Services.AddScoped<IBalloonService, BalloonService>();
+builder.Services.AddScoped<ILocationService, LocationService>();
 
 // Application Insights — only active when APPLICATIONINSIGHTS_CONNECTION_STRING is set
 if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
@@ -126,12 +128,12 @@ builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
-// Auto-apply migrations and seed admin
+// Apply migrations (no-op in prod where CI/CD already migrated; required for docker-compose and local dev)
 using (var scope = app.Services.CreateScope())
 {
-    var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
-    using var db = dbFactory.CreateDbContext();
-    db.Database.Migrate();
+    var dbCtx = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await dbCtx.Database.MigrateAsync();   // no-op in prod, required for docker-compose
+
     await AdminSeeder.SeedAdminAsync(scope.ServiceProvider);
 }
 

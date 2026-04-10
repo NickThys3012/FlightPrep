@@ -1,13 +1,13 @@
 using FlightPrep.Domain.Models;
+using FlightPrep.Domain.Services;
 using Microsoft.AspNetCore.Components;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace FlightPrep.Components.Pages.Settings;
 
 public partial class LocationSettings : ComponentBase
 {
-       private List<Location> _locations = [];
+    private List<Location> _locations = [];
     private int? _editId;
     private Location _editLoc = new();
     private bool _addingNew;
@@ -25,14 +25,7 @@ public partial class LocationSettings : ComponentBase
 
     private async Task Load()
     {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var query = db.Locations.AsQueryable();
-        if (!_isAdmin)
-        {
-            if (_userId == null) { _locations = []; return; }
-            query = query.Where(l => l.OwnerId == _userId);
-        }
-        _locations = await query.OrderBy(l => l.Name).ToListAsync();
+        _locations = await LocationSvc.GetAllAsync(_userId, _isAdmin);
     }
 
     private void StartEdit(Location l)
@@ -47,38 +40,21 @@ public partial class LocationSettings : ComponentBase
 
     private async Task SaveEdit()
     {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var l = await db.Locations.FindAsync(_editLoc.Id);
-        if (l is null || (!_isAdmin && l.OwnerId != _userId)) return;
-        var originalOwnerId = l.OwnerId;
-        db.Entry(l).CurrentValues.SetValues(_editLoc);
-        l.OwnerId = originalOwnerId;
-        await db.SaveChangesAsync();
+        await LocationSvc.UpdateAsync(_editLoc, _userId, _isAdmin);
         _editId = null;
         await Load();
     }
 
     private async Task SaveNew()
     {
-        _newLoc.OwnerId = _userId;
-        await using var db = await DbFactory.CreateDbContextAsync();
-        db.Locations.Add(_newLoc);
-        await db.SaveChangesAsync();
+        await LocationSvc.AddAsync(_newLoc, _userId);
         _addingNew = false;
         await Load();
     }
 
     private async Task DeleteLocation(int id)
     {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var l = await db.Locations.FindAsync(id);
-        if (l != null && (_isAdmin || l.OwnerId == _userId))
-        {
-            db.Locations.Remove(l);
-            await db.SaveChangesAsync();
-        }
-
+        await LocationSvc.DeleteAsync(id, _userId, _isAdmin);
         await Load();
     }
-
 }
