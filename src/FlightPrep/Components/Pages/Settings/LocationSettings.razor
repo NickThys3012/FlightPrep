@@ -1,9 +1,9 @@
 @page "/settings/locations"
 @using FlightPrep.Domain.Models
-@using FlightPrep.Infrastructure.Data
+@using FlightPrep.Domain.Services
 @attribute [Authorize]
 @rendermode InteractiveServer
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ILocationService LocationSvc
 @inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Locaties – FlightPrep</PageTitle>

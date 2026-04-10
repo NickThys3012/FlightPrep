@@ -237,6 +237,14 @@ jobs:
           name: flightprep-publish
           path: ./publish
 
+      - name: Run EF Core migrations
+        run: |
+          dotnet tool install --global dotnet-ef --version 9.0.5 || true
+          dotnet ef database update \
+            --project src/FlightPrep/FlightPrep.csproj \
+            --no-build \
+            --connection "${{ secrets.AZURE_POSTGRESQL_CONNECTION_STRING }}"
+
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:

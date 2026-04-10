@@ -1,9 +1,9 @@
 @page "/settings/balloons"
 @using FlightPrep.Domain.Models
-@using FlightPrep.Infrastructure.Data
+@using FlightPrep.Domain.Services
 @attribute [Authorize]
 @rendermode InteractiveServer
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject IBalloonService BalloonSvc
 @inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Ballonnen – FlightPrep</PageTitle>

@@ -1,13 +1,13 @@
 using FlightPrep.Domain.Models;
+using FlightPrep.Domain.Services;
 using Microsoft.AspNetCore.Components;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace FlightPrep.Components.Pages.Settings;
 
-public partial class PilotSettings: ComponentBase
+public partial class PilotSettings : ComponentBase
 {
-       private List<Pilot> _pilots = [];
+    private List<Pilot> _pilots = [];
     private int? _editId;
     private Pilot _editPilot = new();
     private bool _addingNew;
@@ -25,14 +25,7 @@ public partial class PilotSettings: ComponentBase
 
     private async Task Load()
     {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var query = db.Pilots.AsQueryable();
-        if (!_isAdmin)
-        {
-            if (_userId == null) { _pilots = []; return; }
-            query = query.Where(p => p.OwnerId == _userId);
-        }
-        _pilots = await query.OrderBy(p => p.Name).ToListAsync();
+        _pilots = await PilotSvc.GetAllAsync(_userId, _isAdmin);
     }
 
     private void StartEdit(Pilot p)
@@ -47,37 +40,21 @@ public partial class PilotSettings: ComponentBase
 
     private async Task SaveEdit()
     {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var p = await db.Pilots.FindAsync(_editPilot.Id);
-        if (p is null || (!_isAdmin && p.OwnerId != _userId)) return;
-        var originalOwnerId = p.OwnerId;
-        db.Entry(p).CurrentValues.SetValues(_editPilot);
-        p.OwnerId = originalOwnerId;
-        await db.SaveChangesAsync();
+        await PilotSvc.UpdateAsync(_editPilot, _userId, _isAdmin);
         _editId = null;
         await Load();
     }
 
     private async Task SaveNew()
     {
-        _newPilot.OwnerId = _userId;
-        await using var db = await DbFactory.CreateDbContextAsync();
-        db.Pilots.Add(_newPilot);
-        await db.SaveChangesAsync();
+        await PilotSvc.AddAsync(_newPilot, _userId);
         _addingNew = false;
         await Load();
     }
 
     private async Task DeletePilot(int id)
     {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var p = await db.Pilots.FindAsync(id);
-        if (p != null && (_isAdmin || p.OwnerId == _userId))
-        {
-            db.Pilots.Remove(p);
-            await db.SaveChangesAsync();
-        }
+        await PilotSvc.DeleteAsync(id, _userId, _isAdmin);
         await Load();
     }
-
 }
