@@ -1,6 +1,18 @@
 {
-  "currentVersion": "16.0.3",
+  "currentVersion": "16.0.4",
   "entries": [
+    {
+      "pr": 89,
+      "version": "16.0.4",
+      "title": "fix: service layer for settings pages + migrate via CI/CD (#26, #30) [fix]",
+      "description": "Deze release bevat belangrijke verbeteringen voor de instellingenpagina's en de migratieprocessen.  \n- De instellingenpagina's zijn nu gestructureerd rond een nieuwe service-laag, wat zorgt voor een betere organisatie en onderhoudbaarheid van de code.  \n- Automatische migratie van de database is nu geïntegreerd in de CI/CD-pijplijn, waardoor de implementatie naar Azure eenvoudiger en betrouwbaarder wordt.  \n- Nieuwe interfaces en implementaties voor de services van piloten, ballonnen en locaties zijn toegevoegd, wat de functionaliteit en prestaties van de applicatie verbetert.",
+      "author": "NickThys3012",
+      "labels": [
+        "bug",
+        "architecture"
+      ],
+      "date": "2026-04-10T06:00:03Z"
+    },
     {
       "pr": 88,
       "version": "16.0.3",
