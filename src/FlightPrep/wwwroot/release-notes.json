@@ -1,6 +1,18 @@
 {
-  "currentVersion": "16.0.4",
+  "currentVersion": "16.0.5",
   "entries": [
+    {
+      "pr": 90,
+      "version": "16.0.5",
+      "title": "perf: query optimisation - AsNoTracking, batch OwnerUserName, eliminate N+1 (#71 #72 #73)",
+      "description": "De nieuwste update verbetert de prestaties van de applicatie aanzienlijk.  \n- De laadtijd van gebruikersinformatie is geoptimaliseerd door het gebruik van een batch-laadstrategie, wat resulteert in snellere toegang tot de eigenaar- en gedeelde namen.  \n- Alle leesqueries zijn nu geconfigureerd met `.AsNoTracking()`, wat de prestaties verbetert door het geheugengebruik te minimaliseren.  \n- De gebruikersbeheerfunctionaliteit is geoptimaliseerd door het elimineren van N+1 queryproblemen, wat zorgt voor snellere laadtijden van gebruikers en hun rollen.",
+      "author": "NickThys3012",
+      "labels": [
+        "bug",
+        "performance"
+      ],
+      "date": "2026-04-10T07:31:45Z"
+    },
     {
       "pr": 89,
       "version": "16.0.4",
