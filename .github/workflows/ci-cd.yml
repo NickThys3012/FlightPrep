@@ -231,19 +231,26 @@ jobs:
     # Note: APPLICATIONINSIGHTS_CONNECTION_STRING is managed by Bicep (infra/main.bicep)
     #       and does not need to be injected here.
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
-          name: flightprep-publish
-          path: ./publish
+          dotnet-version: '10.0.x'
 
       - name: Run EF Core migrations
         run: |
           dotnet tool install --global dotnet-ef --version 9.0.5 || true
           dotnet ef database update \
-            --project src/FlightPrep/FlightPrep.csproj \
-            --no-build \
+            --project src/FlightPrep.Infrastructure/FlightPrep.Infrastructure.csproj \
+            --startup-project src/FlightPrep/FlightPrep.csproj \
             --connection "${{ secrets.AZURE_POSTGRESQL_CONNECTION_STRING }}"
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: flightprep-publish
+          path: ./publish
 
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3

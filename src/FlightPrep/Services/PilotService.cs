@@ -55,6 +55,7 @@ public class PilotService(
     public async Task AddAsync(Pilot newPilot, string? userId)
     {
         ArgumentNullException.ThrowIfNull(newPilot);
+        if (userId is null) return;   // [Authorize] prevents this in practice, but guard explicitly
 
         newPilot.OwnerId = userId;
         await using var db = await dbFactory.CreateDbContextAsync();

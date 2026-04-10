@@ -55,6 +55,7 @@ public class LocationService(
     public async Task AddAsync(Location newLoc, string? userId)
     {
         ArgumentNullException.ThrowIfNull(newLoc);
+        if (userId is null) return;   // [Authorize] prevents this in practice, but guard explicitly
 
         newLoc.OwnerId = userId;
         await using var db = await dbFactory.CreateDbContextAsync();

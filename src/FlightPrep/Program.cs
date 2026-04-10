@@ -128,9 +128,12 @@ builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
-// Auto-seed admin on startup (migrations are applied via CI/CD pipeline)
+// Apply migrations (no-op in prod where CI/CD already migrated; required for docker-compose and local dev)
 using (var scope = app.Services.CreateScope())
 {
+    var dbCtx = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await dbCtx.Database.MigrateAsync();   // no-op in prod, required for docker-compose
+
     await AdminSeeder.SeedAdminAsync(scope.ServiceProvider);
 }
 

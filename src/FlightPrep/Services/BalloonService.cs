@@ -55,6 +55,7 @@ public class BalloonService(
     public async Task AddAsync(Balloon newBalloon, string? userId)
     {
         ArgumentNullException.ThrowIfNull(newBalloon);
+        if (userId is null) return;   // [Authorize] prevents this in practice, but guard explicitly
 
         newBalloon.OwnerId = userId;
         await using var db = await dbFactory.CreateDbContextAsync();
